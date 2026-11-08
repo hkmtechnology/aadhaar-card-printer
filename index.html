@@ -4246,6 +4246,48 @@
   </div>
 
   <script>
+
+    // =========================================================================
+    // DYNAMIC SCANNER BRIDGE URL RESOLVER (Wi-Fi Network / Localhost)
+    // =========================================================================
+    function getScannerBridgeHost() {
+      if (window.AndroidBridge && typeof window.AndroidBridge.getScannerBridgeIp === 'function') {
+        try {
+          const ip = window.AndroidBridge.getScannerBridgeIp();
+          if (ip && ip.trim()) return ip.trim();
+        } catch (e) {}
+      }
+      return localStorage.getItem('hkm_scanner_bridge_ip') || '192.168.31.156';
+    }
+
+    function setScannerBridgeHost(ip) {
+      if (!ip) return;
+      const cleanIp = ip.trim().replace(/^http:\/\//, '').replace(/:\d+$/, '');
+      localStorage.setItem('hkm_scanner_bridge_ip', cleanIp);
+      if (window.AndroidBridge && typeof window.AndroidBridge.setScannerBridgeIp === 'function') {
+        try { window.AndroidBridge.setScannerBridgeIp(cleanIp); } catch (e) {}
+      }
+      showToast(`Scanner Bridge IP set to: ${cleanIp}`, 'info');
+      runDeviceDetection(true);
+    }
+
+    function getApiUrl(endpoint) {
+      if (!endpoint.startsWith('/')) endpoint = '/' + endpoint;
+
+      // When running on Android WebView or file://
+      if (window.AndroidBridge || location.protocol === 'file:') {
+        const host = getScannerBridgeHost();
+        return `http://${host}:8765${endpoint}`;
+      }
+
+      // When running in desktop browser on port 8765 or custom IP
+      if (location.hostname && location.hostname !== '') {
+        return `${location.protocol}//${location.hostname}:${location.port || '8765'}${endpoint}`;
+      }
+
+      return `http://127.0.0.1:8765${endpoint}`;
+    }
+
     // 100% Native Desktop App Experience: Globally disable right-click context menu
     document.addEventListener('contextmenu', function(e) {
       e.preventDefault();
@@ -4748,7 +4790,7 @@
     async function loadSavedSettings() {
       // 1. Try server endpoint
       try {
-        const res = await fetch('/api/settings');
+        const res = await fetch(getApiUrl('/api/settings'));
         if (res.ok) {
           const data = await res.json();
           if (data && typeof data === 'object') {
@@ -4778,7 +4820,7 @@
       } catch (e) {}
 
       try {
-        const res = await fetch('/api/settings', {
+        const res = await fetch(getApiUrl('/api/settings'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(s)
@@ -4815,7 +4857,7 @@
       } catch (e) {}
 
       try {
-        const res = await fetch('/api/settings/reset', { method: 'POST' });
+        const res = await fetch(getApiUrl('/api/settings/reset'), { method: 'POST' });
         if (res.ok) {
           const data = await res.json();
           if (data.settings) {
@@ -5304,7 +5346,7 @@
       }
 
       try {
-        const res = await fetch('/api/status');
+        const res = await fetch(getApiUrl('/api/status'));
         if (res.ok) {
           const data = await res.json();
           const isScanningNow = state.isScanning || (window.docState && docState.isScanning) || (window.photoState && photoState.isScanning) || data.scanning || data.busy;
@@ -5453,7 +5495,7 @@
           if (autoCrop) {
             try {
               document.getElementById(side + 'Label').innerText = `Cropping ${file.name}...`;
-              const cropRes = await fetch('/api/crop', {
+              const cropRes = await fetch(getApiUrl('/api/crop'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -5504,7 +5546,7 @@
 
       // 1. Tell backend to taskkill PowerShell & WIA
       try {
-        await fetch('/api/abort', { method: 'POST' });
+        await fetch(getApiUrl('/api/abort'), { method: 'POST' });
       } catch (err) {}
 
       // 2. Abort client-side fetch
@@ -5567,7 +5609,7 @@
       setScanningState(true);
 
       try {
-        const response = await fetch('/api/scan', {
+        const response = await fetch(getApiUrl('/api/scan'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ side: side, autocrop: autoCrop, dpi: state.scanDpi }),
@@ -5655,7 +5697,7 @@
         document.getElementById('scanStepDesc').innerText = 'The scanner is moving and auto-detecting card borders... Click Abort if needed.';
 
         try {
-          const res = await fetch('/api/scan', {
+          const res = await fetch(getApiUrl('/api/scan'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ side: 'front', autocrop: autoCrop, dpi: state.scanDpi }),
@@ -5716,7 +5758,7 @@
         document.getElementById('scanStepDesc').innerText = 'The scanner is moving and auto-detecting card borders... Click Abort if needed.';
 
         try {
-          const res = await fetch('/api/scan', {
+          const res = await fetch(getApiUrl('/api/scan'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ side: 'back', autocrop: autoCrop, dpi: state.scanDpi }),
@@ -5792,7 +5834,7 @@
       showToast(`Analyzing text orientation for ${side === 'front' ? 'Top (Front)' : 'Bottom (Back)'}...`, 'info');
 
       try {
-        const res = await fetch('/api/orient', {
+        const res = await fetch(getApiUrl('/api/orient'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: originalSrc })
@@ -5859,7 +5901,7 @@
       showToast('Analyzing crop image text orientation...', 'info');
 
       try {
-        const res = await fetch('/api/orient', {
+        const res = await fetch(getApiUrl('/api/orient'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: targetImg.src })
@@ -6904,7 +6946,7 @@
 
       try {
         const targetPageNum = docState.pages.length + 1;
-        const res = await fetch('http://127.0.0.1:8765/api/scan', {
+        const res = await fetch(getApiUrl('/api/scan'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -7264,7 +7306,7 @@
         return;
       }
       try {
-        const res = await fetch('http://127.0.0.1:8765/api/enhance', {
+        const res = await fetch(getApiUrl('/api/enhance'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -7394,7 +7436,7 @@
       }
 
       // 2. Also send to Windows print bridge in parallel
-      fetch('http://127.0.0.1:8765/api/print_pages', {
+      fetch(getApiUrl('/api/print_pages'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -7420,7 +7462,7 @@
 
       try {
         // Try server generation first for native resolution PIL PDF
-        const res = await fetch('http://127.0.0.1:8765/api/print_pages', {
+        const res = await fetch(getApiUrl('/api/print_pages'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -7679,7 +7721,7 @@
           if (anim) anim.style.display = 'block';
           if (abortBtn) abortBtn.style.display = 'inline-block';
           try {
-            const res = await fetch('http://127.0.0.1:8765/api/scan', {
+            const res = await fetch(getApiUrl('/api/scan'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -7823,7 +7865,7 @@
       }
 
       try {
-        const res = await fetch('http://127.0.0.1:8765/api/photo/enhance', {
+        const res = await fetch(getApiUrl('/api/photo/enhance'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -8360,7 +8402,7 @@
       showToast('Preparing 300 DPI Photo Grid for Printing...', 'info');
 
       try {
-        const res = await fetch('http://127.0.0.1:8765/api/photo/print_grid', {
+        const res = await fetch(getApiUrl('/api/photo/print_grid'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -8421,7 +8463,7 @@
       showToast('Generating 300 DPI PDF...', 'info');
 
       try {
-        const res = await fetch('http://127.0.0.1:8765/api/photo/print_grid', {
+        const res = await fetch(getApiUrl('/api/photo/print_grid'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -9409,7 +9451,7 @@
 
       try {
         showToast('✨ Analyzing card borders with CamScanner auto-detection...', 'info');
-        const res = await fetch('/api/crop', {
+        const res = await fetch(getApiUrl('/api/crop'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -9531,7 +9573,7 @@
         ]);
 
         try {
-          const res = await fetch('/api/crop', {
+          const res = await fetch(getApiUrl('/api/crop'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -9719,7 +9761,34 @@
       }
     });
 
-  </script>
+  
+
+    async function testBridgeIpConnection() {
+      const input = document.getElementById('inputScannerBridgeIp');
+      const tag = document.getElementById('bridgeStatusTag');
+      const targetIp = (input && input.value.trim()) ? input.value.trim() : getScannerBridgeHost();
+      setScannerBridgeHost(targetIp);
+
+      if (tag) { tag.innerText = 'Testing...'; tag.style.color = '#cbd5e1'; }
+      showToast(`Testing connection to Epson Scanner at http://${targetIp}:8765...`, 'info');
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch(`http://${targetIp}:8765/api/status`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const data = await res.json();
+        if (data) {
+          if (tag) { tag.innerText = data.online ? 'Online & Ready' : 'Bridge Connected'; tag.style.color = '#34d399'; }
+          showToast(`Connected to Epson Scanner Bridge! ${data.message || ''}`, 'success');
+          checkScannerServer(true);
+        }
+      } catch (err) {
+        if (tag) { tag.innerText = 'Offline / Refused'; tag.style.color = '#f87171'; }
+        showToast(`Could not connect to http://${targetIp}:8765. Make sure Start_App.bat or server is running on PC.`, 'danger');
+      }
+    }
+</script>
 
   <!-- MOBILE BOTTOM NAVIGATION (Active on Mobile Phones & Android App) -->
   <nav class="mobile-bottom-nav" id="mobileBottomNav">
@@ -9790,6 +9859,20 @@
             </div>
           </div>
           <span class="device-status-badge checking" id="tileScannerBadge">Checking...</span>
+        </div>
+
+        
+        <!-- SCANNER BRIDGE WI-FI IP CONFIGURATION -->
+        <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 0.74rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">🖨️ Epson L3250 Scanner Bridge IP (Wi-Fi)</span>
+            <span id="bridgeStatusTag" style="font-size: 0.7rem; font-weight: 700; color: #34d399;">Ready</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="inputScannerBridgeIp" placeholder="192.168.31.156" style="flex: 1; background: #0b1329; border: 1px solid #334155; border-radius: 8px; color: #ffffff; padding: 7px 10px; font-size: 0.85rem; font-weight: 600;">
+            <button class="mini-btn" onclick="testBridgeIpConnection()" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; border: 1px solid #38bdf8; font-weight: 700; padding: 0 12px; border-radius: 8px;">Test</button>
+          </div>
+          <div style="font-size: 0.72rem; color: #64748b; margin-top: 4px;">Allows phone to trigger physical Epson flatbed scanner wirelessly on Wi-Fi ("Bishnu_B_Singh").</div>
         </div>
 
         <!-- ADVICE / GUIDANCE BOX -->

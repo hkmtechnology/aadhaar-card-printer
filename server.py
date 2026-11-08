@@ -1,3 +1,4 @@
+import socket
 import io
 from PIL import Image
 import os
@@ -631,9 +632,38 @@ def cleanup_project_temp_artifacts():
     except Exception:
         pass
 
+
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+def start_udp_discovery_beacon():
+    def _beacon_loop():
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(("0.0.0.0", 8766))
+            while True:
+                data, addr = s.recvfrom(1024)
+                if b"HKM_SCANNER_DISCOVERY" in data:
+                    local_ip = get_local_ip()
+                    resp = f"HKM_SCANNER_BRIDGE|{local_ip}|{PORT}".encode("utf-8")
+                    s.sendto(resp, addr)
+        except Exception:
+            pass
+    threading.Thread(target=_beacon_loop, daemon=True).start()
+
 def run_server():
     cleanup_project_temp_artifacts()
-    server_address = ("127.0.0.1", PORT)
+    server_address = ("0.0.0.0", PORT)
+    start_udp_discovery_beacon()
+    local_ip = get_local_ip()
     if sys.platform != "win32":
         ThreadingHTTPServer.allow_reuse_address = True
     else:
@@ -653,7 +683,7 @@ def run_server():
         print(f"[ERROR] Port {PORT} is already in use by another process: {e}", flush=True)
         sys.exit(1)
 
-    print(f"Scanner bridge server running on http://127.0.0.1:{PORT}", flush=True)
+    print(f"Scanner bridge server running on http://127.0.0.1:{PORT} and Wi-Fi http://{local_ip}:{PORT}", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
