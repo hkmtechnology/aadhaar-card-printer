@@ -51,87 +51,101 @@ def order_corner_points(pts):
     rect[3] = pts[np.argmax(diff)] # bottom-left has largest diff (y-x)
     return rect
 
+def is_scanner_bed_strip(strip, is_white_lid=True):
+    """
+    Determines if a 1D pixel strip along a row or column is empty scanner bed or card.
+    Empty flatbed scanner bed (white/off-white) has:
+    1. Zero texture (std < 5.5) and no dark text/emblems/photo (p5 > 195.0)
+    2. Or bright uniform background (p5 > 212.0)
+    3. Or extremely uniform surface (std < 3.5 and p5 > 185.0)
+    Cards (even pale white/yellowish cards like Aadhaar) have paper grain, guilloche print,
+    security tint, or text/photo (std >= 6.0, p5 <= 195.0, or step gradient >= 4.0).
+    """
+    if strip.size == 0:
+        return True
+    std = float(np.std(strip))
+    if is_white_lid:
+        p5 = float(np.percentile(strip, 5))
+        return (p5 > 212.0) or (std < 5.5 and p5 > 195.0) or (std < 3.5 and p5 > 185.0)
+    else:
+        p95 = float(np.percentile(strip, 95))
+        return (p95 < 60.0) or (std < 5.5 and p95 < 75.0)
+
 def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
     """
-    Refines card crop boundaries with sub-millimeter precision using bidirectional expansion and trimming:
-    1. If the initial contour missed any card borders, emblems, or text (e.g. flush against scanner bed ruler),
-       expands outwards until clean scanner lid is reached.
-    2. If the initial contour captured extra white scanner lid margin, trims inwards until the true card edge is reached.
+    Refines card crop boundaries with sub-millimeter precision using bidirectional snapping:
+    1. If the initial contour captured extra white scanner lid margin, trims inwards until the true card edge is reached.
+    2. If the initial contour missed any card borders, emblems, or text, expands outwards until clean scanner lid is reached.
     Guarantees 100% of card borders, Ashoka emblem, and text are preserved with 0px cut-off and 0px blank gap.
     """
     orig_h, orig_w = img_bgr.shape[:2]
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    bg_l = float(np.mean(bg_color))
-    # Scanner lid is >= 235, card paper is <= 218. Text/borders are <= 140.
-    lid_thresh = max(225.0, min(240.0, bg_l - 6.0))
+    is_white_lid = float(np.mean(bg_color)) >= 128.0
 
-    def is_card_col(c, y1, y2):
-        if c < 0 or c >= orig_w:
-            return False
-        strip = gray[y1:y2, c]
-        if strip.size == 0:
-            return False
-        return (float(np.mean(strip)) < lid_thresh) or (float(np.percentile(strip, 5)) < 185.0)
+    bed_m_x = max(2, int(orig_w * 0.006))
+    bed_m_y = max(2, int(orig_h * 0.006))
 
-    def is_card_row(r, x1, x2):
-        if r < 0 or r >= orig_h:
-            return False
-        strip = gray[r, x1:x2]
-        if strip.size == 0:
-            return False
-        return (float(np.mean(strip)) < lid_thresh) or (float(np.percentile(strip, 5)) < 185.0)
+    # Initial safety clamp
+    bx = max(0, min(orig_w - 40, bx))
+    by = max(0, min(orig_h - 40, by))
+    bw = max(40, min(orig_w - bx, bw))
+    bh = max(40, min(orig_h - by, bh))
 
-    for _ in range(4):
-        x1 = max(0, bx + int(bw * 0.15))
-        x2 = min(orig_w, bx + int(bw * 0.85))
-        y1 = max(0, by + int(bh * 0.15))
-        y2 = min(orig_h, by + int(bh * 0.85))
-
-        if x2 <= x1 or y2 <= y1:
+    for _ in range(3):
+        # Sample middle 60% of card height
+        y1 = max(0, by + int(bh * 0.20))
+        y2 = min(orig_h, by + int(bh * 0.80))
+        if y2 <= y1:
             break
 
-        # 1. Expand left
-        while bx > 0 and is_card_col(bx - 1, y1, y2):
-            bx -= 1
-            bw += 1
-
-        # 2. Trim left if empty lid
-        while bw > 40 and not is_card_col(bx, y1, y2):
+        # Trim left inwards if sitting on empty scanner bed
+        while bw > 40 and bx < (orig_w - 40) and is_scanner_bed_strip(gray[y1:y2, bx], is_white_lid):
             bx += 1
             bw -= 1
 
-        # 3. Expand right
-        while (bx + bw) < orig_w and is_card_col(bx + bw, y1, y2):
+        # Expand left outwards if card extends to the left
+        while bx > bed_m_x and not is_scanner_bed_strip(gray[y1:y2, bx - 1], is_white_lid):
+            bx -= 1
             bw += 1
 
-        # 4. Trim right if empty lid
-        while bw > 40 and not is_card_col(bx + bw - 1, y1, y2):
+        # Trim right inwards if sitting on empty scanner bed
+        while bw > 40 and (bx + bw - 1) < orig_w and is_scanner_bed_strip(gray[y1:y2, bx + bw - 1], is_white_lid):
             bw -= 1
 
-        # 5. Expand top
-        while by > 0 and is_card_row(by - 1, x1, x2):
-            by -= 1
-            bh += 1
+        # Expand right outwards if card extends to the right
+        while (bx + bw) < (orig_w - bed_m_x) and not is_scanner_bed_strip(gray[y1:y2, bx + bw], is_white_lid):
+            bw += 1
 
-        # 6. Trim top if empty lid
-        while bh > 40 and not is_card_row(by, x1, x2):
+        # Sample middle 60% of card width
+        x1 = max(0, bx + int(bw * 0.20))
+        x2 = min(orig_w, bx + int(bw * 0.80))
+        if x2 <= x1:
+            break
+
+        # Trim top inwards if sitting on empty scanner bed
+        while bh > 40 and by < (orig_h - 40) and is_scanner_bed_strip(gray[by, x1:x2], is_white_lid):
             by += 1
             bh -= 1
 
-        # 7. Expand bottom
-        while (by + bh) < orig_h and is_card_row(by + bh, x1, x2):
+        # Expand top outwards if card extends to the top
+        while by > bed_m_y and not is_scanner_bed_strip(gray[by - 1, x1:x2], is_white_lid):
+            by -= 1
             bh += 1
 
-        # 8. Trim bottom if empty lid
-        while bh > 40 and not is_card_row(by + bh - 1, x1, x2):
+        # Trim bottom inwards if sitting on empty scanner bed
+        while bh > 40 and (by + bh - 1) < orig_h and is_scanner_bed_strip(gray[by + bh - 1, x1:x2], is_white_lid):
             bh -= 1
+
+        # Expand bottom outwards if card extends to the bottom
+        while (by + bh) < (orig_h - bed_m_y) and not is_scanner_bed_strip(gray[by + bh, x1:x2], is_white_lid):
+            bh += 1
 
     return bx, by, bw, bh
 
 def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_right=True, allow_top=True, allow_bottom=True):
     """
-    Trims empty scanner lid fringes (mean >= 238) from the borders.
-    NEVER trims dark pixels, guaranteeing that card text, borders, and emblems are 100% protected.
+    Trims empty scanner lid fringes from the outer borders.
+    Uses is_scanner_bed_strip to ensure card text, borders, and emblems are 100% protected.
     """
     h, w = img_bgr.shape[:2]
     if h < 40 or w < 40:
@@ -142,8 +156,7 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     strip_w = min(max_trim, w // 8)
     if allow_left:
         for x in range(strip_w):
-            col_mean = np.mean(gray[:, x])
-            if col_mean >= 238.0 and np.std(gray[:, x]) < 7.0:
+            if is_scanner_bed_strip(gray[:, x]):
                 x_start = x + 1
             else:
                 break
@@ -151,8 +164,7 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     x_end = w
     if allow_right:
         for x in range(w - 1, max(0, w - strip_w - 1), -1):
-            col_mean = np.mean(gray[:, x])
-            if col_mean >= 238.0 and np.std(gray[:, x]) < 7.0:
+            if is_scanner_bed_strip(gray[:, x]):
                 x_end = x
             else:
                 break
@@ -161,8 +173,7 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     strip_h = min(max_trim, h // 8)
     if allow_top:
         for y in range(strip_h):
-            row_mean = np.mean(gray[y, :])
-            if row_mean >= 238.0 and np.std(gray[y, :]) < 7.0:
+            if is_scanner_bed_strip(gray[y, :]):
                 y_start = y + 1
             else:
                 break
@@ -170,8 +181,7 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     y_end = h
     if allow_bottom:
         for y in range(h - 1, max(0, h - strip_h - 1), -1):
-            row_mean = np.mean(gray[y, :])
-            if row_mean >= 238.0 and np.std(gray[y, :]) < 7.0:
+            if is_scanner_bed_strip(gray[y, :]):
                 y_end = y
             else:
                 break
@@ -179,7 +189,6 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     if x_end - x_start > 20 and y_end - y_start > 20:
         return img_bgr[y_start:y_end, x_start:x_end]
     return img_bgr
-
 
 def apply_card_corner_curve(img_input, radius_mm=3.18):
     """
@@ -375,9 +384,26 @@ def detect_and_crop_id_card(image_input, padding_px=0, deskew=True, corner_curve
 
     # 3. Color difference mask from flatbed background
     # Adaptive threshold using noise estimate
-    sub = img_bgr[int(orig_h * 0.1) : int(orig_h * 0.9) : 20, int(orig_w * 0.1) : int(orig_w * 0.9) : 20]
-    lid_std = float(np.std(sub)) if sub.size > 0 else 5.0
-    diff_thresh = max(16.0, lid_std * 3.2)
+    # Background noise estimate from outer corner margins (avoiding the card)
+    ch = max(2, int(orig_h * 0.05))
+    cw = max(2, int(orig_w * 0.05))
+    corners = np.concatenate([
+        img_bgr[0:ch, 0:cw].reshape(-1, 3),
+        img_bgr[0:ch, max(0, orig_w - cw) : orig_w].reshape(-1, 3),
+        img_bgr[max(0, orig_h - ch) : orig_h, 0:cw].reshape(-1, 3),
+        img_bgr[max(0, orig_h - ch) : orig_h, max(0, orig_w - cw) : orig_w].reshape(-1, 3)
+    ], axis=0)
+    corner_l = np.mean(corners, axis=1) if len(corners) > 0 else np.array([245.0])
+    if np.percentile(corner_l, 75) >= 210.0:
+        lid_pixels = corners[corner_l >= 210.0]
+        lid_std = float(np.std(lid_pixels)) if len(lid_pixels) > 0 else 3.0
+    elif np.percentile(corner_l, 25) <= 60.0:
+        lid_pixels = corners[corner_l <= 60.0]
+        lid_std = float(np.std(lid_pixels)) if len(lid_pixels) > 0 else 3.0
+    else:
+        lid_std = 3.5
+
+    diff_thresh = max(14.0, min(28.0, lid_std * 3.5))
 
     diff = np.max(np.abs(img_bgr.astype(np.float32) - bg_color), axis=2)
     color_mask = (diff > diff_thresh).astype(np.uint8) * 255
@@ -521,7 +547,7 @@ def detect_and_crop_id_card(image_input, padding_px=0, deskew=True, corner_curve
             "height": cropped_pil.height,
             "is_portrait": is_portrait
         }
-        return cropped_pil, True, (bx, by, cw, ch), info
+        return cropped_pil, True, (bx, by, bw, bh), info
 
     # Safety fallback: return clean full image (preserves entire document without cropping an empty lid corner)
     cropped_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
@@ -585,9 +611,26 @@ def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=
     else:
         bed_margin = max(4, int(min(orig_w, orig_h) * 0.008))
 
-    sub = img_bgr[int(orig_h * 0.1) : int(orig_h * 0.9) : 20, int(orig_w * 0.1) : int(orig_w * 0.9) : 20]
-    lid_std = float(np.std(sub)) if sub.size > 0 else 5.0
-    diff_thresh = max(16.0, lid_std * 3.2)
+    # Background noise estimate from outer corner margins (avoiding the card)
+    ch = max(2, int(orig_h * 0.05))
+    cw = max(2, int(orig_w * 0.05))
+    corners = np.concatenate([
+        img_bgr[0:ch, 0:cw].reshape(-1, 3),
+        img_bgr[0:ch, max(0, orig_w - cw) : orig_w].reshape(-1, 3),
+        img_bgr[max(0, orig_h - ch) : orig_h, 0:cw].reshape(-1, 3),
+        img_bgr[max(0, orig_h - ch) : orig_h, max(0, orig_w - cw) : orig_w].reshape(-1, 3)
+    ], axis=0)
+    corner_l = np.mean(corners, axis=1) if len(corners) > 0 else np.array([245.0])
+    if np.percentile(corner_l, 75) >= 210.0:
+        lid_pixels = corners[corner_l >= 210.0]
+        lid_std = float(np.std(lid_pixels)) if len(lid_pixels) > 0 else 3.0
+    elif np.percentile(corner_l, 25) <= 60.0:
+        lid_pixels = corners[corner_l <= 60.0]
+        lid_std = float(np.std(lid_pixels)) if len(lid_pixels) > 0 else 3.0
+    else:
+        lid_std = 3.5
+
+    diff_thresh = max(14.0, min(28.0, lid_std * 3.5))
 
     diff = np.max(np.abs(img_bgr.astype(np.float32) - bg_color), axis=2)
     color_mask = (diff > diff_thresh).astype(np.uint8) * 255
@@ -717,7 +760,7 @@ def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=
             "height": cropped_pil.height,
             "is_portrait": is_portrait
         }
-        return cropped_pil, True, (bx, by, cw, ch), info
+        return cropped_pil, True, (bx, by, bw, bh), info
 
     # Fallback
     cropped_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)

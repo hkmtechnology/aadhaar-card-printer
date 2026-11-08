@@ -584,6 +584,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
 
 def run_server():
     server_address = ("127.0.0.1", PORT)
+    ThreadingHTTPServer.allow_reuse_address = True
     httpd = ThreadingHTTPServer(server_address, ScanRequestHandler)
     print(f"Scanner bridge server running on http://127.0.0.1:{PORT}")
     try:

@@ -7218,12 +7218,11 @@
       if (bbox && bbox.length === 4 && bbox[2] > 10 && bbox[3] > 10) {
         const scaleX = cropState.displayW / cropState.naturalW;
         const scaleY = cropState.displayH / cropState.naturalH;
-        cropState.box = {
-          x: Math.max(0, bbox[0] * scaleX),
-          y: Math.max(0, bbox[1] * scaleY),
-          w: Math.min(cropState.displayW, bbox[2] * scaleX),
-          h: Math.min(cropState.displayH, bbox[3] * scaleY)
-        };
+        const bX = Math.max(0, Math.min(cropState.displayW - 20, bbox[0] * scaleX));
+        const bY = Math.max(0, Math.min(cropState.displayH - 20, bbox[1] * scaleY));
+        const bW = Math.max(20, Math.min(cropState.displayW - bX, bbox[2] * scaleX));
+        const bH = Math.max(20, Math.min(cropState.displayH - bY, bbox[3] * scaleY));
+        cropState.box = { x: bX, y: bY, w: bW, h: bH };
       } else {
         calcDefaultCropBox();
       }
@@ -7542,12 +7541,11 @@
           if (data.success && data.bbox && data.bbox.length === 4) {
             const scaleX = cropState.displayW / cropState.naturalW;
             const scaleY = cropState.displayH / cropState.naturalH;
-            cropState.box = {
-              x: Math.max(0, data.bbox[0] * scaleX),
-              y: Math.max(0, data.bbox[1] * scaleY),
-              w: Math.min(cropState.displayW, data.bbox[2] * scaleX),
-              h: Math.min(cropState.displayH, data.bbox[3] * scaleY)
-            };
+            const bX = Math.max(0, Math.min(cropState.displayW - 20, data.bbox[0] * scaleX));
+            const bY = Math.max(0, Math.min(cropState.displayH - 20, data.bbox[1] * scaleY));
+            const bW = Math.max(20, Math.min(cropState.displayW - bX, data.bbox[2] * scaleX));
+            const bH = Math.max(20, Math.min(cropState.displayH - bY, data.bbox[3] * scaleY));
+            cropState.box = { x: bX, y: bY, w: bW, h: bH };
             updateCropBoxDOM();
             showToast('✅ Auto-detected card boundary!', 'success');
             return;
