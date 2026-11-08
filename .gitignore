@@ -28,6 +28,8 @@ ENV/
 
 # Temporary and user scan images (prevents committing personal documents)
 *.png
+!icon*.png
+!icon-*.png
 *.jpg
 *.jpeg
 *.webp

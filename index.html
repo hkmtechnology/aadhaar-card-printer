@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HKMTECH - Card & Document Printer (Epson L3250)</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1329">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     :root {
     --card-corner-radius: 3.18mm;
@@ -1518,22 +1525,24 @@
       position: absolute;
       bottom: 8px;
       right: 8px;
-      background: rgba(15, 23, 42, 0.94);
+      background: rgba(11, 19, 41, 0.96);
       color: #38bdf8;
       border: 1px solid #0284c7;
       border-radius: 6px;
-      padding: 4px 10px;
+      padding: 3px 9px;
       font-size: 11px;
       font-weight: 700;
       pointer-events: none;
       z-index: 60;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.75);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.85);
       letter-spacing: 0.3px;
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      line-height: 1.4;
+      line-height: 1;
+      height: 22px;
+      box-sizing: border-box;
       max-width: calc(100% - 16px);
       overflow: hidden;
       text-overflow: ellipsis;
@@ -3287,6 +3296,12 @@
   </div>
 
   <script>
+    // 100% Native Desktop App Experience: Globally disable right-click context menu
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      return false;
+    }, { capture: true });
+
     const PAPER_SIZES = {
       // Standard ISO Documents
       'a4': { key: 'a4', name: 'A4', widthMm: 210.0, heightMm: 297.0, label: 'A4 (210 × 297 mm) — Standard Official', cssPage: 'A4' },
@@ -3359,6 +3374,7 @@
         rawImg: null,
         croppedImg: null,
         cropBBox: null,
+        cropCorners: null,
         rotation: 0,
         canvasAngle: 0,
         xMm: 105.0,
@@ -3369,6 +3385,7 @@
         rawImg: null,
         croppedImg: null,
         cropBBox: null,
+        cropCorners: null,
         rotation: 0,
         canvasAngle: 0,
         xMm: 105.0,
@@ -4401,6 +4418,7 @@
                   const croppedImg = new Image();
                   croppedImg.onload = () => {
                     state[side].cropBBox = cropData.bbox || null;
+                    state[side].cropCorners = cropData.corners || null;
                     state[side].croppedImg = croppedImg;
                     detectAndApplyAspect(side, croppedImg, cropData.ratio_type, cropData.aspect);
                     updateSheetLayout();
@@ -4519,6 +4537,7 @@
             state[side].rawImg = img;
             state[side].croppedImg = img;
             state[side].cropBBox = data.bbox || null;
+            state[side].cropCorners = data.corners || null;
             if (data.raw_image) {
               const rImg = new Image();
               rImg.onload = () => { state[side].rawImg = rImg; };
@@ -4606,6 +4625,7 @@
               state.front.rawImg = img;
               state.front.croppedImg = img;
               state.front.cropBBox = data.bbox || null;
+              state.front.cropCorners = data.corners || null;
               if (data.raw_image) {
                 const rImg = new Image();
                 rImg.onload = () => { state.front.rawImg = rImg; };
@@ -4666,6 +4686,7 @@
               state.back.rawImg = img;
               state.back.croppedImg = img;
               state.back.cropBBox = data.bbox || null;
+              state.back.cropCorners = data.corners || null;
               if (data.raw_image) {
                 const rImg = new Image();
                 rImg.onload = () => { state.back.rawImg = rImg; };
@@ -7517,33 +7538,38 @@
       const bbox = state[cropState.activeSide].cropBBox;
       const corners = state[cropState.activeSide].cropCorners;
 
-      // Detect whether targetElem is a full scanner bed scan or already-cropped card
-      const isFullRawBed = (cropState.naturalW > 1000 || cropState.naturalH > 1000) &&
-                           (bbox && (cropState.naturalW > bbox[2] * 1.25 || cropState.naturalH > bbox[3] * 1.25));
-
-      if (corners && corners.length === 4 && isFullRawBed) {
+      // Check if existing detected corners or bounding box match this image
+      let hasPreciseCrop = false;
+      if (corners && corners.length === 4) {
         cropState.quad = corners.map(pt => ({
           x: Math.max(0, Math.min(cropState.displayW, pt[0] * scaleX)),
           y: Math.max(0, Math.min(cropState.displayH, pt[1] * scaleY))
         }));
-      }
-
-      if (bbox && bbox.length === 4 && bbox[2] > 10 && bbox[3] > 10 && isFullRawBed) {
+        const xs = cropState.quad.map(p => p.x);
+        const ys = cropState.quad.map(p => p.y);
+        const minX = Math.max(0, Math.min(...xs));
+        const minY = Math.max(0, Math.min(...ys));
+        const maxX = Math.min(cropState.displayW, Math.max(...xs));
+        const maxY = Math.min(cropState.displayH, Math.max(...ys));
+        cropState.box = { x: minX, y: minY, w: Math.max(20, maxX - minX), h: Math.max(20, maxY - minY) };
+        hasPreciseCrop = true;
+      } else if (bbox && bbox.length === 4 && bbox[2] > 10 && bbox[3] > 10) {
         const bX = Math.max(0, Math.min(cropState.displayW - 20, bbox[0] * scaleX));
         const bY = Math.max(0, Math.min(cropState.displayH - 20, bbox[1] * scaleY));
         const bW = Math.max(20, Math.min(cropState.displayW - bX, bbox[2] * scaleX));
         const bH = Math.max(20, Math.min(cropState.displayH - bY, bbox[3] * scaleY));
         cropState.box = { x: bX, y: bY, w: bW, h: bH };
-        if (!corners || !isFullRawBed) {
-          cropState.quad = [
-            { x: bX, y: bY },
-            { x: bX + bW, y: bY },
-            { x: bX + bW, y: bY + bH },
-            { x: bX, y: bY + bH }
-          ];
-        }
-      } else {
-        // Image is already the cropped card itself: snugly fit default box to entire image
+        cropState.quad = [
+          { x: bX, y: bY },
+          { x: bX + bW, y: bY },
+          { x: bX + bW, y: bY + bH },
+          { x: bX, y: bY + bH }
+        ];
+        hasPreciseCrop = true;
+      }
+
+      if (!hasPreciseCrop) {
+        // Snugly fit provisional box to image, then immediately trigger auto-detect
         calcDefaultCropBox();
         cropState.quad = [
           { x: cropState.box.x, y: cropState.box.y },
@@ -7551,6 +7577,10 @@
           { x: cropState.box.x + cropState.box.w, y: cropState.box.y + cropState.box.h },
           { x: cropState.box.x, y: cropState.box.y + cropState.box.h }
         ];
+        // Automatically find card borders with CamScanner auto-detection
+        setTimeout(() => {
+          autoDetectCropBox();
+        }, 60);
       }
 
       updateCropBoxDOM();
@@ -7669,11 +7699,15 @@
           mmH = mmW / aspect;
         }
 
-        if (b.w < 110 || b.h < 50) {
+        if (b.w < 110 || b.h < 40) {
           chip.style.display = 'none';
         } else {
           chip.style.display = 'inline-flex';
-          chip.textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} mm • ${aspect.toFixed(2)}:1 (${natW}×${natH} px)`;
+          if (b.w < 230) {
+            chip.textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} mm • ${aspect.toFixed(2)}:1`;
+          } else {
+            chip.textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} mm • ${aspect.toFixed(2)}:1 (${natW}×${natH} px)`;
+          }
         }
       }
     }
@@ -8234,6 +8268,12 @@
         }
         state[side].croppedImg = newCroppedImg;
         state[side].cropBBox = [natX, natY, natW, natH];
+        state[side].cropCorners = [
+          [natX, natY],
+          [natX + natW, natY],
+          [natX + natW, natY + natH],
+          [natX, natY + natH]
+        ];
         state[side].cropCorners = [
           [natX, natY],
           [natX + natW, natY],

@@ -23,6 +23,21 @@ class AadhaarPrinterApp:
         self.root.geometry("1280x820")
         self.root.minsize(1050, 680)
 
+        # Set Application Icon
+        ico_path = os.path.join(CURRENT_DIR, "app_icon.ico")
+        if os.path.exists(ico_path):
+            try:
+                self.root.iconbitmap(ico_path)
+            except Exception:
+                pass
+        png_icon = os.path.join(CURRENT_DIR, "icon-512.png")
+        if os.path.exists(png_icon):
+            try:
+                self._app_icon_img = tk.PhotoImage(file=png_icon)
+                self.root.iconphoto(True, self._app_icon_img)
+            except Exception:
+                pass
+
         # State
         self.front_img = None
         self.back_img = None
