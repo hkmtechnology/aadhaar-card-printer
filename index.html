@@ -1033,6 +1033,44 @@
       box-shadow: 0 0 0 1px #3b82f6;
     }
 
+    .segmented-control {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      background: #090e1a;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1.5px solid #1e293b;
+      margin-top: 2px;
+    }
+
+    .segmented-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 0;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .segmented-btn:hover {
+      color: #f8fafc;
+      background: #334155;
+      border-color: #64748b;
+    }
+
+    .segmented-btn.active {
+      background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.45) !important;
+    }
+
     .doc-page-thumb {
       width: 48px;
       height: 64px;
@@ -2781,7 +2819,7 @@
 
           <!-- Save Multi-page PDF -->
           <button class="btn btn-pdf" id="btnDocSavePdf" style="margin-bottom: 8px;" onclick="saveDocMultiPagePdf()">
-            📥 Save Multi-Page 300 DPI PDF
+            📥 Save Multi-Page (300 DPI) PDF
           </button>
 
           <!-- Save Image -->
@@ -6038,10 +6076,14 @@
       });
       const hint = document.getElementById('docDpiHint');
       if (hint) {
-        if (dpi === 150) hint.innerText = 'Fast Draft (~10s)';
-        else if (dpi === 200) hint.innerText = 'Balanced Speed';
-        else if (dpi === 300) hint.innerText = '300 DPI Recommended';
-        else hint.innerText = 'Ultra High Definition';
+        if (docState.scanDpi === 150) hint.innerText = 'Fast Draft (~10s)';
+        else if (docState.scanDpi === 200) hint.innerText = 'Balanced Speed (~15s)';
+        else if (docState.scanDpi === 300) hint.innerText = '300 DPI Recommended';
+        else hint.innerText = 'Ultra HD (~45s)';
+      }
+      const saveBtn = document.getElementById('btnDocSavePdf');
+      if (saveBtn) {
+        saveBtn.innerHTML = `📥 Save Multi-Page (${docState.scanDpi} DPI) PDF`;
       }
     }
 
@@ -6576,29 +6618,33 @@
       window.print();
     }
 
-    // SAVE MULTI-PAGE 300 DPI PDF
+    // SAVE MULTI-PAGE DYNAMIC DPI PDF
     async function saveDocMultiPagePdf() {
       if (docState.pages.length === 0) {
         alert('Please scan or upload at least one page first.');
         return;
       }
 
-      showToast('Generating 300 DPI Multi-Page PDF...', 'info');
+      const dpi = docState.scanDpi || 300;
+      showToast(`Generating ${dpi} DPI Multi-Page PDF...`, 'info');
 
       try {
-        // Try server generation first for native 300 DPI PIL PDF
+        // Try server generation first for native resolution PIL PDF
         const res = await fetch('http://127.0.0.1:8765/api/print_pages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             pages: docState.pages.map(p => ({ image: p.enhancedImg, rotation: p.rotation || 0 })),
             copies: docState.copies,
-            action: 'pdf'
+            action: 'pdf',
+            dpi: dpi,
+            paper_width_mm: state.paperWidthMm || 210.0,
+            paper_height_mm: state.paperHeightMm || 297.0
           })
         });
         const data = await res.json();
         if (data.success && data.pdf_path) {
-          showToast(`Multi-Page PDF saved at:\n${data.pdf_path}`, 'success');
+          showToast(`Multi-Page (${dpi} DPI) PDF saved at:\n${data.pdf_path}`, 'success');
           return;
         }
       } catch (e) {}
@@ -6611,15 +6657,15 @@
           renderedJpegs.push(jData);
         }
 
-        const pdfBytes = createMultiPageDocumentPDF(renderedJpegs, docState.copies);
+        const pdfBytes = createMultiPageDocumentPDF(renderedJpegs, docState.copies, dpi);
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.download = `HKMTECH_Document_${docState.pages.length}_Pages.pdf`;
+        a.download = `HKMTECH_Document_${docState.pages.length}_Pages_${dpi}DPI.pdf`;
         a.href = url;
         a.click();
         URL.revokeObjectURL(url);
-        showToast('Multi-Page PDF downloaded!', 'success');
+        showToast(`Multi-Page (${dpi} DPI) PDF downloaded!`, 'success');
       } catch (err) {
         alert('Failed to generate PDF: ' + err.message);
       }
@@ -6629,7 +6675,8 @@
       return new Promise(resolve => {
         const img = new Image();
         img.onload = function() {
-          const scale = 300.0 / 25.4;
+          const dpi = docState.scanDpi || 300.0;
+          const scale = dpi / 25.4;
           const A4_W = Math.round((state.paperWidthMm || 210.0) * scale);
           const A4_H = Math.round((state.paperHeightMm || 297.0) * scale);
           const canvas = document.createElement('canvas');
@@ -6678,12 +6725,13 @@
       });
     }
 
-    function createMultiPageDocumentPDF(jpegBinaries, numCopies) {
+    function createMultiPageDocumentPDF(jpegBinaries, numCopies, dpi) {
       numCopies = numCopies || 1;
+      const chosenDpi = dpi || docState.scanDpi || 300.0;
       const widthPt = ((state.paperWidthMm || 210.0) * 72.0 / 25.4).toFixed(2);
       const heightPt = ((state.paperHeightMm || 297.0) * 72.0 / 25.4).toFixed(2);
-      const imgW = Math.round((state.paperWidthMm || 210.0) * 300.0 / 25.4);
-      const imgH = Math.round((state.paperHeightMm || 297.0) * 300.0 / 25.4);
+      const imgW = Math.round((state.paperWidthMm || 210.0) * chosenDpi / 25.4);
+      const imgH = Math.round((state.paperHeightMm || 297.0) * chosenDpi / 25.4);
 
       let parts = [];
       let offsets = [];

@@ -373,6 +373,17 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if url.path == "/api/restart":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True, "message": "Server restarting..."}).encode("utf-8"))
+            def _delayed_exit():
+                time.sleep(0.5)
+                os._exit(0)
+            threading.Thread(target=_delayed_exit, daemon=True).start()
+            return
+
         if url.path == "/api/print_pages":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
@@ -388,7 +399,11 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 from io import BytesIO
                 from PIL import Image
 
-                A4_W, A4_H = 2480, 3508 # 300 DPI
+                dpi = int(params.get("dpi", 300))
+                paper_w_mm = float(params.get("paper_width_mm", 210.0))
+                paper_h_mm = float(params.get("paper_height_mm", 297.0))
+                A4_W = int(round(paper_w_mm * dpi / 25.4))
+                A4_H = int(round(paper_h_mm * dpi / 25.4))
                 pil_pages = []
 
                 for item in pages_data:
@@ -436,9 +451,9 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
 
                 temp_pdf = os.path.join(CURRENT_DIR, f"multi_page_doc_{int(time.time())}.pdf")
                 if len(final_pages) == 1:
-                    final_pages[0].save(temp_pdf, "PDF", resolution=300.0)
+                    final_pages[0].save(temp_pdf, "PDF", resolution=float(dpi))
                 else:
-                    final_pages[0].save(temp_pdf, "PDF", resolution=300.0, save_all=True, append_images=final_pages[1:])
+                    final_pages[0].save(temp_pdf, "PDF", resolution=float(dpi), save_all=True, append_images=final_pages[1:])
 
                 if action == "print" and sys.platform == "win32":
                     os.startfile(temp_pdf)
