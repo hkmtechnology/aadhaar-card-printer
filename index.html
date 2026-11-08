@@ -1518,17 +1518,25 @@
       position: absolute;
       bottom: 8px;
       right: 8px;
-      background: rgba(15, 23, 42, 0.92);
+      background: rgba(15, 23, 42, 0.94);
       color: #38bdf8;
       border: 1px solid #0284c7;
-      border-radius: 5px;
-      padding: 3px 9px;
+      border-radius: 6px;
+      padding: 4px 10px;
       font-size: 11px;
       font-weight: 700;
       pointer-events: none;
       z-index: 60;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.75);
       letter-spacing: 0.3px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.4;
+      max-width: calc(100% - 16px);
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .crop-magnifier {
@@ -2995,6 +3003,9 @@
           </button>
           <button class="mini-btn" onclick="rotateCropImage(90)" title="Rotate image 90° clockwise">
             ⟳ 90°
+          </button>
+          <button class="mini-btn" onclick="rotateCropImage(180)" title="Flip image 180° (Turn upside down)">
+            180° Flip
           </button>
         </div>
       </div>
@@ -7327,7 +7338,12 @@
           mmH = mmW / aspect;
         }
 
-        chip.innerText = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} mm • ${aspect.toFixed(2)}:1 (${natW}×${natH} px)`;
+        if (b.w < 110 || b.h < 50) {
+          chip.style.display = 'none';
+        } else {
+          chip.style.display = 'inline-flex';
+          chip.textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} mm • ${aspect.toFixed(2)}:1 (${natW}×${natH} px)`;
+        }
       }
     }
 

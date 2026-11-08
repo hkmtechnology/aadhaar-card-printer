@@ -584,13 +584,30 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
 
 def run_server():
     server_address = ("127.0.0.1", PORT)
-    ThreadingHTTPServer.allow_reuse_address = True
-    httpd = ThreadingHTTPServer(server_address, ScanRequestHandler)
-    print(f"Scanner bridge server running on http://127.0.0.1:{PORT}")
+    if sys.platform != "win32":
+        ThreadingHTTPServer.allow_reuse_address = True
+    else:
+        ThreadingHTTPServer.allow_reuse_address = False
+
+    try:
+        httpd = ThreadingHTTPServer(server_address, ScanRequestHandler)
+    except OSError as e:
+        import urllib.request
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/api/settings", timeout=1.5) as res:
+                if res.status == 200:
+                    print(f"Scanner bridge server is already active and healthy on http://127.0.0.1:{PORT}", flush=True)
+                    sys.exit(0)
+        except Exception:
+            pass
+        print(f"[ERROR] Port {PORT} is already in use by another process: {e}", flush=True)
+        sys.exit(1)
+
+    print(f"Scanner bridge server running on http://127.0.0.1:{PORT}", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nShutting down server.")
+        print("\nShutting down server.", flush=True)
 
 if __name__ == "__main__":
     run_server()

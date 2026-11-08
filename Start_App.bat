@@ -1,38 +1,90 @@
 @echo off
-title HKMTECH Card & Document Printer (Auto-Scan)
+title HKMTECH Card ^& Document Printer
 cd /d "%~dp0"
 
 echo ========================================================
-echo   HKMTECH - Card & Document Printer (Epson L3250)
+echo   HKMTECH - Card ^& Document Printer (Epson L3250)
 echo ========================================================
 echo.
-echo Starting scanner bridge server...
 
-REM Kill any old instance of server.py on port 8765
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8765 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>&1
+REM 1. Check if server is already running and responding to HTTP
+curl.exe -s --max-time 1 http://127.0.0.1:8765/api/settings >nul 2>&1
+if not errorlevel 1 (
+    echo [OK] Scanner bridge server is already active on http://127.0.0.1:8765
+    goto :launch_browser
+)
 
-REM Start server in background
-start /B python server.py >nul 2>&1
+REM 2. Determine Python launcher
+set "PY_CMD="
+where python >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=python"
+) else (
+    where py >nul 2>&1
+    if not errorlevel 1 (
+        set "PY_CMD=py"
+    )
+)
 
-REM Wait 1 second for server to initialize
-timeout /t 1 /nobreak >nul
+if "%PY_CMD%"=="" (
+    echo [ERROR] Python was not found on your system PATH!
+    echo Please make sure Python 3 is installed.
+    echo.
+    pause
+    exit /b 1
+)
 
+echo Starting scanner bridge server in background...
+start "HKMTECH Scanner Bridge" /min %PY_CMD% "%~dp0server.py"
+
+REM 3. Wait up to 6 seconds for server to respond to HTTP requests
+for /L %%i in (1,1,12) do (
+    ping 127.0.0.1 -n 1 -w 500 >nul 2>&1
+    curl.exe -s --max-time 1 http://127.0.0.1:8765/api/settings >nul 2>&1
+    if not errorlevel 1 goto :server_ready
+)
+
+REM If curl.exe check failed, test netstat as fallback
+netstat -ano | findstr :8765 | findstr LISTENING >nul 2>&1
+if not errorlevel 1 goto :server_ready
+
+echo [ERROR] Scanner bridge server failed to start on http://127.0.0.1:8765
+echo Testing server diagnostics:
+%PY_CMD% "%~dp0server.py"
+echo.
+pause
+exit /b 1
+
+:server_ready
+echo [OK] Scanner bridge server is active on http://127.0.0.1:8765
+echo.
+
+:launch_browser
 set "TARGET_URL=http://127.0.0.1:8765/index.html"
+echo Launching application window...
 
-echo Launching app...
-
-REM Try Microsoft Edge App Mode
+REM 1. Try Microsoft Edge App Mode
 if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" (
     start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --app="%TARGET_URL%" --window-size=1280,840
-    exit /b
+    exit /b 0
 )
 
-REM Try Google Chrome App Mode
+if exist "C:\Program Files\Microsoft\Edge\Application\msedge.exe" (
+    start "" "C:\Program Files\Microsoft\Edge\Application\msedge.exe" --app="%TARGET_URL%" --window-size=1280,840
+    exit /b 0
+)
+
+REM 2. Try Google Chrome App Mode
 if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
     start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app="%TARGET_URL%" --window-size=1280,840
-    exit /b
+    exit /b 0
 )
 
-REM Default browser
+if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" (
+    start "" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --app="%TARGET_URL%" --window-size=1280,840
+    exit /b 0
+)
+
+REM 3. Default browser fallback
 start "" "%TARGET_URL%"
-exit /b
+exit /b 0
