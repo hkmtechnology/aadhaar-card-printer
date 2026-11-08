@@ -149,7 +149,12 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 raw_bytes = base64.b64decode(img_b64)
                 pil_raw = Image.open(io.BytesIO(raw_bytes))
 
-                if doc_type in ("a4", "small", "auto"):
+                points = params.get("points")
+                if points and len(points) == 4:
+                    cropped_pil, detected, bbox, r_info = autocrop.warp_quad_card(
+                        pil_raw, points, corner_curve_mm=corner_curve_mm
+                    )
+                elif doc_type in ("a4", "small", "auto"):
                     cropped_pil, detected, bbox, r_info = autocrop.detect_and_crop_document(
                         pil_raw, doc_type=doc_type, corner_curve_mm=corner_curve_mm
                     )
@@ -176,6 +181,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                     "image": f"data:image/png;base64,{out_b64}",
                     "cropped": detected,
                     "bbox": list(bbox) if bbox else None,
+                    "corners": r_info.get("corners"),
                     "ratio_type": r_info.get("ratio_type", "custom"),
                     "aspect": r_info.get("aspect", cropped_pil.width / float(cropped_pil.height)),
                     "is_portrait": r_info.get("is_portrait", (cropped_pil.height > cropped_pil.width)),
@@ -296,6 +302,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                     "image": f"data:image/png;base64,{b64}",
                     "raw_image": raw_b64,
                     "bbox": result.get("bbox"),
+                    "corners": result.get("corners"),
                     "cropped": result["cropped"],
                     "doc_type": result.get("doc_type", doc_type),
                     "ratio_type": result.get("ratio_type", "custom"),

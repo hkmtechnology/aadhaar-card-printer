@@ -366,6 +366,7 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
             "path": output_path,
             "raw_path": raw_output_path,
             "bbox": detected_bbox,
+            "corners": ratio_info.get("corners"),
             "cropped": was_cropped,
             "ratio_type": ratio_info.get("ratio_type", "custom"),
             "aspect": ratio_info.get("aspect", final_img.width / float(final_img.height)),

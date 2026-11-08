@@ -528,6 +528,17 @@ def detect_and_crop_id_card(image_input, padding_px=0, deskew=True, corner_curve
             allow_bottom=(by + bh < orig_h)
         )
 
+        # Compute card quad corners in raw image coordinates
+        if deskew and has_tilt:
+            corners_list = ordered_pts.tolist()
+        else:
+            corners_list = [
+                [float(bx), float(by)],
+                [float(bx + bw), float(by)],
+                [float(bx + bw), float(by + bh)],
+                [float(bx), float(by + bh)]
+            ]
+
         # Automatic Text Orientation & Horizontalness Alignment
         cropped_bgr, rot_angle, is_portrait, aspect, ratio_type = detect_and_correct_text_orientation(cropped_bgr)
         cw = cropped_bgr.shape[1]
@@ -545,7 +556,8 @@ def detect_and_crop_id_card(image_input, padding_px=0, deskew=True, corner_curve
             "aspect": aspect,
             "width": cropped_pil.width,
             "height": cropped_pil.height,
-            "is_portrait": is_portrait
+            "is_portrait": is_portrait,
+            "corners": corners_list
         }
         return cropped_pil, True, (bx, by, bw, bh), info
 
@@ -560,9 +572,95 @@ def detect_and_crop_id_card(image_input, padding_px=0, deskew=True, corner_curve
         "aspect": aspect,
         "width": orig_w,
         "height": orig_h,
-        "is_portrait": is_port
+        "is_portrait": is_port,
+        "corners": [
+            [0.0, 0.0],
+            [float(orig_w), 0.0],
+            [float(orig_w), float(orig_h)],
+            [0.0, float(orig_h)]
+        ]
     }
     return cropped_pil, False, (0, 0, orig_w, orig_h), info
+
+def warp_quad_card(image_input, points, corner_curve_mm=3.18, deskew=True, auto_orient=True):
+    """
+    Given an image (PIL Image or BGR numpy array) and 4 corner points
+    [[x0, y0], [x1, y1], [x2, y2], [x3, y3]],
+    performs a 4-point perspective warp into an orthogonal card image.
+    Applies optional corner curvature and automatic text horizontalness alignment.
+
+    Returns: (warped_pil_image, success_bool, (bx, by, bw, bh), info_dict)
+    """
+    if isinstance(image_input, Image.Image):
+        img_rgb = np.array(image_input.convert("RGB"))
+        img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+    elif isinstance(image_input, str):
+        img_bgr = cv2.imread(image_input)
+    else:
+        img_bgr = image_input.copy() if hasattr(image_input, "copy") else np.array(image_input)
+
+    if img_bgr is None:
+        return None, False, (0, 0, 0, 0), {"ratio_type": "id_card", "aspect": 1.585, "is_portrait": False}
+
+    orig_h, orig_w = img_bgr.shape[:2]
+    pts = np.array(points, dtype=np.float32)
+    if pts.shape != (4, 2):
+        raise ValueError("points must be a list or array of 4 coordinates [[x,y], ...]")
+
+    # Order points clockwise: TL, TR, BR, BL
+    ordered_pts = order_corner_points(pts)
+
+    # Compute target width and height from Euclidean distance between corners
+    w_top = np.linalg.norm(ordered_pts[1] - ordered_pts[0])
+    w_bot = np.linalg.norm(ordered_pts[2] - ordered_pts[3])
+    target_w = max(20, int(round(max(w_top, w_bot))))
+
+    h_left = np.linalg.norm(ordered_pts[3] - ordered_pts[0])
+    h_right = np.linalg.norm(ordered_pts[2] - ordered_pts[1])
+    target_h = max(20, int(round(max(h_left, h_right))))
+
+    dst_pts = np.array([
+        [0, 0],
+        [target_w - 1, 0],
+        [target_w - 1, target_h - 1],
+        [0, target_h - 1]
+    ], dtype=np.float32)
+
+    M = cv2.getPerspectiveTransform(ordered_pts, dst_pts)
+    warped_bgr = cv2.warpPerspective(img_bgr, M, (target_w, target_h), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REPLICATE)
+
+    # Calculate bounding box of the input quadrilateral
+    min_x = max(0, int(np.min(ordered_pts[:, 0])))
+    min_y = max(0, int(np.min(ordered_pts[:, 1])))
+    max_x = min(orig_w, int(np.max(ordered_pts[:, 0])))
+    max_y = min(orig_h, int(np.max(ordered_pts[:, 1])))
+    bx, by, bw, bh = min_x, min_y, max_x - min_x, max_y - min_y
+
+    # Automatic Text Orientation & Horizontalness Alignment if requested
+    if auto_orient:
+        warped_bgr, rot_angle, is_portrait, aspect, ratio_type = detect_and_correct_text_orientation(warped_bgr)
+    else:
+        cw = warped_bgr.shape[1]
+        ch = warped_bgr.shape[0]
+        aspect = cw / float(ch)
+        is_portrait = (ch > cw)
+        ratio_type = "id_card_portrait" if is_portrait else "id_card"
+
+    warped_rgb = cv2.cvtColor(warped_bgr, cv2.COLOR_BGR2RGB)
+    warped_pil = Image.fromarray(warped_rgb)
+
+    if corner_curve_mm and corner_curve_mm > 0:
+        warped_pil = apply_card_corner_curve(warped_pil, radius_mm=corner_curve_mm)
+
+    info = {
+        "ratio_type": ratio_type,
+        "aspect": aspect,
+        "width": warped_pil.width,
+        "height": warped_pil.height,
+        "is_portrait": is_portrait,
+        "corners": ordered_pts.tolist()
+    }
+    return warped_pil, True, (bx, by, bw, bh), info
 
 def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=True):
     """

@@ -37,9 +37,9 @@ if "%PY_CMD%"=="" (
 echo Starting scanner bridge server in background...
 start "HKMTECH Scanner Bridge" /min %PY_CMD% "%~dp0server.py"
 
-REM 3. Wait up to 6 seconds for server to respond to HTTP requests
-for /L %%i in (1,1,12) do (
-    ping 127.0.0.1 -n 1 -w 500 >nul 2>&1
+REM 3. Wait up to 8 seconds for server to initialize
+for /L %%i in (1,1,8) do (
+    ping 127.0.0.1 -n 2 >nul
     curl.exe -s --max-time 1 http://127.0.0.1:8765/api/settings >nul 2>&1
     if not errorlevel 1 goto :server_ready
 )
