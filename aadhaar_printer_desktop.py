@@ -55,7 +55,7 @@ class AadhaarPrinterApp:
         self.top_pos_mm = tk.DoubleVar(value=48.0)
         self.bottom_pos_mm = tk.DoubleVar(value=196.0)
 
-        self.border_style = tk.StringVar(value="solid")
+        self.border_style = tk.StringVar(value="none")
         self.corner_curve_var = tk.StringVar(value="3.18mm (Standard PVC)")
         self.color_mode = tk.StringVar(value="clean")
         self.brightness_var = tk.DoubleVar(value=4.0)
@@ -3194,7 +3194,7 @@ class AadhaarPrinterApp:
         self.front_canvas_angle.set(0.0)
         self.back_canvas_angle.set(0.0)
         self.update_canvas_info_labels()
-        self.border_style.set("solid")
+        self.border_style.set("none")
         self.color_mode.set("clean")
         self.brightness_var.set(4.0)
         self.contrast_var.set(18.0)

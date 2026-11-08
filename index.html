@@ -2053,7 +2053,7 @@
           </div>
 
           <!-- FRONT CARD SLOT -->
-          <div class="card-slot slot-front border-solid" id="frontSlot" data-side="front" ondblclick="openManualCropModal('front')">
+          <div class="card-slot slot-front border-none" id="frontSlot" data-side="front" ondblclick="openManualCropModal('front')">
             <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('front');" title="Adjust crop box">✂ Adjust Crop</button>
             <!-- 4 Corner Resize Handles (Drag to resize document size) -->
             <div class="slot-corner-handle handle-tl" data-corner="tl" data-side="front" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
@@ -2084,7 +2084,7 @@
           </div>
 
           <!-- BACK CARD SLOT -->
-          <div class="card-slot slot-back border-solid" id="backSlot" data-side="back" ondblclick="openManualCropModal('back')">
+          <div class="card-slot slot-back border-none" id="backSlot" data-side="back" ondblclick="openManualCropModal('back')">
             <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('back');" title="Adjust crop box">✂ Adjust Crop</button>
             <!-- 4 Corner Resize Handles (Drag to resize document size) -->
             <div class="slot-corner-handle handle-tl" data-corner="tl" data-side="back" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
@@ -2245,9 +2245,9 @@
           <div class="form-group" style="margin-top: 8px;">
             <label>Card Cutting Border</label>
             <select id="borderSelect" class="mini-btn" style="width: 100%;" onchange="updateBorders(this.value)">
-              <option value="border-solid" selected>Thin Solid Border (Recommended for Lamination)</option>
+              <option value="border-none" selected>No Border</option>
+              <option value="border-solid">Thin Solid Border (Recommended for Lamination)</option>
               <option value="border-cut">Dotted Scissor Cut Line</option>
-              <option value="border-none">No Border</option>
             </select>
           </div>
 
@@ -3555,7 +3555,7 @@
       widthMm: 85.6,
       topPosMm: 48,
       bottomPosMm: 196,
-      borderClass: 'border-solid',
+      borderClass: 'border-none',
       cornerCurveMm: 3.18,
       colorMode: 'clean',
       brightness: 4,
@@ -3856,7 +3856,7 @@
         }
 
         if (settings.borderStyle || settings.borderClass) {
-          let bClass = 'border-solid';
+          let bClass = 'border-none';
           if (settings.borderStyle === 'dashed' || settings.borderClass === 'border-cut') {
             bClass = 'border-cut';
           } else if (settings.borderStyle === 'none' || settings.borderClass === 'border-none') {
@@ -4044,8 +4044,8 @@
         backXMm: 105.0,
         frontAngle: 0.0,
         backAngle: 0.0,
-        borderStyle: 'solid',
-        borderClass: 'border-solid',
+        borderStyle: 'none',
+        borderClass: 'border-none',
         colorMode: 'clean',
         brightness: 4,
         contrast: 18,
@@ -5377,8 +5377,12 @@
       state.borderClass = borderClass;
       ['frontSlot', 'backSlot'].forEach(id => {
         const el = document.getElementById(id);
-        el.className = 'card-slot ' + (id === 'frontSlot' ? 'slot-front ' : 'slot-back ') + borderClass;
+        if (el) {
+          el.className = 'card-slot ' + (id === 'frontSlot' ? 'slot-front ' : 'slot-back ') + borderClass;
+        }
       });
+      const bSel = document.getElementById('borderSelect');
+      if (bSel) bSel.value = borderClass;
       onSettingChanged();
     }
 

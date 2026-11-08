@@ -4,7 +4,7 @@
   "autoCrop": true,
   "aspectMode": "exact",
   "sizePreset": "standard",
-  "cardWidthMm": 95.5,
+  "cardWidthMm": 92,
   "topPosMm": 26.5,
   "bottomPosMm": 190.5,
   "borderStyle": "none",
