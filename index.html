@@ -5663,48 +5663,6 @@
         }
       }
 
-      // Wi-Fi Direct direct scan via AndroidBridge
-      if (window.AndroidBridge && typeof window.AndroidBridge.scanFromEpsonDirect === 'function') {
-        let isDirect = false;
-        try {
-          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
-          if (dev.is_wifi_direct || dev.connection_type === 'Wi-Fi Direct') isDirect = true;
-        } catch (e) {}
-
-        if (isDirect) {
-          openScanModal(`Scanning ${side.toUpperCase()} Side (${state.scanDpi} DPI)`, 'Epson L3250 is scanning via Wi-Fi Direct...', true);
-          setScanningState(true);
-          try {
-            showToast(`Initiating direct scan from Epson L3250...`, 'info');
-            const dataUrl = window.AndroidBridge.scanFromEpsonDirect(state.scanDpi, 'id_card');
-            if (dataUrl && dataUrl.startsWith('data:image')) {
-              const img = new Image();
-              img.onload = () => {
-                state[side].rawImg = img;
-                state[side].croppedImg = img;
-                state[side].rotation = 0;
-                detectAndApplyAspect(side, img);
-                renderSlot(side);
-                document.getElementById(side + 'Controls').style.display = 'flex';
-                document.getElementById(side + 'Label').innerText = `Scanned ${side.toUpperCase()} (Wi-Fi Direct)`;
-                setScanningState(false);
-                closeScanModal();
-                showToast(`${side.toUpperCase()} scanned successfully!`, 'success');
-              };
-              img.src = dataUrl;
-              return;
-            } else {
-              throw new Error('No image returned from scanner. Check Wi-Fi Direct connection.');
-            }
-          } catch (scanErr) {
-            alert('Scan error: ' + (scanErr.message || 'Direct scan failed.'));
-            setScanningState(false);
-            closeScanModal();
-            return;
-          }
-        }
-      }
-
       openScanModal(`Scanning ${side.toUpperCase()} Side (${state.scanDpi} DPI)`, 'Epson L3250 scanner is running. Click Abort if needed.', true);
       const autoCrop = document.getElementById('autoCropToggle').checked;
 
@@ -7050,53 +7008,6 @@
       }
 
       docState.abortController = new AbortController();
-
-      // Wi-Fi Direct direct scan via AndroidBridge
-      if (window.AndroidBridge && typeof window.AndroidBridge.scanFromEpsonDirect === 'function') {
-        let isDirect = false;
-        try {
-          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
-          if (dev.is_wifi_direct || dev.connection_type === 'Wi-Fi Direct') isDirect = true;
-        } catch (e) {}
-
-        if (isDirect) {
-          const targetPageNum = docState.pages.length + 1;
-          showToast(`Scanning Page ${targetPageNum} via Epson L3250 Flatbed (Wi-Fi Direct)...`, 'info');
-          try {
-            const dataUrl = window.AndroidBridge.scanFromEpsonDirect(docState.scanDpi, docState.docType);
-            if (dataUrl && dataUrl.startsWith('data:image')) {
-              const newPage = {
-                id: 'page_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                rawImg: dataUrl,
-                enhancedImg: dataUrl,
-                rotation: 0,
-                docType: docState.docType,
-                preset: docState.autoEnhance ? docState.enhancePreset : 'original',
-                brightness: docState.brightness,
-                contrast: docState.contrast,
-                sharpness: docState.sharpness,
-                bgWhiten: docState.bgWhiten,
-                aspect: 0.707
-              };
-              docState.pages.push(newPage);
-              docState.currentIndex = docState.pages.length - 1;
-              renderDocPageList();
-              renderCurrentDocPage();
-              showToast(`Page ${targetPageNum} scanned successfully!`, 'success');
-              return;
-            } else {
-              throw new Error('No image returned from Epson scanner.');
-            }
-          } catch (err) {
-            showToast('Scan failed: ' + (err.message || 'Check printer connection'), 'danger');
-            return;
-          } finally {
-            docState.isScanning = false;
-            if (banner) banner.style.display = 'none';
-            if (scanBtn) scanBtn.disabled = false;
-          }
-        }
-      }
 
       try {
         const targetPageNum = docState.pages.length + 1;

@@ -255,7 +255,8 @@ class MainActivity : ComponentActivity() {
                 json.put("printer_status", if (dev.isReady) "Ready" else "Offline")
                 json.put("scanner_name", dev.scannerName)
                 json.put("scanner_online", dev.scannerOnline)
-                json.put("scanner_message", if (dev.isWifiDirect) "Epson L3250 Ready on Wi-Fi Direct" else "Epson Scanner Ready")
+                val bIp = getScannerBridgeIp()
+                json.put("scanner_message", if (dev.isWifiDirect) "Epson L3250 Ready on Wi-Fi Direct" else "Epson L3250 Ready on Wi-Fi")
                 json.put("is_wifi_direct", dev.isWifiDirect)
             } catch (e: Exception) {
                 json.put("error", e.message)

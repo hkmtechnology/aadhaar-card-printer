@@ -46,9 +46,9 @@ object DeviceDetector {
 
         // 2. Check if connected to Epson Wi-Fi Direct
         val ssidUpper = (ssid ?: "").uppercase()
-        val isDirectSsid = ssidUpper.contains("DIRECT") || ssidUpper.contains("L3250") || ssidUpper.contains("EPSON")
-        val (isDirectReachable, detectedIp) = EpsonDirectScanner.checkPrinterOnline(context)
-        val isWifiDirect = isDirectSsid || isDirectReachable
+        val isDirectSsid = ssidUpper.contains("DIRECT") && (ssidUpper.contains("L3250") || ssidUpper.contains("EPSON"))
+        val isWifiDirect = isDirectSsid
+        val detectedIp = "192.168.31.223"
 
         // 3. Check USB OTG
         var hasUsbPrinter = false
@@ -77,7 +77,7 @@ object DeviceDetector {
 
         val portStr = when {
             isWifiDirect -> "Wi-Fi Direct ($detectedIp)"
-            isWifi -> "Wireless Network"
+            isWifi -> "Wi-Fi Network (${ssid ?: "Connected"})"
             hasUsbPrinter -> "USB OTG Port"
             else -> "Android Print Spooler"
         }
