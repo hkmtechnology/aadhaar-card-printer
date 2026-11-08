@@ -2248,6 +2248,33 @@
         box-sizing: border-box !important;
       }
 
+      
+      /* Responsive Device Detection Modal on Mobile */
+      .device-modal-card {
+        border-radius: 14px !important;
+        max-height: 94vh !important;
+        width: 95vw !important;
+      }
+      .device-modal-header {
+        padding: 16px 16px 12px !important;
+      }
+      .device-modal-body {
+        padding: 14px 14px !important;
+        gap: 10px !important;
+      }
+      .device-modal-footer {
+        padding: 14px 16px 18px !important;
+      }
+      .device-status-tile {
+        padding: 12px 14px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+      }
+      .device-status-badge {
+        align-self: flex-start !important;
+      }
+
       /* Fullscreen Crop Modal on Mobile */
       .crop-modal-box {
         width: 100vw !important;
@@ -2262,6 +2289,281 @@
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
       }
+    }
+
+  
+    /* ==========================================================================
+       DEVICE & PRINTER CONNECTION DETECTION MODAL
+       ========================================================================== */
+    .device-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(3, 7, 18, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 100000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: fadeInModal 0.25s ease-out;
+    }
+
+    @keyframes fadeInModal {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .device-modal-card {
+      background: linear-gradient(180deg, #111c33 0%, #090e1a 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.35);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 580px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(14, 165, 233, 0.15);
+      display: flex;
+      flex-direction: column;
+      color: #f8fafc;
+      animation: scaleUpModal 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes scaleUpModal {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .device-modal-header {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .device-modal-title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .device-modal-icon-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
+      flex-shrink: 0;
+    }
+
+    .device-modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+
+    .device-modal-subtitle {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .device-modal-body {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .device-status-tile {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .device-status-tile:hover {
+      border-color: rgba(56, 189, 248, 0.45);
+      background: rgba(15, 23, 42, 0.98);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .device-tile-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .device-tile-icon {
+      font-size: 1.6rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .device-tile-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .device-tile-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+    }
+
+    .device-tile-value {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-top: 2px;
+    }
+
+    .device-tile-sub {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .device-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .device-status-badge.online {
+      background: rgba(16, 185, 129, 0.16);
+      color: #34d399;
+      border: 1px solid #059669;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+    }
+
+    .device-status-badge.offline {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+      border: 1px solid #dc2626;
+    }
+
+    .device-status-badge.checking {
+      background: rgba(148, 163, 184, 0.16);
+      color: #cbd5e1;
+      border: 1px solid #64748b;
+    }
+
+    .device-alert-box {
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .device-alert-box.info {
+      background: rgba(14, 165, 233, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #bae6fd;
+    }
+
+    .device-alert-box.warning {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fde68a;
+    }
+
+    .device-modal-footer {
+      padding: 16px 24px 22px;
+      border-top: 1px solid rgba(56, 189, 248, 0.16);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .device-btn-proceed {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      border: 1px solid #34d399;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .device-btn-proceed:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(16, 185, 129, 0.45);
+    }
+
+    .device-btn-recheck {
+      background: rgba(14, 165, 233, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 11px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .device-btn-recheck:hover {
+      background: rgba(14, 165, 233, 0.28);
+      color: #ffffff;
+    }
+
+    .device-checkbox-label {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      justify-content: center;
     }
 
   </style>
@@ -2289,6 +2591,7 @@
       <h1><span style="color: #38bdf8; font-weight: 800; letter-spacing: 0.5px;">HKMTECH</span> Card & Document Printer</h1>
       <span class="badge">100% Offline & Private</span>
       <span class="epson-tag checking" id="scannerBadge" onclick="checkScannerServer(true)" title="Click to refresh connection status">⏳ Checking Scanner...</span>
+        <span class="epson-tag checking" id="deviceConnectionBadge" onclick="openDeviceDetectionModal(true)" title="Click to view Wi-Fi / USB, Printer Name & Model" style="cursor: pointer; margin-left: 6px;">📶 Detecting Connection...</span>
 
       <!-- GLOBAL PAPER SIZE SELECTOR -->
       <div class="paper-selector-wrap" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(15, 23, 42, 0.6); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.35); margin-left: 6px;">
@@ -9433,6 +9736,84 @@
       <span class="mobile-nav-label">3. Print & Size</span>
     </button>
   </nav>
+
+
+  <!-- DEVICE & PRINTER CONNECTION VERIFICATION MODAL -->
+  <div class="device-modal-overlay" id="deviceDetectionModal">
+    <div class="device-modal-card">
+      <div class="device-modal-header">
+        <div class="device-modal-title-group">
+          <div class="device-modal-icon-badge">📡</div>
+          <div>
+            <div class="device-modal-title">Device & Printer Connection Setup</div>
+            <div class="device-modal-subtitle">Detecting Wi-Fi / USB interface, printer name & model number</div>
+          </div>
+        </div>
+        <button class="mini-btn" onclick="closeDeviceDetectionModal()" title="Skip / Close" style="background: transparent; border: none; font-size: 1.2rem; color: #94a3b8; cursor: pointer;">✕</button>
+      </div>
+
+      <div class="device-modal-body">
+        <!-- TILE 1: NETWORK & CONNECTION -->
+        <div class="device-status-tile" id="tileNetwork">
+          <div class="device-tile-left">
+            <div class="device-tile-icon" id="tileNetIcon">📶</div>
+            <div class="device-tile-info">
+              <span class="device-tile-label">Connection Interface</span>
+              <span class="device-tile-value" id="tileNetValue">Checking Wi-Fi / USB...</span>
+              <span class="device-tile-sub" id="tileNetSub">Detecting local network status</span>
+            </div>
+          </div>
+          <span class="device-status-badge checking" id="tileNetBadge">Checking...</span>
+        </div>
+
+        <!-- TILE 2: PRINTER NAME & MODEL -->
+        <div class="device-status-tile" id="tilePrinter">
+          <div class="device-tile-left">
+            <div class="device-tile-icon">🖨️</div>
+            <div class="device-tile-info">
+              <span class="device-tile-label">Printer Name & Model</span>
+              <span class="device-tile-value" id="tilePrinterName">EPSON L3250 Series</span>
+              <span class="device-tile-sub" id="tilePrinterModel">Model: L3250 • EcoTank Multifunction</span>
+            </div>
+          </div>
+          <span class="device-status-badge checking" id="tilePrinterBadge">Checking...</span>
+        </div>
+
+        <!-- TILE 3: SCANNER HARDWARE -->
+        <div class="device-status-tile" id="tileScanner">
+          <div class="device-tile-left">
+            <div class="device-tile-icon">📷</div>
+            <div class="device-tile-info">
+              <span class="device-tile-label">Scanner Hardware</span>
+              <span class="device-tile-value" id="tileScannerName">EPSON L3250 Flatbed (WIA)</span>
+              <span class="device-tile-sub" id="tileScannerSub">1200 DPI Optical Scanner Ready</span>
+            </div>
+          </div>
+          <span class="device-status-badge checking" id="tileScannerBadge">Checking...</span>
+        </div>
+
+        <!-- ADVICE / GUIDANCE BOX -->
+        <div class="device-alert-box info" id="deviceAlertBox">
+          <span style="font-size: 1.15rem;">ℹ️</span>
+          <span id="deviceAlertText">Detecting hardware communication. You can proceed directly to Aadhaar card printing, multi-page scanning, or passport photos.</span>
+        </div>
+      </div>
+
+      <div class="device-modal-footer">
+        <button class="device-btn-proceed" id="btnProceedToActivity" onclick="closeDeviceDetectionModal()">
+          <span>🚀 Proceed to Printing & Scanning Activity</span>
+          <span style="font-size: 1.2rem;">→</span>
+        </button>
+        <button class="device-btn-recheck" id="btnRecheckDevice" onclick="runDeviceDetection(true)">
+          <span>🔄 Re-Detect Devices & Network</span>
+        </button>
+        <label class="device-checkbox-label">
+          <input type="checkbox" id="chkAutoProceed" onchange="toggleAutoProceed(this.checked)" checked>
+          <span>Auto-proceed on launch when printer is ready</span>
+        </label>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>

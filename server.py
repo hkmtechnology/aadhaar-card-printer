@@ -49,6 +49,16 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
+        if url.path == "/api/device_info":
+            force = ("force" in (url.query or ""))
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            info = scanner.get_system_device_info(force=force)
+            self.wfile.write(json.dumps(info).encode("utf-8"))
+            return
+
         if url.path == "/api/status":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")

@@ -7,6 +7,8 @@ import tempfile
 import uuid
 from PIL import Image
 import autocrop
+import json
+import re
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SCAN_SCRIPT = os.path.join(CURRENT_DIR, "run_scan.ps1")
@@ -220,6 +222,110 @@ try {
         _CACHED_STATUS = status_dict
 
     return status_dict
+
+
+_DEVICE_INFO_LOCK = threading.Lock()
+_LAST_DEVICE_INFO_TIME = 0
+_CACHED_DEVICE_INFO = None
+
+def get_system_device_info(force=False):
+    """
+    Detects whether the system is connected via Wi-Fi or USB,
+    and retrieves the printer name, model number, connection port,
+    and scanner availability status.
+    """
+    global _LAST_DEVICE_INFO_TIME, _CACHED_DEVICE_INFO
+    now = time.time()
+    with _DEVICE_INFO_LOCK:
+        if not force and _CACHED_DEVICE_INFO and (now - _LAST_DEVICE_INFO_TIME < 3.5):
+            return _CACHED_DEVICE_INFO
+
+    info = {
+        "success": True,
+        "connection_type": "USB",
+        "wifi_ssid": None,
+        "wifi_signal": None,
+        "printer_name": "EPSON L3250 Series",
+        "model_number": "L3250",
+        "port": "USB001",
+        "printer_connection": "USB (USB001)",
+        "printer_status": "Offline",
+        "scanner_name": "EPSON L3250 Series",
+        "scanner_online": False,
+        "scanner_message": "Scanner Offline"
+    }
+
+    # 1. Check Wi-Fi connection interface
+    try:
+        wlan_res = subprocess.run(["netsh", "wlan", "show", "interfaces"], capture_output=True, text=True, timeout=2)
+        for line in wlan_res.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("SSID") and not line.startswith("BSSID"):
+                parts = line.split(":", 1)
+                if len(parts) == 2:
+                    info["wifi_ssid"] = parts[1].strip()
+            elif line.startswith("State"):
+                if "connected" in line.lower():
+                    info["connection_type"] = "Wi-Fi"
+            elif line.startswith("Signal"):
+                parts = line.split(":", 1)
+                if len(parts) == 2:
+                    info["wifi_signal"] = parts[1].strip()
+    except Exception:
+        pass
+
+    # 2. Check Windows Printers via PowerShell
+    try:
+        ps_cmd = 'Get-CimInstance Win32_Printer | Select-Object Name, DriverName, PortName, WorkOffline | ConvertTo-Json'
+        ps_res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], capture_output=True, text=True, timeout=3)
+        if ps_res.stdout.strip():
+            p_data = json.loads(ps_res.stdout)
+            printers = [p_data] if isinstance(p_data, dict) else p_data
+            target_pr = None
+            for p in printers:
+                name = p.get("Name", "")
+                if "3250" in name or "epson" in name.lower():
+                    target_pr = p
+                    break
+            if not target_pr and printers:
+                target_pr = printers[0]
+
+            if target_pr:
+                info["printer_name"] = target_pr.get("Name")
+                info["port"] = target_pr.get("PortName")
+                offline = target_pr.get("WorkOffline", True)
+                info["printer_status"] = "Offline" if offline else "Ready"
+
+                m = re.search(r'([A-Za-z]+\s*\d{3,4})', info["printer_name"] or "")
+                if m:
+                    info["model_number"] = m.group(1).strip()
+                else:
+                    info["model_number"] = info["printer_name"]
+
+                port_str = info["port"] or ""
+                if "USB" in port_str.upper():
+                    info["printer_connection"] = f"USB ({port_str})"
+                    if info["connection_type"] != "Wi-Fi":
+                        info["connection_type"] = "USB"
+                elif "WSD" in port_str.upper() or "IP_" in port_str.upper() or "." in port_str:
+                    info["printer_connection"] = f"Wi-Fi / Network ({port_str})"
+                    info["connection_type"] = "Wi-Fi"
+                else:
+                    info["printer_connection"] = port_str
+    except Exception:
+        pass
+
+    # 3. Check Scanner
+    sc_status = check_scanner_online(force=force)
+    info["scanner_online"] = sc_status.get("online", False)
+    info["scanner_name"] = sc_status.get("device_name") or info["printer_name"]
+    info["scanner_message"] = sc_status.get("message", "Scanner Offline")
+
+    with _DEVICE_INFO_LOCK:
+        _LAST_DEVICE_INFO_TIME = time.time()
+        _CACHED_DEVICE_INFO = info
+
+    return info
 
 def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_type="id_card", auto_enhance=False, enhance_preset="clean", corner_curve_mm=0):
     """
