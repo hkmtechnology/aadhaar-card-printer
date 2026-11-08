@@ -5889,6 +5889,27 @@
     }
 
     function doPrint() {
+      if (window.AndroidBridge && window.AndroidBridge.printPdf) {
+        try {
+          const canvas = renderHighResA4Canvas();
+          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          const base64Data = jpegDataUrl.split(',')[1];
+          const binaryImg = atob(base64Data);
+          const copies = state.copies || 1;
+          const pdfBytes = createA4ImagePDF(binaryImg, copies);
+          let binaryStr = '';
+          const bytes = new Uint8Array(pdfBytes);
+          for (let i = 0; i < bytes.length; i++) {
+            binaryStr += String.fromCharCode(bytes[i]);
+          }
+          const b64Pdf = btoa(binaryStr);
+          window.AndroidBridge.printPdf(b64Pdf, "Aadhaar_Card_A4_Print");
+          return;
+        } catch(err) {
+          console.error("Android print error:", err);
+        }
+      }
+
       const copies = state.copies || 1;
       const originalSheet = document.getElementById('a4Sheet');
       const clonedSheets = [];

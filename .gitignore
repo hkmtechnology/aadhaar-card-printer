@@ -49,3 +49,9 @@ Desktop.ini
 .idea/
 *.swp
 *.swo
+
+*.apk
+android/.gradle/
+android/app/build/
+android/local.properties
+android/.idea/
