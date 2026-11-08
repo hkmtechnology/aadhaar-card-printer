@@ -2163,7 +2163,7 @@ class AadhaarPrinterApp:
 
         def run_thread():
             import time
-            out_file = os.path.join(CURRENT_DIR, f"scanned_{side}_{int(time.time())}.png")
+            out_file = os.path.join(tempfile.gettempdir(), f"scanned_{side}_{int(time.time())}.png")
             res = scanner.scan_from_epson(
                 output_path=out_file,
                 dpi=chosen_dpi,

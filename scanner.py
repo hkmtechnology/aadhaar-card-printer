@@ -3,6 +3,8 @@ import sys
 import subprocess
 import time
 import threading
+import tempfile
+import uuid
 from PIL import Image
 import autocrop
 
@@ -229,7 +231,7 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
     ABORT_REQUESTED = False
     set_scan_active(True)
 
-    raw_scan_path = os.path.join(CURRENT_DIR, f"raw_scan_{int(time.time())}.bmp")
+    raw_scan_path = os.path.join(tempfile.gettempdir(), f"raw_scan_{int(time.time())}_{uuid.uuid4().hex[:6]}.bmp")
     
     cmd = [
         "powershell",
@@ -405,6 +407,11 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
         set_scan_active(False)
         with PROC_LOCK:
             CURRENT_SCAN_PROC = None
+        if 'raw_scan_path' in locals() and raw_scan_path and os.path.exists(raw_scan_path):
+            try:
+                os.remove(raw_scan_path)
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     print("Testing scanner module...")

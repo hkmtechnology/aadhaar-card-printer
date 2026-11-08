@@ -268,7 +268,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
             enhance_preset = params.get("enhance_preset", "clean")
             corner_curve_mm = float(params.get("corner_curve_mm", 0))
 
-            temp_out = os.path.join(CURRENT_DIR, f"web_scan_{side}_{int(time.time())}.png")
+            temp_out = os.path.join(tempfile.gettempdir(), f"web_scan_{side}_{int(time.time())}_{uuid.uuid4().hex[:6]}.png")
             result = scanner.scan_from_epson(
                 output_path=temp_out,
                 dpi=dpi,
@@ -449,7 +449,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 for _ in range(copies):
                     final_pages.extend(pil_pages)
 
-                temp_pdf = os.path.join(CURRENT_DIR, f"multi_page_doc_{int(time.time())}.pdf")
+                temp_pdf = os.path.join(tempfile.gettempdir(), f"multi_page_doc_{int(time.time())}_{uuid.uuid4().hex[:6]}.pdf")
                 if len(final_pages) == 1:
                     final_pages[0].save(temp_pdf, "PDF", resolution=float(dpi))
                 else:
@@ -569,7 +569,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 )
 
                 # Export to PDF or image
-                temp_pdf = os.path.join(CURRENT_DIR, f"passport_photos_{int(time.time())}.pdf")
+                temp_pdf = os.path.join(tempfile.gettempdir(), f"passport_photos_{int(time.time())}_{uuid.uuid4().hex[:6]}.pdf")
                 sheets_list = [sheet] * copies
                 sheets_list[0].save(temp_pdf, "PDF", resolution=300.0, save_all=(copies > 1), append_images=sheets_list[1:] if copies > 1 else [])
 
@@ -607,7 +607,22 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
+
+def cleanup_project_temp_artifacts():
+    """Automatically removes any legacy scan or PDF dumps from project directory."""
+    try:
+        patterns = ("raw_scan_", "web_scan_", "scanned_", "multi_page_doc_", "passport_photos_")
+        for f in os.listdir(CURRENT_DIR):
+            if any(f.startswith(p) for p in patterns) and (f.endswith(".bmp") or f.endswith(".jpg") or f.endswith(".png") or f.endswith(".pdf")):
+                try:
+                    os.remove(os.path.join(CURRENT_DIR, f))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
 def run_server():
+    cleanup_project_temp_artifacts()
     server_address = ("127.0.0.1", PORT)
     if sys.platform != "win32":
         ThreadingHTTPServer.allow_reuse_address = True
