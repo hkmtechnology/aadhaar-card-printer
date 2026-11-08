@@ -96,11 +96,12 @@ class MainActivity : ComponentActivity() {
         settings.databaseEnabled = true
         settings.allowFileAccess = true
         settings.allowContentAccess = true
-        settings.useWideViewPort = true
-        settings.loadWithOverviewMode = true
-        settings.builtInZoomControls = true
+        settings.useWideViewPort = false
+        settings.loadWithOverviewMode = false
+        settings.builtInZoomControls = false
         settings.displayZoomControls = false
-        settings.setSupportZoom(true)
+        settings.setSupportZoom(false)
+        settings.textZoom = 100
         settings.cacheMode = WebSettings.LOAD_DEFAULT
 
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)

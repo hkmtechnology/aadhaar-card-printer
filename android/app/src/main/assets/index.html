@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>HKMTECH - Card & Document Printer (Epson L3250)</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="shortcut icon" href="favicon.ico">
@@ -1982,6 +1982,288 @@
       background: #0f172a;
     }
 
+
+    /* ==========================================================================
+       MOBILE NATIVE RESPONSIVE UI ADAPTATION
+       ========================================================================== */
+    .mobile-bottom-nav {
+      display: none;
+    }
+
+    .mobile-sheet-quick-bar {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      html, body {
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        -webkit-text-size-adjust: 100% !important;
+      }
+
+      body {
+        padding-bottom: 70px !important;
+      }
+
+      /* Compact, Touch-Friendly Mobile Header */
+      header {
+        padding: 8px 12px !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      .header-title {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+      }
+
+      .header-title h1 {
+        font-size: 1.05rem !important;
+      }
+
+      .mode-nav-tabs {
+        margin-left: 0 !important;
+        width: 100% !important;
+        display: flex !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+      }
+
+      .mode-nav-tabs::-webkit-scrollbar {
+        display: none !important;
+      }
+
+      .mode-tab-btn {
+        flex: 1 !important;
+        text-align: center !important;
+        justify-content: center !important;
+        padding: 9px 8px !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap !important;
+      }
+
+      /* Main Layout as Single Column with Tabs */
+      .main-layout.mode-hidden {
+        display: none !important;
+      }
+      .main-layout.mode-active {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow-y: visible !important;
+      }
+
+      /* Mobile Tab Switching in Card Mode */
+      body[data-mob-tab="upload"] #cardModeLayout .sidebar-left { display: block !important; width: 100% !important; }
+      body[data-mob-tab="upload"] #cardModeLayout .preview-workspace { display: none !important; }
+      body[data-mob-tab="upload"] #cardModeLayout .sidebar-right { display: none !important; }
+
+      body[data-mob-tab="preview"] #cardModeLayout .sidebar-left { display: none !important; }
+      body[data-mob-tab="preview"] #cardModeLayout .preview-workspace { display: flex !important; width: 100% !important; min-height: 72vh !important; }
+      body[data-mob-tab="preview"] #cardModeLayout .sidebar-right { display: none !important; }
+
+      body[data-mob-tab="settings"] #cardModeLayout .sidebar-left { display: none !important; }
+      body[data-mob-tab="settings"] #cardModeLayout .preview-workspace { display: none !important; }
+      body[data-mob-tab="settings"] #cardModeLayout .sidebar-right { display: block !important; width: 100% !important; }
+
+      /* Mobile Tab Switching in Multi-Page Mode */
+      body[data-mob-tab="upload"] #docModeLayout .sidebar-left { display: block !important; width: 100% !important; }
+      body[data-mob-tab="upload"] #docModeLayout .preview-workspace { display: none !important; }
+      body[data-mob-tab="upload"] #docModeLayout .sidebar-right { display: none !important; }
+
+      body[data-mob-tab="preview"] #docModeLayout .sidebar-left { display: none !important; }
+      body[data-mob-tab="preview"] #docModeLayout .preview-workspace { display: flex !important; width: 100% !important; min-height: 72vh !important; }
+      body[data-mob-tab="preview"] #docModeLayout .sidebar-right { display: none !important; }
+
+      body[data-mob-tab="settings"] #docModeLayout .sidebar-left { display: none !important; }
+      body[data-mob-tab="settings"] #docModeLayout .preview-workspace { display: none !important; }
+      body[data-mob-tab="settings"] #docModeLayout .sidebar-right { display: block !important; width: 100% !important; }
+
+      /* Mobile Tab Switching in Photo Studio Mode */
+      body[data-mob-tab="upload"] #photoModeLayout .sidebar-left { display: block !important; width: 100% !important; }
+      body[data-mob-tab="upload"] #photoModeLayout .preview-workspace { display: none !important; }
+      body[data-mob-tab="upload"] #photoModeLayout .sidebar-right { display: none !important; }
+
+      body[data-mob-tab="preview"] #photoModeLayout .sidebar-left { display: none !important; }
+      body[data-mob-tab="preview"] #photoModeLayout .preview-workspace { display: flex !important; width: 100% !important; min-height: 72vh !important; }
+      body[data-mob-tab="preview"] #photoModeLayout .sidebar-right { display: none !important; }
+
+      body[data-mob-tab="settings"] #photoModeLayout .sidebar-left { display: none !important; }
+      body[data-mob-tab="settings"] #photoModeLayout .preview-workspace { display: none !important; }
+      body[data-mob-tab="settings"] #photoModeLayout .sidebar-right { display: block !important; width: 100% !important; }
+
+      /* Sidebar full width & comfortable scrolling */
+      .sidebar {
+        width: 100% !important;
+        border: none !important;
+        padding: 10px 12px 30px !important;
+        box-sizing: border-box !important;
+      }
+
+      .sidebar-scroll {
+        max-height: none !important;
+        overflow-y: visible !important;
+        padding: 0 !important;
+      }
+
+      .section-card {
+        margin-bottom: 14px !important;
+        padding: 16px !important;
+      }
+
+      /* Finger-Friendly Large Touch Targets */
+      .btn-scan-action, .btn-wizard, .btn-primary, .btn-success, .btn-danger {
+        min-height: 48px !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+      }
+
+      .mini-btn {
+        min-height: 40px !important;
+        padding: 8px 14px !important;
+        font-size: 0.85rem !important;
+      }
+
+      .upload-box {
+        padding: 26px 16px !important;
+        border-width: 2px !important;
+        margin: 8px 0 !important;
+      }
+
+      .upload-label {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+      }
+
+      .upload-sub {
+        font-size: 0.8rem !important;
+      }
+
+      /* Range Sliders Touch Comfort */
+      input[type="range"] {
+        height: 10px !important;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        width: 24px !important;
+        height: 24px !important;
+      }
+
+      /* Mobile Preview Workspace & Scaled Sheet */
+      .preview-workspace {
+        width: 100% !important;
+        padding: 10px 4px !important;
+        box-sizing: border-box !important;
+      }
+
+      .preview-toolbar {
+        width: 100% !important;
+        padding: 8px 10px !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        box-sizing: border-box !important;
+      }
+
+      .preview-viewport {
+        padding: 6px 2px !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: flex-start !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      /* Mobile Bottom Navigation Bar */
+      .mobile-bottom-nav {
+        display: flex !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 62px !important;
+        background: rgba(10, 16, 30, 0.98) !important;
+        backdrop-filter: blur(16px) !important;
+        border-top: 1px solid rgba(56, 189, 248, 0.25) !important;
+        z-index: 9999 !important;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.7) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+      }
+
+      .mobile-nav-btn {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        border: none !important;
+        color: #94a3b8 !important;
+        font-size: 0.74rem !important;
+        font-weight: 700 !important;
+        gap: 4px !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+        position: relative !important;
+      }
+
+      .mobile-nav-btn.active {
+        color: #38bdf8 !important;
+        background: rgba(56, 189, 248, 0.12) !important;
+      }
+
+      .mobile-nav-btn.active::after {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 20% !important;
+        right: 20% !important;
+        height: 3px !important;
+        background: #38bdf8 !important;
+        border-radius: 0 0 3px 3px !important;
+        box-shadow: 0 2px 8px rgba(56, 189, 248, 0.8) !important;
+      }
+
+      .mobile-nav-icon {
+        font-size: 1.3rem !important;
+        line-height: 1 !important;
+      }
+
+      /* Mobile Sheet Quick Action Bar */
+      .mobile-sheet-quick-bar {
+        display: flex !important;
+        justify-content: center !important;
+        gap: 10px !important;
+        padding: 10px 12px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Fullscreen Crop Modal on Mobile */
+      .crop-modal-box {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+      }
+
+      .crop-modal-toolbar {
+        padding: 8px 10px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+    }
+
   </style>
 
   <!-- SVG SHARPENING CONVOLUTION FILTERS FOR CRISP AADHAAR TEXT & QR -->
@@ -2067,7 +2349,7 @@
   </header>
 
   <!-- CARD 2-IN-1 MODE INTERFACE -->
-  <div class="main-layout" id="cardModeLayout">
+  <div class="main-layout mode-active" id="cardModeLayout">
 
     <!-- LEFT SIDEBAR: SCAN & INPUT SOURCES -->
     <aside class="sidebar sidebar-left">
@@ -2740,7 +3022,7 @@
   </div>
 
   <!-- MULTI-PAGE DOCUMENT SCANNER INTERFACE -->
-  <div class="main-layout" id="docModeLayout" style="display: none;">
+  <div class="main-layout mode-hidden" id="docModeLayout" style="display: none;">
 
     <!-- LEFT SIDEBAR: SCAN & PAGE LIST -->
     <aside class="sidebar sidebar-left">
@@ -2989,7 +3271,7 @@
   <div id="docPrintContainer"></div>
 
   <!-- PASSPORT PHOTO STUDIO INTERFACE -->
-  <div class="main-layout" id="photoModeLayout" style="display: none;">
+  <div class="main-layout mode-hidden" id="photoModeLayout" style="display: none;">
 
     <!-- LEFT SIDEBAR: PHOTO INPUT & FRAMING -->
     <aside class="sidebar sidebar-left">
@@ -6227,9 +6509,21 @@
       if (btnDoc) btnDoc.classList.toggle('active', mode === 'doc');
       if (btnPhoto) btnPhoto.classList.toggle('active', mode === 'photo');
 
-      if (cardLayout) cardLayout.style.display = (mode === 'card') ? 'flex' : 'none';
-      if (docLayout) docLayout.style.display = (mode === 'doc') ? 'flex' : 'none';
-      if (photoLayout) photoLayout.style.display = (mode === 'photo') ? 'flex' : 'none';
+      if (cardLayout) {
+        cardLayout.style.display = (mode === 'card') ? 'flex' : 'none';
+        cardLayout.classList.toggle('mode-active', mode === 'card');
+        cardLayout.classList.toggle('mode-hidden', mode !== 'card');
+      }
+      if (docLayout) {
+        docLayout.style.display = (mode === 'doc') ? 'flex' : 'none';
+        docLayout.classList.toggle('mode-active', mode === 'doc');
+        docLayout.classList.toggle('mode-hidden', mode !== 'doc');
+      }
+      if (photoLayout) {
+        photoLayout.style.display = (mode === 'photo') ? 'flex' : 'none';
+        photoLayout.classList.toggle('mode-active', mode === 'photo');
+        photoLayout.classList.toggle('mode-hidden', mode !== 'photo');
+      }
 
       document.body.classList.toggle('doc-mode-active', mode === 'doc');
       document.body.classList.toggle('photo-mode-active', mode === 'photo');
@@ -9123,5 +9417,22 @@
     });
 
   </script>
+
+  <!-- MOBILE BOTTOM NAVIGATION (Active on Mobile Phones & Android App) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <button class="mobile-nav-btn active" id="mobBtnUpload" onclick="switchMobileTab('upload')">
+      <span class="mobile-nav-icon">🪪</span>
+      <span class="mobile-nav-label" id="mobLabelTab1">1. Cards & Scan</span>
+    </button>
+    <button class="mobile-nav-btn" id="mobBtnPreview" onclick="switchMobileTab('preview')">
+      <span class="mobile-nav-icon">📄</span>
+      <span class="mobile-nav-label">2. Live Sheet</span>
+    </button>
+    <button class="mobile-nav-btn" id="mobBtnSettings" onclick="switchMobileTab('settings')">
+      <span class="mobile-nav-icon">🖨️</span>
+      <span class="mobile-nav-label">3. Print & Size</span>
+    </button>
+  </nav>
+
 </body>
 </html>
