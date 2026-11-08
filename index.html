@@ -604,36 +604,80 @@
       z-index: 80 !important;
     }
 
-    /* 4 Corner Rotation Handles */
-    .slot-rotate-handle {
+    /* 4 Corner Sizing / Resize Handles */
+    .slot-corner-handle {
       position: absolute;
       width: 14px;
       height: 14px;
-      background: #2563eb;
+      background: #0284c7;
+      border: 2.5px solid #ffffff;
+      border-radius: 50%;
+      z-index: 60;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+      transition: transform 0.12s, background-color 0.12s;
+    }
+
+    .slot-corner-handle:hover {
+      background: #38bdf8;
+      transform: scale(1.4);
+    }
+
+    .slot-corner-handle.active {
+      background: #10b981;
+      transform: scale(1.5);
+    }
+
+    .handle-tl { top: -7px; left: -7px; cursor: nwse-resize; }
+    .handle-tr { top: -7px; right: -7px; cursor: nesw-resize; }
+    .handle-bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+    .handle-br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+    /* Top Rotate Stalk & Knob */
+    .slot-rotate-stalk {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      width: 1.5px;
+      height: 20px;
+      background: rgba(56, 189, 248, 0.7);
+      pointer-events: none;
+      z-index: 55;
+    }
+
+    .slot-rotate-handle {
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 15px;
+      height: 15px;
+      background: #f59e0b;
       border: 2px solid #ffffff;
       border-radius: 50%;
       z-index: 60;
-      cursor: crosshair;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-      transition: transform 0.15s, background-color 0.15s;
+      cursor: grab;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      transition: transform 0.12s, background-color 0.12s;
     }
 
     .slot-rotate-handle:hover {
-      background: #ef4444;
-      transform: scale(1.4);
+      background: #fbbf24;
+      transform: translateX(-50%) scale(1.35);
       cursor: grab;
     }
 
     .slot-rotate-handle.active {
       background: #ef4444;
-      transform: scale(1.4);
+      transform: translateX(-50%) scale(1.4);
       cursor: grabbing;
     }
 
-    .handle-tl { top: -7px; left: -7px; }
-    .handle-tr { top: -7px; right: -7px; }
-    .handle-bl { bottom: -7px; left: -7px; }
-    .handle-br { bottom: -7px; right: -7px; }
+    .card-slot.is-resizing {
+      cursor: nwse-resize !important;
+      transition: none !important;
+      box-shadow: 0 12px 32px rgba(2, 132, 199, 0.55) !important;
+      z-index: 80 !important;
+    }
 
     /* Drag & Rotate Tooltip Badge */
     .slot-drag-badge {
@@ -824,7 +868,7 @@
         overflow: visible !important;
       }
 
-      header, .sidebar, .preview-toolbar, .modal-overlay, .half-tag, .center-cut-line, .zoom-controls, .slot-rotate-handle, .slot-drag-badge, .slot-ratio-tag {
+      header, .sidebar, .preview-toolbar, .modal-overlay, .half-tag, .center-cut-line, .zoom-controls, .slot-corner-handle, .slot-rotate-stalk, .slot-rotate-handle, .slot-drag-badge, .slot-ratio-tag {
         display: none !important;
       }
 
@@ -1555,6 +1599,32 @@
       pointer-events: none;
       z-index: 25;
     }
+
+    .crop-quad-chip {
+      position: absolute;
+      bottom: auto !important;
+      right: auto !important;
+      background: rgba(11, 19, 41, 0.94);
+      color: #38bdf8;
+      border: 1px solid #0284c7;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: none;
+      z-index: 70;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 24px;
+      box-sizing: border-box;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .crop-quad-svg {
       position: absolute;
       width: 100%;
@@ -1750,13 +1820,39 @@
       <div class="paper-selector-wrap" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(15, 23, 42, 0.6); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.35); margin-left: 6px;">
         <span style="font-size: 0.74rem; color: #93c5fd; font-weight: 600;">📄 Paper:</span>
         <select id="headerPaperSizeSelect" class="mini-btn" style="background: #0b1329; border-color: #3b82f6; font-size: 0.76rem; padding: 3px 7px; color: #f8fafc; font-weight: 600;" onchange="setPaperSize(this.value)">
-          <option value="a4" selected>A4 (210 × 297 mm)</option>
-          <option value="letter">Letter (8.5 × 11 in)</option>
-          <option value="legal">Legal (8.5 × 14 in)</option>
-          <option value="4x6">4 × 6 in Photo Paper (10×15 cm)</option>
-          <option value="5x7">5 × 7 in Photo Paper (13×18 cm)</option>
-          <option value="a5">A5 (148 × 210 mm)</option>
-          <option value="a6">A6 / Postcard (105 × 148 mm)</option>
+          <optgroup label="Standard Official / ISO Documents">
+            <option value="a4" selected>A4 (210 × 297 mm) — Standard Official</option>
+            <option value="a3">A3 (297 × 420 mm) — Large Poster</option>
+            <option value="a5">A5 (148 × 210 mm) — Half A4 / Booklet</option>
+            <option value="a6">A6 (105 × 148 mm) — Postcard / 1/4 A4</option>
+            <option value="a7">A7 (74 × 105 mm) — Mini Pocket Card</option>
+            <option value="b4">B4 (250 × 353 mm) — Japanese / ISO B4</option>
+            <option value="b5">B5 (176 × 250 mm) — Book / Tablet Size</option>
+            <option value="b6">B6 (125 × 176 mm) — Small Book</option>
+          </optgroup>
+          <optgroup label="Legal & Stamp Paper">
+            <option value="letter">Letter (8.5 × 11 in / 216 × 279 mm)</option>
+            <option value="legal">Legal (8.5 × 14 in / 216 × 356 mm)</option>
+            <option value="foolscap">Legal / Foolscap (8.5 × 13 in / 216 × 330 mm) — Indian Stamp Paper</option>
+            <option value="executive">Executive (7.25 × 10.5 in / 184 × 267 mm)</option>
+            <option value="statement">Statement (5.5 × 8.5 in / 140 × 216 mm)</option>
+            <option value="tabloid">Tabloid / Ledger (11 × 17 in / 279 × 432 mm)</option>
+          </optgroup>
+          <optgroup label="Photo Paper (Inkjet / Epson)">
+            <option value="4x6">4 × 6 in Photo Paper (102 × 152 mm / 4R)</option>
+            <option value="5x7">5 × 7 in Photo Paper (127 × 178 mm / 5R)</option>
+            <option value="3.5x5">3.5 × 5 in Photo Paper (89 × 127 mm / 3R)</option>
+            <option value="8x10">8 × 10 in Photo Paper (203 × 254 mm / 8R)</option>
+            <option value="square5">5 × 5 in Square Photo Paper (127 × 127 mm)</option>
+            <option value="square3.5">3.5 × 3.5 in Square Photo Paper (89 × 89 mm)</option>
+            <option value="wide16_9">16:9 Wide Photo Paper (102 × 181 mm)</option>
+          </optgroup>
+          <optgroup label="Cards & Envelopes">
+            <option value="pvc_card">PVC Card Blank (85.6 × 54 mm / Single Card)</option>
+            <option value="env_dl">DL Envelope (110 × 220 mm)</option>
+            <option value="env_c6">C6 Envelope (114 × 162 mm)</option>
+            <option value="env_10">#10 Business Envelope (105 × 241 mm)</option>
+          </optgroup>
         </select>
       </div>
 
@@ -1959,11 +2055,15 @@
           <!-- FRONT CARD SLOT -->
           <div class="card-slot slot-front border-solid" id="frontSlot" data-side="front" ondblclick="openManualCropModal('front')">
             <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('front');" title="Adjust crop box">✂ Adjust Crop</button>
-            <!-- 4 Corner Rotation Handles -->
-            <div class="slot-rotate-handle handle-tl" data-corner="tl" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
-            <div class="slot-rotate-handle handle-tr" data-corner="tr" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
-            <div class="slot-rotate-handle handle-bl" data-corner="bl" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
-            <div class="slot-rotate-handle handle-br" data-corner="br" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
+            <!-- 4 Corner Resize Handles (Drag to resize document size) -->
+            <div class="slot-corner-handle handle-tl" data-corner="tl" data-side="front" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+            <div class="slot-corner-handle handle-tr" data-corner="tr" data-side="front" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+            <div class="slot-corner-handle handle-bl" data-corner="bl" data-side="front" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+            <div class="slot-corner-handle handle-br" data-corner="br" data-side="front" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+
+            <!-- Top Rotate Stalk & Knob -->
+            <div class="slot-rotate-stalk"></div>
+            <div class="slot-rotate-handle" data-side="front" title="Drag to rotate card (Shift to snap 15°, double-click to reset 0°)"></div>
 
             <!-- Transform Tooltip Badge -->
             <div class="slot-drag-badge" id="frontDragBadge">📐 0°</div>
@@ -1986,11 +2086,15 @@
           <!-- BACK CARD SLOT -->
           <div class="card-slot slot-back border-solid" id="backSlot" data-side="back" ondblclick="openManualCropModal('back')">
             <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('back');" title="Adjust crop box">✂ Adjust Crop</button>
-            <!-- 4 Corner Rotation Handles -->
-            <div class="slot-rotate-handle handle-tl" data-corner="tl" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
-            <div class="slot-rotate-handle handle-tr" data-corner="tr" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
-            <div class="slot-rotate-handle handle-bl" data-corner="bl" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
-            <div class="slot-rotate-handle handle-br" data-corner="br" title="Hold & drag to rotate (Shift to snap, double-click to reset 0°)"></div>
+            <!-- 4 Corner Resize Handles (Drag to resize document size) -->
+            <div class="slot-corner-handle handle-tl" data-corner="tl" data-side="back" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+            <div class="slot-corner-handle handle-tr" data-corner="tr" data-side="back" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+            <div class="slot-corner-handle handle-bl" data-corner="bl" data-side="back" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+            <div class="slot-corner-handle handle-br" data-corner="br" data-side="back" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
+
+            <!-- Top Rotate Stalk & Knob -->
+            <div class="slot-rotate-stalk"></div>
+            <div class="slot-rotate-handle" data-side="back" title="Drag to rotate card (Shift to snap 15°, double-click to reset 0°)"></div>
 
             <!-- Transform Tooltip Badge -->
             <div class="slot-drag-badge" id="backDragBadge">📐 0°</div>
@@ -2028,14 +2132,40 @@
 
           <div class="form-group" style="margin-bottom: 6px;">
             <select id="paperSizeSelect" class="mini-btn" style="width: 100%; background: #0b1329; border-color: #3b82f6; font-size: 0.8rem; font-weight: 600; padding: 7px 10px;" onchange="setPaperSize(this.value)">
-              <option value="a4" selected>A4 (210 × 297 mm) — Standard Official</option>
-              <option value="letter">Letter (8.5 × 11 in / 216 × 279 mm)</option>
-              <option value="legal">Legal (8.5 × 14 in / 216 × 356 mm)</option>
-              <option value="4x6">4 × 6 in Photo Paper (102 × 152 mm / 10×15 cm)</option>
-              <option value="5x7">5 × 7 in Photo Paper (127 × 178 mm / 13×18 cm)</option>
-              <option value="a5">A5 (148 × 210 mm — Half A4)</option>
-              <option value="a6">A6 (105 × 148 mm — Postcard)</option>
-            </select>
+            <optgroup label="Standard Official / ISO Documents">
+            <option value="a4" selected>A4 (210 × 297 mm) — Standard Official</option>
+            <option value="a3">A3 (297 × 420 mm) — Large Poster</option>
+            <option value="a5">A5 (148 × 210 mm) — Half A4 / Booklet</option>
+            <option value="a6">A6 (105 × 148 mm) — Postcard / 1/4 A4</option>
+            <option value="a7">A7 (74 × 105 mm) — Mini Pocket Card</option>
+            <option value="b4">B4 (250 × 353 mm) — Japanese / ISO B4</option>
+            <option value="b5">B5 (176 × 250 mm) — Book / Tablet Size</option>
+            <option value="b6">B6 (125 × 176 mm) — Small Book</option>
+          </optgroup>
+          <optgroup label="Legal & Stamp Paper">
+            <option value="letter">Letter (8.5 × 11 in / 216 × 279 mm)</option>
+            <option value="legal">Legal (8.5 × 14 in / 216 × 356 mm)</option>
+            <option value="foolscap">Legal / Foolscap (8.5 × 13 in / 216 × 330 mm) — Indian Stamp Paper</option>
+            <option value="executive">Executive (7.25 × 10.5 in / 184 × 267 mm)</option>
+            <option value="statement">Statement (5.5 × 8.5 in / 140 × 216 mm)</option>
+            <option value="tabloid">Tabloid / Ledger (11 × 17 in / 279 × 432 mm)</option>
+          </optgroup>
+          <optgroup label="Photo Paper (Inkjet / Epson)">
+            <option value="4x6">4 × 6 in Photo Paper (102 × 152 mm / 4R)</option>
+            <option value="5x7">5 × 7 in Photo Paper (127 × 178 mm / 5R)</option>
+            <option value="3.5x5">3.5 × 5 in Photo Paper (89 × 127 mm / 3R)</option>
+            <option value="8x10">8 × 10 in Photo Paper (203 × 254 mm / 8R)</option>
+            <option value="square5">5 × 5 in Square Photo Paper (127 × 127 mm)</option>
+            <option value="square3.5">3.5 × 3.5 in Square Photo Paper (89 × 89 mm)</option>
+            <option value="wide16_9">16:9 Wide Photo Paper (102 × 181 mm)</option>
+          </optgroup>
+          <optgroup label="Cards & Envelopes">
+            <option value="pvc_card">PVC Card Blank (85.6 × 54 mm / Single Card)</option>
+            <option value="env_dl">DL Envelope (110 × 220 mm)</option>
+            <option value="env_c6">C6 Envelope (114 × 162 mm)</option>
+            <option value="env_10">#10 Business Envelope (105 × 241 mm)</option>
+          </optgroup>
+          </select>
           </div>
           <div style="font-size:0.68rem; color:var(--text-muted);">
             Adapts live paper preview, card boundaries, center separation line, printer output, and PDF exports.
@@ -2828,14 +2958,40 @@
               </div>
             </div>
             <select id="photoPaperSizeSelect" class="mini-btn" style="width: 100%; background: #0b1329; border-color: #3b82f6; font-size: 0.78rem;" onchange="setPaperSize(this.value)">
-              <option value="a4" selected>A4 (210 × 297 mm) — Standard Sheet</option>
-              <option value="letter">Letter (8.5 × 11 in / 216 × 279 mm)</option>
-              <option value="legal">Legal (8.5 × 14 in / 216 × 356 mm)</option>
-              <option value="4x6">4 × 6 in Photo Paper (102 × 152 mm / 10×15 cm)</option>
-              <option value="5x7">5 × 7 in Photo Paper (127 × 178 mm / 13×18 cm)</option>
-              <option value="a5">A5 (148 × 210 mm)</option>
-              <option value="a6">A6 (105 × 148 mm)</option>
-            </select>
+            <optgroup label="Standard Official / ISO Documents">
+            <option value="a4" selected>A4 (210 × 297 mm) — Standard Official</option>
+            <option value="a3">A3 (297 × 420 mm) — Large Poster</option>
+            <option value="a5">A5 (148 × 210 mm) — Half A4 / Booklet</option>
+            <option value="a6">A6 (105 × 148 mm) — Postcard / 1/4 A4</option>
+            <option value="a7">A7 (74 × 105 mm) — Mini Pocket Card</option>
+            <option value="b4">B4 (250 × 353 mm) — Japanese / ISO B4</option>
+            <option value="b5">B5 (176 × 250 mm) — Book / Tablet Size</option>
+            <option value="b6">B6 (125 × 176 mm) — Small Book</option>
+          </optgroup>
+          <optgroup label="Legal & Stamp Paper">
+            <option value="letter">Letter (8.5 × 11 in / 216 × 279 mm)</option>
+            <option value="legal">Legal (8.5 × 14 in / 216 × 356 mm)</option>
+            <option value="foolscap">Legal / Foolscap (8.5 × 13 in / 216 × 330 mm) — Indian Stamp Paper</option>
+            <option value="executive">Executive (7.25 × 10.5 in / 184 × 267 mm)</option>
+            <option value="statement">Statement (5.5 × 8.5 in / 140 × 216 mm)</option>
+            <option value="tabloid">Tabloid / Ledger (11 × 17 in / 279 × 432 mm)</option>
+          </optgroup>
+          <optgroup label="Photo Paper (Inkjet / Epson)">
+            <option value="4x6">4 × 6 in Photo Paper (102 × 152 mm / 4R)</option>
+            <option value="5x7">5 × 7 in Photo Paper (127 × 178 mm / 5R)</option>
+            <option value="3.5x5">3.5 × 5 in Photo Paper (89 × 127 mm / 3R)</option>
+            <option value="8x10">8 × 10 in Photo Paper (203 × 254 mm / 8R)</option>
+            <option value="square5">5 × 5 in Square Photo Paper (127 × 127 mm)</option>
+            <option value="square3.5">3.5 × 3.5 in Square Photo Paper (89 × 89 mm)</option>
+            <option value="wide16_9">16:9 Wide Photo Paper (102 × 181 mm)</option>
+          </optgroup>
+          <optgroup label="Cards & Envelopes">
+            <option value="pvc_card">PVC Card Blank (85.6 × 54 mm / Single Card)</option>
+            <option value="env_dl">DL Envelope (110 × 220 mm)</option>
+            <option value="env_c6">C6 Envelope (114 × 162 mm)</option>
+            <option value="env_10">#10 Business Envelope (105 × 241 mm)</option>
+          </optgroup>
+          </select>
           </div>
 
           <label style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; display: block;">Quick Grid Presets:</label>
@@ -3180,8 +3336,8 @@
             <div class="crop-quad-mid" id="quadMid2" data-mid="2" title="Drag Bottom Edge"></div>
             <div class="crop-quad-mid" id="quadMid3" data-mid="3" title="Drag Left Edge"></div>
 
-            <!-- Live Quad Dimension Chip -->
-            <div id="cropQuadChip" class="crop-dimension-chip" style="position: absolute;">
+            <!-- Live Quad Dimension Chip (Fixed compact pill) -->
+            <div id="cropQuadChip" class="crop-quad-chip">
               📐 Free-Form Quad • CamScanner Mode
             </div>
           </div>
@@ -3364,6 +3520,9 @@
         el.value = curVal;
       });
     }
+
+    // Immediately run to guarantee all 25 paper sizes are wired
+    populatePaperSelects();
 
     // State
     const state = {
@@ -3947,15 +4106,113 @@
         if (!slot) return;
         const dragBadge = document.getElementById(side + 'DragBadge');
 
-        // 1. CORNER ROTATION HANDLES
-        const cornerHandles = slot.querySelectorAll('.slot-rotate-handle');
-        cornerHandles.forEach(handle => {
+        // 1. CORNER SIZING / RESIZE HANDLES (Drag corner to resize document)
+        const cornerResizeHandles = slot.querySelectorAll('.slot-corner-handle');
+        cornerResizeHandles.forEach(handle => {
           handle.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             e.preventDefault();
 
-            slot.classList.add('is-rotating');
+            slot.classList.add('is-resizing');
             handle.classList.add('active');
+
+            const slotRect = slot.getBoundingClientRect();
+            const centerX = slotRect.left + slotRect.width / 2;
+            const centerY = slotRect.top + slotRect.height / 2;
+
+            const startDist = Math.hypot(e.clientX - centerX, e.clientY - centerY);
+            const startWidthMm = state.widthMm || 85.6;
+            const ratio = state[side].aspectRatio || (85.6 / 54.0);
+
+            const onMouseMove = (moveEvent) => {
+              const currentDist = Math.hypot(moveEvent.clientX - centerX, moveEvent.clientY - centerY);
+              if (startDist < 4) return;
+
+              const scale = currentDist / startDist;
+              let newWidthMm = startWidthMm * scale;
+
+              // Snap to common presets
+              let isSnapped = false;
+              [85.6, 110.0, 135.0, 175.0].forEach(snap => {
+                if (Math.abs(newWidthMm - snap) < 1.8) {
+                  newWidthMm = snap;
+                  isSnapped = true;
+                }
+              });
+
+              const maxW = Math.max(60, (state.paperWidthMm || 210.0) - 10);
+              newWidthMm = Math.max(40.0, Math.min(maxW, Math.round(newWidthMm * 10) / 10));
+
+              state.widthMm = newWidthMm;
+
+              // Sync sidebar slider & val
+              const widthSlider = document.getElementById('widthSlider');
+              if (widthSlider) widthSlider.value = newWidthMm;
+              const widthVal = document.getElementById('widthVal');
+              if (widthVal) widthVal.innerText = newWidthMm.toFixed(1) + ' mm';
+
+              // Sync preset radios
+              document.querySelectorAll('input[name="sizePreset"]').forEach(r => {
+                if (r.value === 'standard' && Math.abs(newWidthMm - 85.6) < 0.2) r.checked = true;
+                else if (r.value === 'xerox' && Math.abs(newWidthMm - 110.0) < 0.2) r.checked = true;
+                else if (r.value === 'large' && Math.abs(newWidthMm - 135.0) < 0.2) r.checked = true;
+                else if (r.value === 'halfpage' && Math.abs(newWidthMm - 175.0) < 0.2) r.checked = true;
+                else r.checked = false;
+              });
+
+              updateSheetLayout();
+
+              if (dragBadge) {
+                const dim = getCardSlotDimensions(side);
+                dragBadge.innerText = `↔ ${dim.wMm.toFixed(1)} × ${dim.hMm.toFixed(1)} mm${isSnapped ? ' (Preset)' : ''}`;
+                dragBadge.classList.add('visible');
+              }
+            };
+
+            const onMouseUp = () => {
+              window.removeEventListener('mousemove', onMouseMove);
+              window.removeEventListener('mouseup', onMouseUp);
+              slot.classList.remove('is-resizing');
+              handle.classList.remove('active');
+              if (dragBadge) {
+                setTimeout(() => dragBadge.classList.remove('visible'), 1200);
+              }
+              onSettingChanged();
+            };
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+          });
+
+          // Double click on corner handle resets size to standard 85.6 mm
+          handle.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            state.widthMm = 85.6;
+            const widthSlider = document.getElementById('widthSlider');
+            if (widthSlider) widthSlider.value = 85.6;
+            const widthVal = document.getElementById('widthVal');
+            if (widthVal) widthVal.innerText = '85.6 mm';
+            const stdRadio = document.querySelector('input[name="sizePreset"][value="standard"]');
+            if (stdRadio) stdRadio.checked = true;
+            updateSheetLayout();
+            if (dragBadge) {
+              dragBadge.innerText = '↺ Reset to Standard ID (85.6 mm)';
+              dragBadge.classList.add('visible');
+              setTimeout(() => dragBadge.classList.remove('visible'), 1200);
+            }
+            onSettingChanged();
+          });
+        });
+
+        // 1b. TOP ROTATION KNOB (Drag to rotate card)
+        const rotateHandle = slot.querySelector('.slot-rotate-handle');
+        if (rotateHandle) {
+          rotateHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            slot.classList.add('is-rotating');
+            rotateHandle.classList.add('active');
 
             const slotRect = slot.getBoundingClientRect();
             const centerX = slotRect.left + slotRect.width / 2;
@@ -3969,7 +4226,6 @@
               let diff = currentMouseAngle - initialMouseAngle;
               let targetAngle = startAngle + diff;
 
-              // Normalize to [-180, 180]
               while (targetAngle > 180) targetAngle -= 360;
               while (targetAngle < -180) targetAngle += 360;
 
@@ -3999,7 +4255,7 @@
               window.removeEventListener('mousemove', onMouseMove);
               window.removeEventListener('mouseup', onMouseUp);
               slot.classList.remove('is-rotating');
-              handle.classList.remove('active');
+              rotateHandle.classList.remove('active');
               if (dragBadge) {
                 setTimeout(() => dragBadge.classList.remove('visible'), 1000);
               }
@@ -4010,8 +4266,7 @@
             window.addEventListener('mouseup', onMouseUp);
           });
 
-          // Double click on corner handle resets rotation to 0°
-          handle.addEventListener('dblclick', (e) => {
+          rotateHandle.addEventListener('dblclick', (e) => {
             e.stopPropagation();
             state[side].canvasAngle = 0;
             updateSheetLayout();
@@ -4022,11 +4277,11 @@
             }
             onSettingChanged();
           });
-        });
+        }
 
         // 2. DRAG TO MOVE PLACEHOLDER (TRANSLATION)
         slot.addEventListener('mousedown', (e) => {
-          if (e.target.closest('.slot-rotate-handle') || e.target.closest('button') || e.target.closest('input')) {
+          if (e.target.closest('.slot-corner-handle') || e.target.closest('.slot-rotate-handle') || e.target.closest('button') || e.target.closest('input')) {
             return;
           }
 
@@ -4096,6 +4351,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      populatePaperSelects();
       setupDropzones();
       await loadSavedSettings();
       initCanvasInteractions();
@@ -7769,7 +8025,7 @@
       setSvgLine('cropQuadGridH1', l1, r1);
       setSvgLine('cropQuadGridH2', l2, r2);
 
-      // 5. Update Dimension chip
+      // 5. Update Dimension chip (Safe compact pill, never stretches)
       const chip = document.getElementById('cropQuadChip');
       if (chip && cropState.displayW > 0) {
         const scaleX = cropState.naturalW / cropState.displayW;
@@ -7782,8 +8038,21 @@
         const natH = Math.round(Math.max(hLeft, hRight));
         const aspect = natW / Math.max(1, natH);
         chip.textContent = `📐 Free-Form Quad: ${natW}×${natH} px • ${aspect.toFixed(2)}:1 (Perspective Warp)`;
-        chip.style.left = Math.max(10, Math.min(q[0].x, q[3].x) + 10) + 'px';
-        chip.style.top = Math.max(10, Math.max(q[2].y, q[3].y) - 34) + 'px';
+
+        chip.style.bottom = 'auto';
+        chip.style.right = 'auto';
+        const minX = Math.min(q[0].x, q[1].x, q[2].x, q[3].x);
+        const minY = Math.min(q[0].y, q[1].y, q[2].y, q[3].y);
+        const maxY = Math.max(q[0].y, q[1].y, q[2].y, q[3].y);
+
+        let chipX = Math.max(10, Math.min(cropState.displayW - 280, minX));
+        let chipY = maxY + 10;
+        if (chipY > cropState.displayH - 32) {
+          chipY = Math.max(10, minY - 32);
+        }
+
+        chip.style.left = chipX + 'px';
+        chip.style.top = chipY + 'px';
       }
     }
 
