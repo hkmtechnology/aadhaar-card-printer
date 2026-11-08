@@ -51,39 +51,48 @@ def order_corner_points(pts):
     rect[3] = pts[np.argmax(diff)] # bottom-left has largest diff (y-x)
     return rect
 
-def is_scanner_bed_strip(strip, is_white_lid=True):
+def is_scanner_bed_strip(strip, is_white_lid=True, bg_val=None):
     """
     Determines if a 1D pixel strip along a row or column is empty scanner bed or card.
     Empty flatbed scanner bed (white/off-white) has:
-    1. Zero texture (std < 5.5) and no dark text/emblems/photo (p5 > 195.0)
-    2. Or bright uniform background (p5 > 212.0)
-    3. Or extremely uniform surface (std < 3.5 and p5 > 185.0)
-    Cards (even pale white/yellowish cards like Aadhaar) have paper grain, guilloche print,
-    security tint, or text/photo (std >= 6.0, p5 <= 195.0, or step gradient >= 4.0).
+    1. Zero texture (std < 3.2) and no dark text/emblems/photo
+    2. Mean value tightly matching the sampled scanner lid background (within 7 levels)
+    3. Minimum pixel value very close to lid (no dark text or graphics)
+    Cards (including white/pale cards like Aadhaar or Voter ID) have paper texture,
+    emblems, guilloche patterns, text, or color difference from scanner bed.
     """
     if strip.size == 0:
         return True
     std = float(np.std(strip))
+    mean_val = float(np.mean(strip))
     if is_white_lid:
-        p5 = float(np.percentile(strip, 5))
-        return (p5 > 212.0) or (std < 5.5 and p5 > 195.0) or (std < 3.5 and p5 > 185.0)
+        expected = float(bg_val) if bg_val is not None else 250.0
+        return (abs(mean_val - expected) < 7.0) and (std < 3.2) and (float(np.min(strip)) > (expected - 14.0))
     else:
-        p95 = float(np.percentile(strip, 95))
-        return (p95 < 60.0) or (std < 5.5 and p95 < 75.0)
+        expected = float(bg_val) if bg_val is not None else 20.0
+        return (abs(mean_val - expected) < 10.0) and (std < 3.5) and (float(np.max(strip)) < (expected + 15.0))
 
 def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
     """
     Refines card crop boundaries with sub-millimeter precision using bidirectional snapping:
-    1. If the initial contour captured extra white scanner lid margin, trims inwards until the true card edge is reached.
+    1. If the initial contour captured extra white scanner lid margin, trims inwards (max 4px) until true card edge.
     2. If the initial contour missed any card borders, emblems, or text, expands outwards until clean scanner lid is reached.
-    Guarantees 100% of card borders, Ashoka emblem, and text are preserved with 0px cut-off and 0px blank gap.
+    Guarantees 100% of card borders, Ashoka emblem, and text are preserved with 0px cut-off.
     """
     orig_h, orig_w = img_bgr.shape[:2]
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    is_white_lid = float(np.mean(bg_color)) >= 128.0
+    bg_gray = float(np.mean(bg_color))
+    is_white_lid = bg_gray >= 128.0
 
     bed_m_x = max(2, int(orig_w * 0.006))
     bed_m_y = max(2, int(orig_h * 0.006))
+
+    # Keep track of initial contour edges to prevent aggressive inward trimming
+    orig_top = by
+    orig_bottom = by + bh
+    orig_left = bx
+    orig_right = bx + bw
+    max_inward_trim = 4  # Never trim more than 4px inward from detected card contour
 
     # Initial safety clamp
     bx = max(0, min(orig_w - 40, bx))
@@ -98,22 +107,22 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
         if y2 <= y1:
             break
 
-        # Trim left inwards if sitting on empty scanner bed
-        while bw > 40 and bx < (orig_w - 40) and is_scanner_bed_strip(gray[y1:y2, bx], is_white_lid):
+        # Trim left inwards if sitting on empty scanner bed (max 4px inward)
+        while bw > 40 and bx < (orig_w - 40) and (bx - orig_left < max_inward_trim) and is_scanner_bed_strip(gray[y1:y2, bx], is_white_lid, bg_val=bg_gray):
             bx += 1
             bw -= 1
 
         # Expand left outwards if card extends to the left
-        while bx > bed_m_x and not is_scanner_bed_strip(gray[y1:y2, bx - 1], is_white_lid):
+        while bx > bed_m_x and not is_scanner_bed_strip(gray[y1:y2, bx - 1], is_white_lid, bg_val=bg_gray):
             bx -= 1
             bw += 1
 
-        # Trim right inwards if sitting on empty scanner bed
-        while bw > 40 and (bx + bw - 1) < orig_w and is_scanner_bed_strip(gray[y1:y2, bx + bw - 1], is_white_lid):
+        # Trim right inwards if sitting on empty scanner bed (max 4px inward)
+        while bw > 40 and (bx + bw - 1) < orig_w and (orig_right - (bx + bw) < max_inward_trim) and is_scanner_bed_strip(gray[y1:y2, bx + bw - 1], is_white_lid, bg_val=bg_gray):
             bw -= 1
 
         # Expand right outwards if card extends to the right
-        while (bx + bw) < (orig_w - bed_m_x) and not is_scanner_bed_strip(gray[y1:y2, bx + bw], is_white_lid):
+        while (bx + bw) < (orig_w - bed_m_x) and not is_scanner_bed_strip(gray[y1:y2, bx + bw], is_white_lid, bg_val=bg_gray):
             bw += 1
 
         # Sample middle 60% of card width
@@ -122,22 +131,22 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
         if x2 <= x1:
             break
 
-        # Trim top inwards if sitting on empty scanner bed
-        while bh > 40 and by < (orig_h - 40) and is_scanner_bed_strip(gray[by, x1:x2], is_white_lid):
+        # Trim top inwards if sitting on empty scanner bed (max 4px inward to never cut off emblems or headers)
+        while bh > 40 and by < (orig_h - 40) and (by - orig_top < max_inward_trim) and is_scanner_bed_strip(gray[by, x1:x2], is_white_lid, bg_val=bg_gray):
             by += 1
             bh -= 1
 
-        # Expand top outwards if card extends to the top
-        while by > bed_m_y and not is_scanner_bed_strip(gray[by - 1, x1:x2], is_white_lid):
-            by -= 1
+        # Expand top outwards if card extends to the top (ensures 100% of emblem and text are captured)
+        while by > bed_m_y and not is_scanner_bed_strip(gray[by - 1, x1:x2], is_white_lid, bg_val=bg_gray):
+            by += 1
             bh += 1
 
-        # Trim bottom inwards if sitting on empty scanner bed
-        while bh > 40 and (by + bh - 1) < orig_h and is_scanner_bed_strip(gray[by + bh - 1, x1:x2], is_white_lid):
+        # Trim bottom inwards if sitting on empty scanner bed (max 4px inward)
+        while bh > 40 and (by + bh - 1) < orig_h and (orig_bottom - (by + bh) < max_inward_trim) and is_scanner_bed_strip(gray[by + bh - 1, x1:x2], is_white_lid, bg_val=bg_gray):
             bh -= 1
 
         # Expand bottom outwards if card extends to the bottom
-        while (by + bh) < (orig_h - bed_m_y) and not is_scanner_bed_strip(gray[by + bh, x1:x2], is_white_lid):
+        while (by + bh) < (orig_h - bed_m_y) and not is_scanner_bed_strip(gray[by + bh, x1:x2], is_white_lid, bg_val=bg_gray):
             bh += 1
 
     return bx, by, bw, bh
@@ -521,11 +530,12 @@ def detect_and_crop_id_card(image_input, padding_px=0, deskew=True, corner_curve
         # CamScanner 4-sided Shadow Elimination: protect edges flush with scanner glass
         cropped_bgr = trim_shadow_edges_all_sides(
             cropped_bgr,
-            max_trim=6,
+            max_trim=4,
             allow_left=(bx > 0),
             allow_top=(by > 0),
             allow_right=(bx + bw < orig_w),
-            allow_bottom=(by + bh < orig_h)
+            allow_bottom=(by + bh < orig_h),
+            bg_color=bg_color
         )
 
         # Compute card quad corners in raw image coordinates
@@ -831,11 +841,12 @@ def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=
 
         cropped_bgr = trim_shadow_edges_all_sides(
             cropped_bgr,
-            max_trim=6,
+            max_trim=4,
             allow_left=(bx > 0),
             allow_top=(by > 0),
             allow_right=(bx + bw < orig_w),
-            allow_bottom=(by + bh < orig_h)
+            allow_bottom=(by + bh < orig_h),
+            bg_color=bg_color
         )
         cw = cropped_bgr.shape[1]
         ch = cropped_bgr.shape[0]

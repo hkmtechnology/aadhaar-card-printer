@@ -1474,8 +1474,9 @@
       position: relative;
       overflow: auto;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 36px 28px;
+      user-select: none;
+      -webkit-user-select: none;
       background: #060911;
       background-image: 
         linear-gradient(45deg, #0e1526 25%, transparent 25%), 
@@ -1484,15 +1485,14 @@
         linear-gradient(-45deg, transparent 75%, #0e1526 75%);
       background-size: 20px 20px;
       background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-      padding: 24px;
-      user-select: none;
-      -webkit-user-select: none;
+      scroll-behavior: smooth;
     }
 
     .crop-workspace {
       position: relative;
       display: inline-block;
       line-height: 0;
+      margin: auto; /* Centers when smaller than viewport; aligns to top-left (0,0) with clean scrollbars when overflowing - prevents negative scroll clipping */
       box-shadow: 0 12px 36px rgba(0,0,0,0.85);
       border-radius: 4px;
       overflow: visible;
@@ -1500,12 +1500,25 @@
 
     .crop-target-image {
       display: block;
-      max-width: 82vw;
-      max-height: 56vh;
+      max-width: calc(88vw - 60px);
+      max-height: calc(84vh - 240px);
+      width: auto;
+      height: auto;
       object-fit: contain;
       pointer-events: none;
       user-select: none;
       border-radius: 2px;
+      transition: max-height 0.18s ease;
+    }
+
+    .crop-target-image.crop-fit-all {
+      max-height: calc(78vh - 250px) !important;
+      max-width: calc(82vw - 80px) !important;
+    }
+
+    .crop-target-image.crop-zoom-100 {
+      max-height: none !important;
+      max-width: none !important;
     }
 
     .crop-selection-box {
@@ -3242,7 +3255,10 @@
           </div>
         </div>
 
-        <div class="crop-toolbar-group" style="margin-left: auto; display: flex; gap: 6px;">
+        <div class="crop-toolbar-group" style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap;">
+          <button class="mini-btn" id="cropBtnFitView" onclick="toggleCropZoomFit()" title="Fit entire scanned page into view without scrolling">
+            🔍 Fit Page
+          </button>
           <button class="mini-btn" onclick="cropOrientByText()" title="Auto-detect text direction and orient image" style="background: rgba(14, 165, 233, 0.2); border: 1px solid #0284c7; color: #38bdf8; font-weight: 600;">
             📐 Orient by Text
           </button>
@@ -7722,6 +7738,50 @@
       }
     }
 
+    function toggleCropZoomFit() {
+      const img = document.getElementById('cropTargetImage');
+      const btn = document.getElementById('cropBtnFitView');
+      if (!img) return;
+
+      if (img.classList.contains('crop-zoom-100')) {
+        img.classList.remove('crop-zoom-100');
+        img.classList.add('crop-fit-all');
+        if (btn) btn.innerHTML = '🔍 Zoom 100%';
+        showToast('Fitted entire page in view.', 'info');
+      } else if (img.classList.contains('crop-fit-all')) {
+        img.classList.remove('crop-fit-all');
+        if (btn) btn.innerHTML = '🔍 Fit Page';
+        showToast('Default view.', 'info');
+      } else {
+        img.classList.add('crop-fit-all');
+        if (btn) btn.innerHTML = '🔍 Zoom 100%';
+        showToast('Fitted entire page in view.', 'info');
+      }
+
+      setTimeout(() => {
+        const rect = img.getBoundingClientRect();
+        const oldDw = cropState.displayW || 1;
+        const oldDh = cropState.displayH || 1;
+        cropState.displayW = rect.width || img.offsetWidth;
+        cropState.displayH = rect.height || img.offsetHeight;
+
+        const sX = cropState.displayW / oldDw;
+        const sY = cropState.displayH / oldDh;
+
+        if (cropState.box) {
+          cropState.box.x *= sX;
+          cropState.box.y *= sY;
+          cropState.box.w *= sX;
+          cropState.box.h *= sY;
+        }
+        if (cropState.quad) {
+          cropState.quad = cropState.quad.map(p => ({ x: p.x * sX, y: p.y * sY }));
+        }
+        updateCropBoxDOM();
+        updateCropQuadDOM();
+      }, 50);
+    }
+
     function openManualCropModal(side) {
       const targetImg = state[side].rawImg || state[side].croppedImg;
       if (!targetImg) {
@@ -7773,6 +7833,13 @@
     function initCropWorkspace() {
       const targetElem = document.getElementById('cropTargetImage');
       if (!targetElem) return;
+
+      // Always reset scroll container to top-left so the top header of document is 100% visible
+      const wrapper = document.getElementById('cropWorkspaceWrapper');
+      if (wrapper) {
+        wrapper.scrollTop = 0;
+        wrapper.scrollLeft = 0;
+      }
 
       cropState.naturalW = targetElem.naturalWidth || 800;
       cropState.naturalH = targetElem.naturalHeight || 600;
@@ -8084,7 +8151,7 @@
     }
 
     function onCropPointerMove(e) {
-      if (!cropState.isDragging) return;
+      if (!cropState.isDragging || !cropState.dragHandle) return;
       e.preventDefault();
 
       const dx = e.clientX - cropState.dragStartPointer.x;
@@ -8093,49 +8160,164 @@
       const dw = cropState.displayW;
       const dh = cropState.displayH;
       const minSize = 25;
-
-      let newBox = { ...start };
       const handle = cropState.dragHandle;
 
       if (handle === 'move') {
-        newBox.x = Math.max(0, Math.min(dw - start.w, start.x + dx));
-        newBox.y = Math.max(0, Math.min(dh - start.h, start.y + dy));
-      } else {
-        const ratio = cropState.targetRatio;
+        cropState.box = {
+          x: Math.max(0, Math.min(dw - start.w, start.x + dx)),
+          y: Math.max(0, Math.min(dh - start.h, start.y + dy)),
+          w: start.w,
+          h: start.h
+        };
+        updateCropBoxDOM();
+        const center = { x: cropState.box.x + cropState.box.w / 2, y: cropState.box.y + cropState.box.h / 2 };
+        showMagnifier(e.clientX, e.clientY, center.x, center.y);
+        return;
+      }
 
+      const ratio = cropState.targetRatio;
+
+      let newX = start.x;
+      let newY = start.y;
+      let newW = start.w;
+      let newH = start.h;
+
+      if (!ratio) {
+        // Free custom ratio
         if (handle.includes('r')) {
-          newBox.w = Math.max(minSize, Math.min(dw - start.x, start.w + dx));
-          if (ratio) newBox.h = newBox.w / ratio;
+          newW = Math.max(minSize, Math.min(dw - start.x, start.w + dx));
         }
         if (handle.includes('l')) {
           const maxLeftMove = start.w - minSize;
           const actualDx = Math.max(-start.x, Math.min(maxLeftMove, dx));
-          newBox.x = start.x + actualDx;
-          newBox.w = start.w - actualDx;
-          if (ratio) newBox.h = newBox.w / ratio;
+          newX = start.x + actualDx;
+          newW = start.w - actualDx;
         }
         if (handle.includes('b')) {
-          newBox.h = Math.max(minSize, Math.min(dh - start.y, start.h + dy));
-          if (ratio) newBox.w = newBox.h * ratio;
+          newH = Math.max(minSize, Math.min(dh - start.y, start.h + dy));
         }
         if (handle.includes('t')) {
           const maxTopMove = start.h - minSize;
           const actualDy = Math.max(-start.y, Math.min(maxTopMove, dy));
-          newBox.y = start.y + actualDy;
-          newBox.h = start.h - actualDy;
-          if (ratio) newBox.w = newBox.h * ratio;
+          newY = start.y + actualDy;
+          newH = start.h - actualDy;
         }
-
-        if (newBox.x + newBox.w > dw) newBox.w = dw - newBox.x;
-        if (newBox.y + newBox.h > dh) newBox.h = dh - newBox.y;
+      } else {
+        // Locked aspect ratio: rock-solid opposite corner anchor
+        if (handle === 'br') {
+          let w = Math.max(minSize, Math.min(dw - start.x, start.w + dx));
+          let h = w / ratio;
+          if (start.y + h > dh) {
+            h = dh - start.y;
+            w = h * ratio;
+          }
+          newW = w;
+          newH = h;
+        } else if (handle === 'tl') {
+          const anchorX = start.x + start.w;
+          const anchorY = start.y + start.h;
+          let w = Math.max(minSize, Math.min(anchorX, start.w - dx));
+          let h = w / ratio;
+          if (h > anchorY) {
+            h = anchorY;
+            w = h * ratio;
+          }
+          newW = w;
+          newH = h;
+          newX = anchorX - w;
+          newY = anchorY - h;
+        } else if (handle === 'tr') {
+          const anchorX = start.x;
+          const anchorY = start.y + start.h;
+          let w = Math.max(minSize, Math.min(dw - anchorX, start.w + dx));
+          let h = w / ratio;
+          if (h > anchorY) {
+            h = anchorY;
+            w = h * ratio;
+          }
+          newW = w;
+          newH = h;
+          newX = anchorX;
+          newY = anchorY - h;
+        } else if (handle === 'bl') {
+          const anchorX = start.x + start.w;
+          const anchorY = start.y;
+          let w = Math.max(minSize, Math.min(anchorX, start.w - dx));
+          let h = w / ratio;
+          if (anchorY + h > dh) {
+            h = dh - anchorY;
+            w = h * ratio;
+          }
+          newW = w;
+          newH = h;
+          newX = anchorX - w;
+          newY = anchorY;
+        } else if (handle === 't') {
+          const anchorBottom = start.y + start.h;
+          const centerX = start.x + start.w / 2;
+          let h = Math.max(minSize, Math.min(anchorBottom, start.h - dy));
+          let w = h * ratio;
+          if (w > dw) {
+            w = dw;
+            h = w / ratio;
+          }
+          newW = w;
+          newH = h;
+          newY = anchorBottom - h;
+          newX = Math.max(0, Math.min(dw - w, centerX - w / 2));
+        } else if (handle === 'b') {
+          const anchorTop = start.y;
+          const centerX = start.x + start.w / 2;
+          let h = Math.max(minSize, Math.min(dh - anchorTop, start.h + dy));
+          let w = h * ratio;
+          if (w > dw) {
+            w = dw;
+            h = w / ratio;
+          }
+          newW = w;
+          newH = h;
+          newY = anchorTop;
+          newX = Math.max(0, Math.min(dw - w, centerX - w / 2));
+        } else if (handle === 'l') {
+          const anchorRight = start.x + start.w;
+          const centerY = start.y + start.h / 2;
+          let w = Math.max(minSize, Math.min(anchorRight, start.w - dx));
+          let h = w / ratio;
+          if (h > dh) {
+            h = dh;
+            w = h * ratio;
+          }
+          newW = w;
+          newH = h;
+          newX = anchorRight - w;
+          newY = Math.max(0, Math.min(dh - h, centerY - h / 2));
+        } else if (handle === 'r') {
+          const anchorLeft = start.x;
+          const centerY = start.y + start.h / 2;
+          let w = Math.max(minSize, Math.min(dw - anchorLeft, start.w + dx));
+          let h = w / ratio;
+          if (h > dh) {
+            h = dh;
+            w = h * ratio;
+          }
+          newW = w;
+          newH = h;
+          newX = anchorLeft;
+          newY = Math.max(0, Math.min(dh - h, centerY - h / 2));
+        }
       }
 
-      cropState.box = newBox;
+      newX = Math.max(0, Math.min(dw - minSize, newX));
+      newY = Math.max(0, Math.min(dh - minSize, newY));
+      newW = Math.max(minSize, Math.min(dw - newX, newW));
+      newH = Math.max(minSize, Math.min(dh - newY, newH));
+
+      cropState.box = { x: newX, y: newY, w: newW, h: newH };
       updateCropBoxDOM();
 
       const center = {
-        x: newBox.x + (handle.includes('l') ? 0 : (handle.includes('r') ? newBox.w : newBox.w/2)),
-        y: newBox.y + (handle.includes('t') ? 0 : (handle.includes('b') ? newBox.h : newBox.h/2))
+        x: newX + (handle.includes('l') ? 0 : (handle.includes('r') ? newW : newW / 2)),
+        y: newY + (handle.includes('t') ? 0 : (handle.includes('b') ? newH : newH / 2))
       };
       showMagnifier(e.clientX, e.clientY, center.x, center.y);
     }
