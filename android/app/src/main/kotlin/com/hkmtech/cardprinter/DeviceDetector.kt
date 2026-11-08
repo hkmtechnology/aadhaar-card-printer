@@ -14,7 +14,9 @@ data class DeviceInfo(
     val port: String,
     val isReady: Boolean,
     val scannerName: String,
-    val scannerOnline: Boolean
+    val scannerOnline: Boolean,
+    val isWifiDirect: Boolean = false,
+    val printerIp: String = "192.168.192.168"
 )
 
 object DeviceDetector {
@@ -42,7 +44,13 @@ object DeviceDetector {
             }
         } catch (_: Exception) {}
 
-        // 2. Check USB OTG
+        // 2. Check if connected to Epson Wi-Fi Direct
+        val ssidUpper = (ssid ?: "").uppercase()
+        val isDirectSsid = ssidUpper.contains("DIRECT") || ssidUpper.contains("L3250") || ssidUpper.contains("EPSON")
+        val (isDirectReachable, detectedIp) = EpsonDirectScanner.checkPrinterOnline(context)
+        val isWifiDirect = isDirectSsid || isDirectReachable
+
+        // 3. Check USB OTG
         var hasUsbPrinter = false
         try {
             val usbMgr = context.getSystemService(Context.USB_SERVICE) as? UsbManager
@@ -60,6 +68,7 @@ object DeviceDetector {
         } catch (_: Exception) {}
 
         val connType = when {
+            isWifiDirect -> "Wi-Fi Direct"
             isWifi -> "Wi-Fi"
             hasUsbPrinter -> "USB"
             isCellular -> "Mobile Data"
@@ -67,20 +76,25 @@ object DeviceDetector {
         }
 
         val portStr = when {
-            isWifi -> "Wi-Fi Direct / Local Network"
+            isWifiDirect -> "Wi-Fi Direct ($detectedIp)"
+            isWifi -> "Wireless Network"
             hasUsbPrinter -> "USB OTG Port"
             else -> "Android Print Spooler"
         }
 
+        val isReady = isWifiDirect || isWifi || hasUsbPrinter
+
         return DeviceInfo(
             connectionType = connType,
-            wifiSsid = if (isWifi) (ssid ?: "Connected to Wi-Fi") else null,
+            wifiSsid = if (isWifi || isWifiDirect) (ssid ?: "DIRECT-Epson-L3250") else null,
             printerName = "EPSON L3250 Series",
             modelNumber = "L3250",
             port = portStr,
-            isReady = true,
-            scannerName = "EPSON L3250 / Mobile HD Camera",
-            scannerOnline = true
+            isReady = isReady,
+            scannerName = if (isWifiDirect) "EPSON L3250 Wi-Fi Direct Scanner" else "EPSON L3250 Flatbed / Camera HD",
+            scannerOnline = isReady,
+            isWifiDirect = isWifiDirect,
+            printerIp = detectedIp
         )
     }
 }

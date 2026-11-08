@@ -3555,6 +3555,20 @@
           </button>
 
           <!-- Save Multi-page PDF -->
+          <!-- PDF Export Quality / DPI Selection -->
+          <div class="form-group" style="margin-bottom: 8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+              <label style="color:#bfdbfe; font-size: 0.75rem; font-weight: 600; margin: 0;">PDF DPI Quality:</label>
+              <span id="docExportDpiHint" style="font-size: 0.68rem; color: #6ee7b7;">300 DPI Recommended</span>
+            </div>
+            <div class="segmented-control" style="grid-template-columns: repeat(4, 1fr);">
+              <button class="segmented-btn" id="btnExportDpi150" onclick="setDocDpi(150)">150</button>
+              <button class="segmented-btn" id="btnExportDpi200" onclick="setDocDpi(200)">200</button>
+              <button class="segmented-btn active" id="btnExportDpi300" onclick="setDocDpi(300)">300</button>
+              <button class="segmented-btn" id="btnExportDpi600" onclick="setDocDpi(600)">600</button>
+            </div>
+          </div>
+
           <button class="btn btn-pdf" id="btnDocSavePdf" style="margin-bottom: 8px;" onclick="saveDocMultiPagePdf()">
             📥 Save Multi-Page (300 DPI) PDF
           </button>
@@ -5340,6 +5354,30 @@
       const docBadge = document.getElementById('docScanStatusBadge');
       const offlineNotice = document.getElementById('scannerOfflineNotice');
 
+      // Check if AndroidBridge reports Wi-Fi Direct or Ready status
+      if (window.AndroidBridge && typeof window.AndroidBridge.getDeviceConnectionInfo === 'function') {
+        try {
+          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
+          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online) {
+            isScannerOnline = true;
+            if (badge) {
+              badge.className = 'epson-tag online';
+              badge.innerHTML = '🟢 ' + (dev.scanner_message || 'Epson L3250 Ready on Wi-Fi Direct');
+              badge.title = 'Connected via ' + (dev.connection_type || 'Wi-Fi Direct') + '. Click to refresh.';
+            }
+            if (docBadge) {
+              docBadge.innerText = '🟢 Ready';
+              docBadge.style.color = '#6ee7b7';
+            }
+            if (offlineNotice) offlineNotice.style.display = 'none';
+            isCheckingScanner = false;
+            return;
+          }
+        } catch (e) {
+          console.warn('AndroidBridge connection info check error:', e);
+        }
+      }
+
       if (force && badge) {
         badge.className = 'epson-tag checking';
         badge.innerHTML = '⏳ Checking...';
@@ -5401,6 +5439,29 @@
     function setScannerOfflineUI() {
       const isScanningNow = state.isScanning || (window.docState && docState.isScanning) || (window.photoState && photoState.isScanning);
       if (isScanningNow) return; // Never show offline while actively scanning!
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.getDeviceConnectionInfo === 'function') {
+        try {
+          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
+          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online) {
+            isScannerOnline = true;
+            const badge = document.getElementById('scannerBadge');
+            const docBadge = document.getElementById('docScanStatusBadge');
+            const offlineNotice = document.getElementById('scannerOfflineNotice');
+            if (badge) {
+              badge.className = 'epson-tag online';
+              badge.innerHTML = '🟢 ' + (dev.scanner_message || 'Epson L3250 Ready');
+            }
+            if (docBadge) {
+              docBadge.innerText = '🟢 Ready';
+              docBadge.style.color = '#6ee7b7';
+            }
+            if (offlineNotice) offlineNotice.style.display = 'none';
+            return;
+          }
+        } catch (e) {}
+      }
+
       isScannerOnline = false;
       const badge = document.getElementById('scannerBadge');
       const docBadge = document.getElementById('docScanStatusBadge');
@@ -5599,6 +5660,48 @@
         if (!confirm("⚠️ Scanner appears to be Offline or Powered Off!\n\nMake sure your Epson L3250 is turned ON and connected via USB/Wi-Fi.\n\nDo you want to try scanning anyway?")) {
           checkScannerServer(true);
           return;
+        }
+      }
+
+      // Wi-Fi Direct direct scan via AndroidBridge
+      if (window.AndroidBridge && typeof window.AndroidBridge.scanFromEpsonDirect === 'function') {
+        let isDirect = false;
+        try {
+          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
+          if (dev.is_wifi_direct || dev.connection_type === 'Wi-Fi Direct') isDirect = true;
+        } catch (e) {}
+
+        if (isDirect) {
+          openScanModal(`Scanning ${side.toUpperCase()} Side (${state.scanDpi} DPI)`, 'Epson L3250 is scanning via Wi-Fi Direct...', true);
+          setScanningState(true);
+          try {
+            showToast(`Initiating direct scan from Epson L3250...`, 'info');
+            const dataUrl = window.AndroidBridge.scanFromEpsonDirect(state.scanDpi, 'id_card');
+            if (dataUrl && dataUrl.startsWith('data:image')) {
+              const img = new Image();
+              img.onload = () => {
+                state[side].rawImg = img;
+                state[side].croppedImg = img;
+                state[side].rotation = 0;
+                detectAndApplyAspect(side, img);
+                renderSlot(side);
+                document.getElementById(side + 'Controls').style.display = 'flex';
+                document.getElementById(side + 'Label').innerText = `Scanned ${side.toUpperCase()} (Wi-Fi Direct)`;
+                setScanningState(false);
+                closeScanModal();
+                showToast(`${side.toUpperCase()} scanned successfully!`, 'success');
+              };
+              img.src = dataUrl;
+              return;
+            } else {
+              throw new Error('No image returned from scanner. Check Wi-Fi Direct connection.');
+            }
+          } catch (scanErr) {
+            alert('Scan error: ' + (scanErr.message || 'Direct scan failed.'));
+            setScanningState(false);
+            closeScanModal();
+            return;
+          }
         }
       }
 
@@ -6896,18 +6999,22 @@
     }
 
     function setDocDpi(dpi) {
-      docState.scanDpi = parseInt(dpi, 10);
+      docState.scanDpi = parseInt(dpi, 10) || 300;
       [150, 200, 300, 600].forEach(d => {
         const btn = document.getElementById('btnDocDpi' + d);
         if (btn) btn.classList.toggle('active', d === docState.scanDpi);
+        const expBtn = document.getElementById('btnExportDpi' + d);
+        if (expBtn) expBtn.classList.toggle('active', d === docState.scanDpi);
       });
       const hint = document.getElementById('docDpiHint');
-      if (hint) {
-        if (docState.scanDpi === 150) hint.innerText = 'Fast Draft (~10s)';
-        else if (docState.scanDpi === 200) hint.innerText = 'Balanced Speed (~15s)';
-        else if (docState.scanDpi === 300) hint.innerText = '300 DPI Recommended';
-        else hint.innerText = 'Ultra HD (~45s)';
-      }
+      const expHint = document.getElementById('docExportDpiHint');
+      let text = '300 DPI Recommended';
+      if (docState.scanDpi === 150) text = 'Fast Draft (~10s / Compact PDF)';
+      else if (docState.scanDpi === 200) text = 'Balanced Speed (~15s / Standard PDF)';
+      else if (docState.scanDpi === 300) text = '300 DPI Recommended (High Quality)';
+      else text = 'Ultra HD (~45s / Maximum Detail)';
+      if (hint) hint.innerText = text;
+      if (expHint) expHint.innerText = text;
       const saveBtn = document.getElementById('btnDocSavePdf');
       if (saveBtn) {
         saveBtn.innerHTML = `📥 Save Multi-Page (${docState.scanDpi} DPI) PDF`;
@@ -6943,6 +7050,53 @@
       }
 
       docState.abortController = new AbortController();
+
+      // Wi-Fi Direct direct scan via AndroidBridge
+      if (window.AndroidBridge && typeof window.AndroidBridge.scanFromEpsonDirect === 'function') {
+        let isDirect = false;
+        try {
+          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
+          if (dev.is_wifi_direct || dev.connection_type === 'Wi-Fi Direct') isDirect = true;
+        } catch (e) {}
+
+        if (isDirect) {
+          const targetPageNum = docState.pages.length + 1;
+          showToast(`Scanning Page ${targetPageNum} via Epson L3250 Flatbed (Wi-Fi Direct)...`, 'info');
+          try {
+            const dataUrl = window.AndroidBridge.scanFromEpsonDirect(docState.scanDpi, docState.docType);
+            if (dataUrl && dataUrl.startsWith('data:image')) {
+              const newPage = {
+                id: 'page_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                rawImg: dataUrl,
+                enhancedImg: dataUrl,
+                rotation: 0,
+                docType: docState.docType,
+                preset: docState.autoEnhance ? docState.enhancePreset : 'original',
+                brightness: docState.brightness,
+                contrast: docState.contrast,
+                sharpness: docState.sharpness,
+                bgWhiten: docState.bgWhiten,
+                aspect: 0.707
+              };
+              docState.pages.push(newPage);
+              docState.currentIndex = docState.pages.length - 1;
+              renderDocPageList();
+              renderCurrentDocPage();
+              showToast(`Page ${targetPageNum} scanned successfully!`, 'success');
+              return;
+            } else {
+              throw new Error('No image returned from Epson scanner.');
+            }
+          } catch (err) {
+            showToast('Scan failed: ' + (err.message || 'Check printer connection'), 'danger');
+            return;
+          } finally {
+            docState.isScanning = false;
+            if (banner) banner.style.display = 'none';
+            if (scanBtn) scanBtn.disabled = false;
+          }
+        }
+      }
 
       try {
         const targetPageNum = docState.pages.length + 1;

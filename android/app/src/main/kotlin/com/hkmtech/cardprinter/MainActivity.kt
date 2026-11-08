@@ -225,57 +225,38 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun scanFromEpsonDirect(dpi: Int, docType: String): String? {
+            val dev = DeviceDetector.detect(context)
+            val targetIp = dev.printerIp.ifEmpty { "192.168.192.168" }
+            return EpsonDirectScanner.scanViaEscl(targetIp, dpi)
+        }
+
+        @JavascriptInterface
+        fun checkPrinterDirectOnline(): Boolean {
+            val (online, _) = EpsonDirectScanner.checkPrinterOnline(context)
+            return online
+        }
+
+        @JavascriptInterface
         fun getDeviceConnectionInfo(): String {
             val json = JSONObject()
             try {
                 json.put("isAndroid", true)
+                val dev = DeviceDetector.detect(context)
 
-                // 1. Check Network Connectivity
-                val connMgr = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-                val activeNetwork = connMgr?.activeNetwork
-                val caps = connMgr?.getNetworkCapabilities(activeNetwork)
-                val isWifi = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
-                val isCellular = caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
-
-                var ssid = "Wi-Fi Network"
-                if (isWifi) {
-                    try {
-                        val wifiMgr = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-                        val wifiInfo = wifiMgr?.connectionInfo
-                        val rawSsid = wifiInfo?.ssid?.replace("\"", "") ?: ""
-                        if (rawSsid.isNotEmpty() && rawSsid != "<unknown ssid>") {
-                            ssid = rawSsid
-                        }
-                    } catch (_: Exception) {}
-                }
-
-                // 2. Check USB Connectivity (OTG)
-                var hasUsbPrinter = false
-                val usbMgr = context.getSystemService(Context.USB_SERVICE) as? UsbManager
-                val deviceList = usbMgr?.deviceList
-                if (!deviceList.isNullOrEmpty()) {
-                    for (entry in deviceList.values) {
-                        for (i in 0 until entry.interfaceCount) {
-                            if (entry.getInterface(i).interfaceClass == 7) {
-                                hasUsbPrinter = true
-                                break
-                            }
-                        }
-                    }
-                }
-
-                val connType = if (isWifi) "Wi-Fi" else if (hasUsbPrinter) "USB" else if (isCellular) "Mobile Data" else "Local Mode"
-                json.put("connection_type", connType)
-                json.put("wifi_ssid", if (isWifi) ssid else null)
-                json.put("printer_name", "EPSON L3250 Series")
-                json.put("model_number", "L3250")
+                json.put("connection_type", dev.connectionType)
+                json.put("wifi_ssid", dev.wifiSsid)
+                json.put("printer_name", dev.printerName)
+                json.put("model_number", dev.modelNumber)
                 json.put("bridge_ip", getScannerBridgeIp())
-                json.put("port", if (isWifi) "Wi-Fi Direct / Network" else if (hasUsbPrinter) "USB OTG" else "Spooler")
-                json.put("printer_connection", if (isWifi) "Wi-Fi ($ssid)" else if (hasUsbPrinter) "USB Direct Cable" else "Android Spooler")
-                json.put("printer_status", "Ready")
-                json.put("scanner_name", "EPSON L3250 Flatbed Scanner (Wi-Fi)")
-                json.put("scanner_online", true)
-                json.put("scanner_message", "Epson L3250 Scanner Online")
+                json.put("printer_ip", dev.printerIp)
+                json.put("port", dev.port)
+                json.put("printer_connection", dev.port)
+                json.put("printer_status", if (dev.isReady) "Ready" else "Offline")
+                json.put("scanner_name", dev.scannerName)
+                json.put("scanner_online", dev.scannerOnline)
+                json.put("scanner_message", if (dev.isWifiDirect) "Epson L3250 Ready on Wi-Fi Direct" else "Epson Scanner Ready")
+                json.put("is_wifi_direct", dev.isWifiDirect)
             } catch (e: Exception) {
                 json.put("error", e.message)
             }
