@@ -46,13 +46,15 @@
     }
 
     header {
-      background: var(--panel-bg);
-      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #0e172a 0%, #090e1a 100%);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.16);
       padding: 10px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      z-index: 10;
     }
 
     .header-title {
@@ -146,10 +148,17 @@
     }
 
     .section-card {
-      background: var(--card-bg);
-      border-radius: 10px;
-      padding: 14px;
-      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #141f33 0%, #0c1424 100%);
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(56, 189, 248, 0.13);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .section-card:hover {
+      border-color: rgba(56, 189, 248, 0.25);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.36);
     }
 
     .section-title {
@@ -157,19 +166,35 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-muted);
+      color: #94a3b8;
       margin-bottom: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      margin-right: 6px;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+    }
+
     /* AUTO SCAN CARD */
     .auto-scan-card {
-      background: linear-gradient(135deg, #1e3a8a, #172554);
-      border: 1px solid #3b82f6;
-      border-radius: 10px;
-      padding: 14px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #0d214a 100%);
+      border: 1px solid #38bdf8;
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 20px rgba(14, 165, 233, 0.2);
     }
 
     .btn-wizard {
@@ -370,8 +395,28 @@
 
     input[type="range"] {
       flex: 1;
-      accent-color: var(--primary);
+      accent-color: #38bdf8;
       cursor: pointer;
+      height: 6px;
+      border-radius: 3px;
+      background: #1e293b;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      background: #0284c7;
     }
 
     .range-val {
@@ -966,38 +1011,40 @@
     /* MODE TABS SWITCHER IN HEADER */
     .mode-nav-tabs {
       display: flex;
-      background: #0f172a;
-      padding: 3px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      gap: 4px;
+      background: rgba(9, 14, 26, 0.9);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      gap: 5px;
       margin-left: 16px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
     }
 
     .mode-tab-btn {
       background: transparent;
       color: #94a3b8;
       border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
+      border-radius: 7px;
+      padding: 7px 16px;
       font-size: 0.82rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
+      user-select: none;
     }
 
     .mode-tab-btn:hover {
-      color: white;
-      background: rgba(255, 255, 255, 0.05);
+      color: #f1f5f9;
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .mode-tab-btn.active {
-      background: #2563eb;
-      color: white;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 14px rgba(14, 165, 233, 0.45);
     }
 
     /* MULTI-PAGE DOCUMENT SCANNER COMPONENTS */
@@ -1392,11 +1439,25 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .slot-crop-btn {
+    .slot-actions-bar {
       position: absolute;
       top: 8px;
       right: 8px;
-      background: rgba(15, 23, 42, 0.92);
+      display: flex;
+      gap: 6px;
+      z-index: 70;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      transform: translateY(-2px);
+    }
+
+    .card-slot:hover .slot-actions-bar {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .slot-crop-btn {
+      background: rgba(15, 23, 42, 0.94);
       color: #38bdf8;
       border: 1px solid #0284c7;
       border-radius: 6px;
@@ -1404,21 +1465,101 @@
       font-size: 11px;
       font-weight: 700;
       cursor: pointer;
-      z-index: 70;
-      opacity: 0;
-      transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.15s;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       backdrop-filter: blur(4px);
-    }
-
-    .card-slot:hover .slot-crop-btn {
-      opacity: 1;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
     .slot-crop-btn:hover {
       background: #0284c7;
       color: #ffffff;
       transform: scale(1.05);
+    }
+
+    .slot-orig-btn {
+      background: rgba(15, 23, 42, 0.94);
+      color: #fbbf24;
+      border: 1px solid #f59e0b;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .slot-orig-btn:hover {
+      background: #f59e0b;
+      color: #000000;
+      transform: scale(1.05);
+    }
+
+    .slot-orig-btn.active {
+      background: #f59e0b !important;
+      color: #000000 !important;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
+    }
+
+    .slot-orig-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000000;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+      z-index: 45;
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-toggle-orig {
+      background: rgba(245, 158, 11, 0.15) !important;
+      border: 1px solid #f59e0b !important;
+      color: #fbbf24 !important;
+      font-weight: 700 !important;
+    }
+
+    .btn-toggle-orig:hover {
+      background: rgba(245, 158, 11, 0.3) !important;
+      color: #ffffff !important;
+    }
+
+    .btn-toggle-orig.active {
+      background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+      color: #000000 !important;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5) !important;
+    }
+
+    .doc-orig-floating-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000000;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 6px;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.5);
+      z-index: 70;
+      pointer-events: none;
+      animation: fadeIn 0.2s ease;
     }
 
     .crop-modal-box {
@@ -2001,6 +2142,7 @@
               <span class="upload-sub">Supports JPG, PNG, WebP</span>
             </div>
             <div class="image-controls-row" id="frontControls" style="display: none; flex-wrap: wrap; gap: 4px;">
+              <button class="mini-btn btn-toggle-orig" id="frontToggleOrigBtn" onclick="toggleCardOriginalView('front')" title="Toggle between cropped card and original uncropped scan">👁️ Show Original</button>
               <button class="mini-btn btn-primary" onclick="openManualCropModal('front')" title="Manually drag and adjust crop box with handles" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; font-weight: 700;">✂ Adjust Crop</button>
               <button class="mini-btn" onclick="rotateImage('front', -90)" title="Rotate 90° Left">⟲ 90°</button>
               <button class="mini-btn" onclick="rotateImage('front', 90)" title="Rotate 90° Right">⟳ 90°</button>
@@ -2027,6 +2169,7 @@
               <span class="upload-sub">Address & QR Code side</span>
             </div>
             <div class="image-controls-row" id="backControls" style="display: none; flex-wrap: wrap; gap: 4px;">
+              <button class="mini-btn btn-toggle-orig" id="backToggleOrigBtn" onclick="toggleCardOriginalView('back')" title="Toggle between cropped card and original uncropped scan">👁️ Show Original</button>
               <button class="mini-btn btn-primary" onclick="openManualCropModal('back')" title="Manually drag and adjust crop box with handles" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; font-weight: 700;">✂ Adjust Crop</button>
               <button class="mini-btn" onclick="rotateImage('back', -90)" title="Rotate 90° Left">⟲ 90°</button>
               <button class="mini-btn" onclick="rotateImage('back', 90)" title="Rotate 90° Right">⟳ 90°</button>
@@ -2105,7 +2248,11 @@
 
           <!-- FRONT CARD SLOT -->
           <div class="card-slot slot-front border-none" id="frontSlot" data-side="front" ondblclick="openManualCropModal('front')">
-            <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('front');" title="Adjust crop box">✂ Adjust Crop</button>
+            <div class="slot-actions-bar">
+              <button class="slot-orig-btn" id="frontSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('front')" title="Toggle original uncropped scan vs cropped card" style="display: none;">👁️ Original</button>
+              <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('front');" title="Adjust crop box">✂ Adjust Crop</button>
+            </div>
+            <div class="slot-orig-badge" id="frontOrigBadge" style="display: none;">👁️ Viewing Original Scan</div>
             <!-- 4 Corner Resize Handles (Drag to resize document size) -->
             <div class="slot-corner-handle handle-tl" data-corner="tl" data-side="front" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
             <div class="slot-corner-handle handle-tr" data-corner="tr" data-side="front" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
@@ -2136,7 +2283,11 @@
 
           <!-- BACK CARD SLOT -->
           <div class="card-slot slot-back border-none" id="backSlot" data-side="back" ondblclick="openManualCropModal('back')">
-            <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('back');" title="Adjust crop box">✂ Adjust Crop</button>
+            <div class="slot-actions-bar">
+              <button class="slot-orig-btn" id="backSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('back')" title="Toggle original uncropped scan vs cropped card" style="display: none;">👁️ Original</button>
+              <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('back');" title="Adjust crop box">✂ Adjust Crop</button>
+            </div>
+            <div class="slot-orig-badge" id="backOrigBadge" style="display: none;">👁️ Viewing Original Scan</div>
             <!-- 4 Corner Resize Handles (Drag to resize document size) -->
             <div class="slot-corner-handle handle-tl" data-corner="tl" data-side="back" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
             <div class="slot-corner-handle handle-tr" data-corner="tr" data-side="back" title="Drag corner to adjust document size (width & height) • Double-click to reset (85.6 mm)"></div>
@@ -2696,8 +2847,8 @@
         </div>
 
         <div style="display:flex; align-items:center; gap:6px;">
-          <button class="mini-btn" id="btnDocToggleOriginal" onclick="toggleDocOriginalView()" title="Compare original scan vs enhanced document">
-            👁️ Original
+          <button class="mini-btn btn-toggle-orig" id="btnDocToggleOriginal" onclick="toggleDocOriginalView()" title="Compare original scan vs enhanced document">
+            👁️ Show Original
           </button>
           <button class="mini-btn" onclick="rotateCurrentDocPage(-90)" title="Rotate 90° Left">⟲ 90°</button>
           <button class="mini-btn" onclick="rotateCurrentDocPage(90)" title="Rotate 90° Right">⟳ 90°</button>
@@ -2715,6 +2866,7 @@
       <!-- Live Simulated A4 Document Sheet -->
       <div class="a4-sheet-container" style="transform: scale(0.85); transform-origin: top center;" id="docSheetContainer">
         <div class="doc-sheet-container" id="docA4Sheet">
+          <div class="doc-orig-floating-badge" id="docOrigFloatingBadge" style="display: none;">👁️ Viewing Original Unenhanced Scan</div>
           <div id="docSheetPlaceholder" class="doc-empty-state">
             <span style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6;">📄</span>
             <strong style="color: #94a3b8; font-size: 1rem;">Document Page Preview</strong>
@@ -3296,6 +3448,9 @@
         <div class="crop-toolbar-group" style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap;">
           <button class="mini-btn" id="cropBtnFitView" onclick="toggleCropZoomFit()" title="Fit entire scanned page into view without scrolling">
             🔍 Fit Page
+          </button>
+          <button class="mini-btn btn-toggle-orig" id="cropBtnToggleSource" onclick="toggleCropModalSource()" title="Toggle between raw uncropped scan and current cropped image">
+            👁️ Original Scan
           </button>
           <button class="mini-btn" onclick="cropOrientByText()" title="Auto-detect text direction and orient image" style="background: rgba(14, 165, 233, 0.2); border: 1px solid #0284c7; color: #38bdf8; font-weight: 600;">
             📐 Orient by Text
@@ -5197,13 +5352,25 @@
     function renderSlot(side) {
       const imgElem = document.getElementById(side + 'Img');
       const emptyElem = document.getElementById(side + 'Empty');
-      if (state[side].croppedImg) {
-        imgElem.src = state[side].croppedImg.src;
+      const isOrig = state[side].showOriginal && state[side].rawImg;
+      const targetImg = isOrig ? state[side].rawImg : state[side].croppedImg;
+
+      const sideBtn = document.getElementById(side + 'ToggleOrigBtn');
+      const slotBtn = document.getElementById(side + 'SlotOrigBtn');
+      const badge = document.getElementById(side + 'OrigBadge');
+
+      if (targetImg) {
+        imgElem.src = targetImg.src;
         imgElem.style.display = 'block';
         emptyElem.style.display = 'none';
+        if (sideBtn) sideBtn.style.display = 'inline-flex';
+        if (slotBtn) slotBtn.style.display = 'inline-flex';
       } else {
         imgElem.style.display = 'none';
         emptyElem.style.display = 'flex';
+        if (sideBtn) sideBtn.style.display = 'none';
+        if (slotBtn) slotBtn.style.display = 'none';
+        if (badge) badge.style.display = 'none';
       }
       updateFilters();
     }
@@ -6389,11 +6556,16 @@
     function toggleDocOriginalView() {
       docState.showOriginal = !docState.showOriginal;
       const btn = document.getElementById('btnDocToggleOriginal');
+      const badge = document.getElementById('docOrigFloatingBadge');
       if (btn) {
-        btn.innerText = docState.showOriginal ? '✨ Show Enhanced' : '👁️ Original';
-        btn.style.background = docState.showOriginal ? '#2563eb' : '';
+        btn.innerHTML = docState.showOriginal ? '✨ Show Enhanced' : '👁️ Show Original';
+        btn.classList.toggle('active', docState.showOriginal);
+      }
+      if (badge) {
+        badge.style.display = docState.showOriginal ? 'inline-block' : 'none';
       }
       renderCurrentDocPage();
+      showToast(docState.showOriginal ? 'Viewing original unenhanced scan.' : 'Viewing auto-enhanced document.', 'info');
     }
 
     function setDocFilterPreset(preset) {
@@ -7784,6 +7956,59 @@
         updateCropBoxDOM();
         showToast('🔲 Box Mode: Standard 8-handle crop box active.', 'info');
       }
+    }
+
+
+    function toggleCardOriginalView(side) {
+      if (!state[side].rawImg && !state[side].croppedImg) return;
+      state[side].showOriginal = !state[side].showOriginal;
+
+      const sideBtn = document.getElementById(side + 'ToggleOrigBtn');
+      const slotBtn = document.getElementById(side + 'SlotOrigBtn');
+      const badge = document.getElementById(side + 'OrigBadge');
+
+      const isOrig = state[side].showOriginal;
+      const label = isOrig ? '✨ Show Cropped' : '👁️ Show Original';
+      const slotLabel = isOrig ? '✨ Cropped' : '👁️ Original';
+
+      if (sideBtn) {
+        sideBtn.innerHTML = label;
+        sideBtn.classList.toggle('active', isOrig);
+      }
+      if (slotBtn) {
+        slotBtn.innerHTML = slotLabel;
+        slotBtn.classList.toggle('active', isOrig);
+      }
+      if (badge) {
+        badge.style.display = isOrig ? 'inline-flex' : 'none';
+      }
+
+      renderSlot(side);
+      showToast(isOrig ? `Viewing original ${side.toUpperCase()} photo/scan` : `Viewing cropped ${side.toUpperCase()} card`, 'info');
+    }
+
+    function toggleCropModalSource() {
+      const side = cropState.activeSide;
+      if (!side || !state[side]) return;
+      const targetElem = document.getElementById('cropTargetImage');
+      const btn = document.getElementById('cropBtnToggleSource');
+      if (!targetElem) return;
+
+      cropState.viewingOriginal = !cropState.viewingOriginal;
+      const srcToUse = cropState.viewingOriginal
+        ? (state[side].rawImg ? state[side].rawImg.src : targetElem.src)
+        : (state[side].croppedImg ? state[side].croppedImg.src : targetElem.src);
+
+      if (btn) {
+        btn.innerHTML = cropState.viewingOriginal ? '✨ Cropped Image' : '👁️ Original Scan';
+        btn.classList.toggle('active', cropState.viewingOriginal);
+      }
+
+      targetElem.onload = () => {
+        initCropWorkspace();
+        showToast(cropState.viewingOriginal ? 'Displaying original uncropped scan.' : 'Displaying cropped image.', 'info');
+      };
+      targetElem.src = srcToUse;
     }
 
     function toggleCropZoomFit() {
