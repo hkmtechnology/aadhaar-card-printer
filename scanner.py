@@ -465,7 +465,7 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
             except:
                 pass
 
-        detected_bbox = list(r_info.get("bbox", [])) if "bbox" in r_info else None
+        detected_bbox = list(ratio_info.get("bbox", [])) if "bbox" in ratio_info else None
         if not detected_bbox and "crop_box" in ratio_info:
             detected_bbox = list(ratio_info["crop_box"])
 
