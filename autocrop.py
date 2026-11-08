@@ -1001,10 +1001,12 @@ def render_passport_grid_a4(
     fill_count=8,
     border_style="solid",
     cut_guides=True,
-    active_indices=None
+    active_indices=None,
+    paper_w_mm=210.0,
+    paper_h_mm=297.0
 ):
     """
-    Renders an exact 300 DPI A4 page (2480 x 3508) with a grid of passport photos.
+    Renders an exact 300 DPI page with a grid of passport photos on any selected paper size.
     Supports customizable rows, columns, margins, cutting borders, and partial sheet fill.
     Returns: PIL Image (300 DPI RGB)
     """
@@ -1017,8 +1019,9 @@ def render_passport_grid_a4(
     else:
         photo_pil = photo_input.copy().convert("RGB")
 
-    A4_W, A4_H = 2480, 3508 # 300 DPI
-    scale = A4_W / 210.0 # ~11.811 px per mm
+    scale = 300.0 / 25.4 # ~11.811 px per mm at 300 DPI
+    sheet_w = int(round(paper_w_mm * scale))
+    sheet_h = int(round(paper_h_mm * scale))
 
     p_w = int(round(photo_w_mm * scale))
     p_h = int(round(photo_h_mm * scale))
@@ -1032,7 +1035,7 @@ def render_passport_grid_a4(
     if left_margin_mm is not None and left_margin_mm >= 0:
         left_px = int(round(left_margin_mm * scale))
     else:
-        left_px = max(20, (A4_W - grid_w) // 2)
+        left_px = max(20, (sheet_w - grid_w) // 2)
 
     if top_margin_mm is not None and top_margin_mm >= 0:
         top_px = int(round(top_margin_mm * scale))
@@ -1040,9 +1043,9 @@ def render_passport_grid_a4(
         if rows <= 3:
             top_px = int(round(20.0 * scale))
         else:
-            top_px = max(20, (A4_H - grid_h) // 2)
+            top_px = max(20, (sheet_h - grid_h) // 2)
 
-    page = Image.new("RGB", (A4_W, A4_H), (255, 255, 255))
+    page = Image.new("RGB", (sheet_w, sheet_h), (255, 255, 255))
     draw = ImageDraw.Draw(page)
 
     border_w = max(1, int(round(scale * 0.15)))
@@ -1080,8 +1083,8 @@ def render_passport_grid_a4(
                 y = top_px + (rows - 1) * (p_h + gap) + p_h + gap // 2
             else:
                 y = top_px + r * (p_h + gap) - gap // 2
-            if 0 <= y < A4_H:
-                draw.line([(max(0, left_px - 40), y), (min(A4_W, left_px + grid_w + 40), y)], fill=guide_color, width=line_w)
+            if 0 <= y < sheet_h:
+                draw.line([(max(0, left_px - 40), y), (min(sheet_w, left_px + grid_w + 40), y)], fill=guide_color, width=line_w)
 
         for c in range(cols + 1):
             if c == 0:
@@ -1090,7 +1093,7 @@ def render_passport_grid_a4(
                 x = left_px + (cols - 1) * (p_w + gap) + p_w + gap // 2
             else:
                 x = left_px + c * (p_w + gap) - gap // 2
-            if 0 <= x < A4_W:
-                draw.line([(x, max(0, top_px - 40)), (x, min(A4_H, top_px + grid_h + 40))], fill=guide_color, width=line_w)
+            if 0 <= x < sheet_w:
+                draw.line([(x, max(0, top_px - 40)), (x, min(sheet_h, top_px + grid_h + 40))], fill=guide_color, width=line_w)
 
     return page

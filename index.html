@@ -1652,6 +1652,20 @@
       <span class="badge">100% Offline & Private</span>
       <span class="epson-tag checking" id="scannerBadge" onclick="checkScannerServer(true)" title="Click to refresh connection status">⏳ Checking Scanner...</span>
 
+      <!-- GLOBAL PAPER SIZE SELECTOR -->
+      <div class="paper-selector-wrap" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(15, 23, 42, 0.6); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.35); margin-left: 6px;">
+        <span style="font-size: 0.74rem; color: #93c5fd; font-weight: 600;">📄 Paper:</span>
+        <select id="headerPaperSizeSelect" class="mini-btn" style="background: #0b1329; border-color: #3b82f6; font-size: 0.76rem; padding: 3px 7px; color: #f8fafc; font-weight: 600;" onchange="setPaperSize(this.value)">
+          <option value="a4" selected>A4 (210 × 297 mm)</option>
+          <option value="letter">Letter (8.5 × 11 in)</option>
+          <option value="legal">Legal (8.5 × 14 in)</option>
+          <option value="4x6">4 × 6 in Photo Paper (10×15 cm)</option>
+          <option value="5x7">5 × 7 in Photo Paper (13×18 cm)</option>
+          <option value="a5">A5 (148 × 210 mm)</option>
+          <option value="a6">A6 / Postcard (105 × 148 mm)</option>
+        </select>
+      </div>
+
       <!-- APPLICATION MODE SWITCHER -->
       <div class="mode-nav-tabs">
         <button class="mode-tab-btn active" id="btnModeCard" onclick="switchAppMode('card')">
@@ -1815,7 +1829,7 @@
     <main class="preview-workspace">
       <div class="preview-toolbar">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span>Live A4 Paper Simulation (210 × 297 mm)</span>
+          <span id="paperSimulationTitle">Live A4 Paper Simulation (210 × 297 mm)</span>
           <span style="color: #64748b;">•</span>
           <span style="color: #60a5fa;" id="statusIndicator">Ready</span>
         </div>
@@ -1908,6 +1922,31 @@
     <!-- RIGHT SIDEBAR: SIZING, FILTERS & OUTPUT -->
     <aside class="sidebar sidebar-right">
       <div class="sidebar-scroll">
+
+        <!-- PAPER SIZE & SHEET SETUP -->
+        <div class="section-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+            <div class="section-title" style="margin:0;">📄 Sheet Paper Size</div>
+            <span id="paperSizeBadge" style="font-size: 0.72rem; color: #34d399; font-weight: 700; background: rgba(52, 211, 153, 0.15); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(52, 211, 153, 0.3);">
+              210 × 297 mm
+            </span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 6px;">
+            <select id="paperSizeSelect" class="mini-btn" style="width: 100%; background: #0b1329; border-color: #3b82f6; font-size: 0.8rem; font-weight: 600; padding: 7px 10px;" onchange="setPaperSize(this.value)">
+              <option value="a4" selected>A4 (210 × 297 mm) — Standard Official</option>
+              <option value="letter">Letter (8.5 × 11 in / 216 × 279 mm)</option>
+              <option value="legal">Legal (8.5 × 14 in / 216 × 356 mm)</option>
+              <option value="4x6">4 × 6 in Photo Paper (102 × 152 mm / 10×15 cm)</option>
+              <option value="5x7">5 × 7 in Photo Paper (127 × 178 mm / 13×18 cm)</option>
+              <option value="a5">A5 (148 × 210 mm — Half A4)</option>
+              <option value="a6">A6 (105 × 148 mm — Postcard)</option>
+            </select>
+          </div>
+          <div style="font-size:0.68rem; color:var(--text-muted);">
+            Adapts live paper preview, card boundaries, center separation line, printer output, and PDF exports.
+          </div>
+        </div>
 
         <!-- STEP 3: CARD SIZE & LAYOUT -->
         <div class="section-card">
@@ -2680,8 +2719,29 @@
         <!-- SECTION 3: GRID CONFIGURATION -->
         <div class="section-card">
           <div class="section-title">
-            <span>3. A4 Grid Layout</span>
+            <span id="photoGridTitle">3. Grid Layout & Paper</span>
             <button class="mini-btn" style="font-size:0.68rem; padding:1px 6px;" onclick="autoCenterPhotoGrid()">Auto-Center</button>
+          </div>
+
+          <!-- Paper Size Selection in Photo Studio -->
+          <div class="form-group" style="margin-bottom: 8px; background: rgba(15, 23, 42, 0.4); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label style="color:#60a5fa; margin:0; font-size:0.75rem; font-weight:600;">Paper Format:</label>
+              <div style="display: flex; gap: 4px;">
+                <button type="button" class="mini-btn" style="padding: 1px 6px; font-size: 0.68rem;" onclick="setPaperSize('4x6')">4×6" Photo</button>
+                <button type="button" class="mini-btn" style="padding: 1px 6px; font-size: 0.68rem;" onclick="setPaperSize('a4')">A4</button>
+                <button type="button" class="mini-btn" style="padding: 1px 6px; font-size: 0.68rem;" onclick="setPaperSize('letter')">Letter</button>
+              </div>
+            </div>
+            <select id="photoPaperSizeSelect" class="mini-btn" style="width: 100%; background: #0b1329; border-color: #3b82f6; font-size: 0.78rem;" onchange="setPaperSize(this.value)">
+              <option value="a4" selected>A4 (210 × 297 mm) — Standard Sheet</option>
+              <option value="letter">Letter (8.5 × 11 in / 216 × 279 mm)</option>
+              <option value="legal">Legal (8.5 × 14 in / 216 × 356 mm)</option>
+              <option value="4x6">4 × 6 in Photo Paper (102 × 152 mm / 10×15 cm)</option>
+              <option value="5x7">5 × 7 in Photo Paper (127 × 178 mm / 13×18 cm)</option>
+              <option value="a5">A5 (148 × 210 mm)</option>
+              <option value="a6">A6 (105 × 148 mm)</option>
+            </select>
           </div>
 
           <label style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; display: block;">Quick Grid Presets:</label>
@@ -3063,8 +3123,21 @@
   </div>
 
   <script>
+    const PAPER_SIZES = {
+      'a4': { key: 'a4', name: 'A4', widthMm: 210.0, heightMm: 297.0, label: 'A4 (210 × 297 mm)', cssPage: 'A4' },
+      'letter': { key: 'letter', name: 'Letter', widthMm: 215.9, heightMm: 279.4, label: 'Letter (8.5 × 11 in / 216 × 279 mm)', cssPage: 'letter' },
+      'legal': { key: 'legal', name: 'Legal', widthMm: 215.9, heightMm: 355.6, label: 'Legal (8.5 × 14 in / 216 × 356 mm)', cssPage: 'legal' },
+      '4x6': { key: '4x6', name: '4 × 6 in', widthMm: 101.6, heightMm: 152.4, label: '4 × 6 in Photo Paper (102 × 152 mm)', cssPage: '4in 6in' },
+      '5x7': { key: '5x7', name: '5 × 7 in', widthMm: 127.0, heightMm: 177.8, label: '5 × 7 in Photo Paper (127 × 178 mm)', cssPage: '5in 7in' },
+      'a5': { key: 'a5', name: 'A5', widthMm: 148.0, heightMm: 210.0, label: 'A5 (148 × 210 mm — Half A4)', cssPage: 'A5' },
+      'a6': { key: 'a6', name: 'A6', widthMm: 105.0, heightMm: 148.0, label: 'A6 (105 × 148 mm — Postcard)', cssPage: 'A6' }
+    };
+
     // State
     const state = {
+      paperSize: 'a4',
+      paperWidthMm: 210.0,
+      paperHeightMm: 297.0,
       front: {
         rawImg: null,
         croppedImg: null,
@@ -3114,6 +3187,128 @@
       abortController: null
     };
 
+    function setPaperSize(sizeKey, triggerSave = true) {
+      const spec = PAPER_SIZES[sizeKey] || PAPER_SIZES['a4'];
+      state.paperSize = spec.key;
+      state.paperWidthMm = spec.widthMm;
+      state.paperHeightMm = spec.heightMm;
+
+      // Sync all paper dropdowns across tabs
+      ['headerPaperSizeSelect', 'paperSizeSelect', 'photoPaperSizeSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = spec.key;
+      });
+
+      // Update badges & titles
+      const badge = document.getElementById('paperSizeBadge');
+      if (badge) badge.innerText = `${Math.round(spec.widthMm)} × ${Math.round(spec.heightMm)} mm`;
+
+      const simTitle = document.getElementById('paperSimulationTitle');
+      if (simTitle) simTitle.innerText = `Live ${spec.name} Paper Simulation (${Math.round(spec.widthMm)} × ${Math.round(spec.heightMm)} mm)`;
+
+      const photoGridTitle = document.getElementById('photoGridTitle');
+      if (photoGridTitle) photoGridTitle.innerText = `3. Grid Layout (${spec.name})`;
+
+      // Update screen sheet containers
+      const sheetW = (spec.widthMm * PX_PER_MM) + 'px';
+      const sheetH = (spec.heightMm * PX_PER_MM) + 'px';
+
+      const a4Sheet = document.getElementById('a4Sheet');
+      if (a4Sheet) {
+        a4Sheet.style.width = sheetW;
+        a4Sheet.style.height = sheetH;
+      }
+
+      const docSheet = document.getElementById('docA4Sheet');
+      if (docSheet) {
+        docSheet.style.width = sheetW;
+        docSheet.style.height = sheetH;
+      }
+
+      const photoSheet = document.getElementById('photoA4Sheet');
+      if (photoSheet) {
+        photoSheet.style.width = sheetW;
+        photoSheet.style.height = sheetH;
+      }
+
+      // Update Card Mode midline & positioning
+      const newMid = Math.round((spec.heightMm / 2.0) * 10) / 10;
+      state.midLinePosMm = newMid;
+      const midSlider = document.getElementById('midLineSlider');
+      if (midSlider) {
+        midSlider.min = Math.round(spec.heightMm * 0.2);
+        midSlider.max = Math.round(spec.heightMm * 0.8);
+        midSlider.value = newMid;
+        const midVal = document.getElementById('midLineVal');
+        if (midVal) midVal.innerText = newMid.toFixed(1) + ' mm';
+      }
+
+      // Reset card X to center of new paper width
+      state.front.xMm = Math.round((spec.widthMm / 2.0) * 10) / 10;
+      state.back.xMm = Math.round((spec.widthMm / 2.0) * 10) / 10;
+
+      // Reset card vertical positions proportionally
+      const fDim = getCardSlotDimensions('front');
+      const bDim = getCardSlotDimensions('back');
+      state.topPosMm = Math.max(10, Math.round(((newMid - fDim.hMm) / 2.0) * 10) / 10);
+      const botRegion = spec.heightMm - newMid;
+      state.bottomPosMm = Math.max(newMid + 10, Math.round((newMid + (botRegion - bDim.hMm) / 2.0) * 10) / 10);
+
+      const topSlider = document.getElementById('topPosSlider');
+      if (topSlider) {
+        topSlider.max = Math.max(20, Math.floor(newMid - fDim.hMm - 4));
+        topSlider.value = state.topPosMm;
+        const topVal = document.getElementById('topPosVal');
+        if (topVal) topVal.innerText = state.topPosMm + ' mm';
+      }
+
+      const botSlider = document.getElementById('bottomPosSlider');
+      if (botSlider) {
+        botSlider.min = Math.ceil(newMid + 4);
+        botSlider.max = Math.max(botSlider.min + 10, Math.floor(spec.heightMm - bDim.hMm - 4));
+        botSlider.value = state.bottomPosMm;
+        const botVal = document.getElementById('bottomPosVal');
+        if (botVal) botVal.innerText = state.bottomPosMm + ' mm';
+      }
+
+      updateSheetLayout();
+
+      // If in Passport Photo Studio, adapt grid layout & margins
+      if (spec.key === '4x6') {
+        if (photoState.cols > 3 || photoState.rows > 4) {
+          photoState.cols = 2;
+          photoState.rows = 3;
+          photoState.fillCount = 6;
+          const colSl = document.getElementById('photoColsSlider');
+          const rowSl = document.getElementById('photoRowsSlider');
+          const fillSl = document.getElementById('photoFillSlider');
+          if (colSl) colSl.value = 2;
+          if (rowSl) rowSl.value = 3;
+          if (fillSl) { fillSl.max = 6; fillSl.value = 6; }
+          const fCount = document.getElementById('photoFillCountVal');
+          if (fCount) fCount.innerText = '6';
+          const rVal = document.getElementById('photoRowsVal');
+          if (rVal) rVal.innerText = '3';
+          const cVal = document.getElementById('photoColsVal');
+          if (cVal) cVal.innerText = '2';
+        }
+      }
+
+      autoCenterPhotoGrid();
+      renderPhotoGridSheet();
+
+      // Update PDF button labels
+      const pdfBtn = document.getElementById('btnPdfLabel');
+      if (pdfBtn) {
+        pdfBtn.innerText = state.copies === 1 ? `💾 Save ${spec.name} PDF` : `💾 Save ${spec.name} PDF (${state.copies} Pages)`;
+      }
+
+      applyPrintCSS();
+      if (triggerSave) {
+        onSettingChanged();
+      }
+    }
+
     const PX_PER_MM = 595 / 210;
 
     let autoSaveTimer = null;
@@ -3148,6 +3343,7 @@
       else if (state.borderClass === 'border-none') borderStyleVal = 'none';
 
       return {
+        paperSize: state.paperSize || 'a4',
         scanDpi: state.scanDpi || 300,
         autoCrop: document.getElementById('autoCropToggle') ? document.getElementById('autoCropToggle').checked : true,
         aspectMode: state.aspectMode || 'auto',
@@ -3186,6 +3382,10 @@
           state.autoSave = !!settings.autoSave;
           const toggle = document.getElementById('autoSaveToggle');
           if (toggle) toggle.checked = state.autoSave;
+        }
+
+        if (settings.paperSize && PAPER_SIZES[settings.paperSize]) {
+          setPaperSize(settings.paperSize, false);
         }
 
         if (settings.scanDpi) {
@@ -3613,8 +3813,10 @@
             let newYMm = Math.round((initialYMm + dy) * 2) / 2;
 
             const dim = getCardSlotDimensions(side);
-            newXMm = Math.max(dim.wMm / 2, Math.min(210 - dim.wMm / 2, newXMm));
-            newYMm = Math.max(5, Math.min(297 - dim.hMm - 5, newYMm));
+            const pW = state.paperWidthMm || 210.0;
+            const pH = state.paperHeightMm || 297.0;
+            newXMm = Math.max(dim.wMm / 2, Math.min(pW - dim.wMm / 2, newXMm));
+            newYMm = Math.max(5, Math.min(pH - dim.hMm - 5, newYMm));
 
             state[side].xMm = newXMm;
             if (side === 'front') {
@@ -3630,7 +3832,7 @@
               const botVal = document.getElementById('bottomPosVal');
               if (botVal) botVal.innerText = newYMm + ' mm';
 
-              const bottomRegionH = 297 - state.midLinePosMm;
+              const bottomRegionH = pH - state.midLinePosMm;
               const centeredBottomPos = state.midLinePosMm + (bottomRegionH - dim.hMm) / 2;
               state.bottomOffsetFromCenter = state.bottomPosMm - centeredBottomPos;
             }
@@ -3773,12 +3975,14 @@
       }
 
       // Ensure card fits inside its respective half partitioned by midLinePosMm
-      let maxWMm = 190;
+      const pW = state.paperWidthMm || 210.0;
+      const pH = state.paperHeightMm || 297.0;
+      let maxWMm = Math.max(40, pW - 20);
       let maxHMm = 126;
       if (side === 'front') {
-        maxHMm = Math.max(20, state.midLinePosMm - 16);
+        maxHMm = Math.max(15, state.midLinePosMm - 12);
       } else if (side === 'back') {
-        maxHMm = Math.max(20, (297 - state.midLinePosMm) - 16);
+        maxHMm = Math.max(15, (pH - state.midLinePosMm) - 12);
       }
 
       if (hMm > maxHMm) {
@@ -4487,7 +4691,7 @@
 
       // Track bottom offset from center in bottom half
       const bDim = getCardSlotDimensions('back');
-      const bottomRegionH = 297 - state.midLinePosMm;
+      const bottomRegionH = (state.paperHeightMm || 297.0) - state.midLinePosMm;
       const centeredBottomPos = state.midLinePosMm + (bottomRegionH - bDim.hMm) / 2;
       state.bottomOffsetFromCenter = state.bottomPosMm - centeredBottomPos;
 
@@ -4534,8 +4738,11 @@
     function applyPrintCSS() {
       const fDim = getCardSlotDimensions('front');
       const bDim = getCardSlotDimensions('back');
-      const fX = (state.front.xMm !== undefined ? state.front.xMm : 105).toFixed(2);
-      const bX = (state.back.xMm !== undefined ? state.back.xMm : 105).toFixed(2);
+      const pW = (state.paperWidthMm || 210.0).toFixed(2);
+      const pH = (state.paperHeightMm || 297.0).toFixed(2);
+      const spec = (PAPER_SIZES && PAPER_SIZES[state.paperSize]) ? PAPER_SIZES[state.paperSize] : { cssPage: 'A4' };
+      const fX = (state.front.xMm !== undefined ? state.front.xMm : (state.paperWidthMm / 2)).toFixed(2);
+      const bX = (state.back.xMm !== undefined ? state.back.xMm : (state.paperWidthMm / 2)).toFixed(2);
       const fRot = state.front.canvasAngle || 0;
       const bRot = state.back.canvasAngle || 0;
 
@@ -4547,6 +4754,33 @@
       }
       printStyle.textContent = `
         @media print {
+          @page {
+            size: ${spec.cssPage} portrait !important;
+            margin: 0 !important;
+          }
+          html, body {
+            width: ${pW}mm !important;
+            height: ${pH}mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          .main-layout, .preview-workspace {
+            width: ${pW}mm !important;
+            height: ${pH}mm !important;
+          }
+          .a4-sheet {
+            width: ${pW}mm !important;
+            height: ${pH}mm !important;
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+          .doc-sheet-container, .photo-sheet-container, .doc-print-sheet, .photo-print-sheet {
+            width: ${pW}mm !important;
+            height: ${pH}mm !important;
+            page-break-after: always !important;
+            break-after: page !important;
+          }
           .slot-front {
             width: ${fDim.wMm.toFixed(2)}mm !important;
             height: ${fDim.hMm.toFixed(2)}mm !important;
@@ -4593,7 +4827,7 @@
           const topVal = document.getElementById('topPosVal');
           if (topVal) topVal.innerText = state.topPosMm + ' mm';
         } else {
-          const botH = 297.0 - midY;
+          const botH = (state.paperHeightMm || 297.0) - midY;
           state.bottomPosMm = Math.max(midY + 5, Math.round((midY + (botH - dim.hMm) / 2.0) * 2) / 2);
           const botSlider = document.getElementById('bottomPosSlider');
           if (botSlider) botSlider.value = state.bottomPosMm;
@@ -4673,16 +4907,17 @@
       if (state.syncBottomWithMidLine) {
         // Automatically shift bottom placeholder relative to the new separation line
         const bDim = getCardSlotDimensions('back');
-        const bottomRegionH = 297 - state.midLinePosMm;
+        const pH = state.paperHeightMm || 297.0;
+        const bottomRegionH = pH - state.midLinePosMm;
         const centeredBottomPos = state.midLinePosMm + (bottomRegionH - bDim.hMm) / 2;
         const targetBottom = centeredBottomPos + (state.bottomOffsetFromCenter || 0);
 
-        state.bottomPosMm = Math.max(state.midLinePosMm + 5, Math.min(297 - bDim.hMm - 5, Math.round(targetBottom * 2) / 2));
+        state.bottomPosMm = Math.max(state.midLinePosMm + 5, Math.min(pH - bDim.hMm - 5, Math.round(targetBottom * 2) / 2));
 
         const botSlider = document.getElementById('bottomPosSlider');
         if (botSlider) {
           botSlider.min = Math.ceil(state.midLinePosMm + 5);
-          botSlider.max = Math.floor(297 - bDim.hMm - 5);
+          botSlider.max = Math.floor(pH - bDim.hMm - 5);
           botSlider.value = state.bottomPosMm;
         }
         const botVal = document.getElementById('bottomPosVal');
@@ -4707,11 +4942,14 @@
     }
 
     function resetMidLine() {
-      state.midLinePosMm = 148.5;
-      document.getElementById('midLineSlider').value = 148.5;
-      document.getElementById('midLineVal').innerText = '148.5 mm';
+      const halfH = Math.round(((state.paperHeightMm || 297.0) / 2.0) * 10) / 10;
+      state.midLinePosMm = halfH;
+      const slider = document.getElementById('midLineSlider');
+      if (slider) slider.value = halfH;
+      const valSpan = document.getElementById('midLineVal');
+      if (valSpan) valSpan.innerText = halfH.toFixed(1) + ' mm';
       state.bottomOffsetFromCenter = 0;
-      updateMidLinePos(148.5);
+      updateMidLinePos(halfH);
       onSettingChanged();
     }
 
@@ -4745,7 +4983,7 @@
       const bottomHalfGuide = document.querySelector('.a4-bottom-half');
       if (bottomHalfGuide) {
         bottomHalfGuide.style.top = (state.midLinePosMm * PX_PER_MM) + 'px';
-        bottomHalfGuide.style.height = ((297 - state.midLinePosMm) * PX_PER_MM) + 'px';
+        bottomHalfGuide.style.height = (((state.paperHeightMm || 297.0) - state.midLinePosMm) * PX_PER_MM) + 'px';
       }
 
       applyPrintCSS();
@@ -4956,26 +5194,28 @@
 
     function renderHighResA4Canvas() {
       const canvas = document.createElement('canvas');
-      canvas.width = 2480;
-      canvas.height = 3508;
+      const scale = 300.0 / 25.4;
+      const canvasW = Math.round((state.paperWidthMm || 210.0) * scale);
+      const canvasH = Math.round((state.paperHeightMm || 297.0) * scale);
+      canvas.width = canvasW;
+      canvas.height = canvasH;
       const ctx = canvas.getContext('2d');
 
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const scale = 2480 / 210;
       const fDim = getCardSlotDimensions('front');
       const bDim = getCardSlotDimensions('back');
 
       const fCardW = fDim.wMm * scale;
       const fCardH = fDim.hMm * scale;
-      const fCenterX = (state.front.xMm !== undefined ? state.front.xMm : 105) * scale;
+      const fCenterX = (state.front.xMm !== undefined ? state.front.xMm : ((state.paperWidthMm || 210.0) / 2)) * scale;
       const fCenterY = (state.topPosMm + fDim.hMm / 2) * scale;
       const fAngleRad = ((state.front.canvasAngle || 0) * Math.PI) / 180;
 
       const bCardW = bDim.wMm * scale;
       const bCardH = bDim.hMm * scale;
-      const bCenterX = (state.back.xMm !== undefined ? state.back.xMm : 105) * scale;
+      const bCenterX = (state.back.xMm !== undefined ? state.back.xMm : ((state.paperWidthMm || 210.0) / 2)) * scale;
       const bCenterY = (state.bottomPosMm + bDim.hMm / 2) * scale;
       const bAngleRad = ((state.back.canvasAngle || 0) * Math.PI) / 180;
 
@@ -4989,11 +5229,11 @@
       if (state.showMidLine && state.printMidLine) {
         const midY = state.midLinePosMm * scale;
         ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = Math.max(2, Math.round(scale * 0.2));
         ctx.setLineDash([16, 12]);
         ctx.beginPath();
         ctx.moveTo(0, midY);
-        ctx.lineTo(2480, midY);
+        ctx.lineTo(canvasW, midY);
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -5136,8 +5376,10 @@
 
     function createA4ImagePDF(binaryJpeg, numCopies) {
       numCopies = numCopies || 1;
-      const widthPt = 595.28;
-      const heightPt = 841.89;
+      const widthPt = ((state.paperWidthMm || 210.0) * 72.0 / 25.4).toFixed(2);
+      const heightPt = ((state.paperHeightMm || 297.0) * 72.0 / 25.4).toFixed(2);
+      const imgW = Math.round((state.paperWidthMm || 210.0) * 300.0 / 25.4);
+      const imgH = Math.round((state.paperHeightMm || 297.0) * 300.0 / 25.4);
 
       let parts = [];
       let offsets = [];
@@ -5174,7 +5416,7 @@
       addPart(`4 0 obj\n<< /Length ${streamContent.length} >>\nstream\n${streamContent}endstream\nendobj\n`);
 
       offsets[5] = currentPos;
-      const imgHeader = `5 0 obj\n<< /Type /XObject /Subtype /Image /Width 2480 /Height 3508 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${binaryJpeg.length} >>\nstream\n`;
+      const imgHeader = `5 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${binaryJpeg.length} >>\nstream\n`;
       addPart(imgHeader);
       addBinaryPart(binaryJpeg);
       addPart("\nendstream\nendobj\n");
@@ -5873,8 +6115,9 @@
       return new Promise(resolve => {
         const img = new Image();
         img.onload = function() {
-          const A4_W = 2480;
-          const A4_H = 3508;
+          const scale = 300.0 / 25.4;
+          const A4_W = Math.round((state.paperWidthMm || 210.0) * scale);
+          const A4_H = Math.round((state.paperHeightMm || 297.0) * scale);
           const canvas = document.createElement('canvas');
           canvas.width = A4_W;
           canvas.height = A4_H;
@@ -5923,8 +6166,10 @@
 
     function createMultiPageDocumentPDF(jpegBinaries, numCopies) {
       numCopies = numCopies || 1;
-      const widthPt = 595.28;
-      const heightPt = 841.89;
+      const widthPt = ((state.paperWidthMm || 210.0) * 72.0 / 25.4).toFixed(2);
+      const heightPt = ((state.paperHeightMm || 297.0) * 72.0 / 25.4).toFixed(2);
+      const imgW = Math.round((state.paperWidthMm || 210.0) * 300.0 / 25.4);
+      const imgH = Math.round((state.paperHeightMm || 297.0) * 300.0 / 25.4);
 
       let parts = [];
       let offsets = [];
@@ -5971,7 +6216,7 @@
         addPart(`${plan.cObj} 0 obj\n<< /Length ${streamContent.length} >>\nstream\n${streamContent}endstream\nendobj\n`);
 
         offsets[plan.imgObj] = currentPos;
-        const imgHeader = `${plan.imgObj} 0 obj\n<< /Type /XObject /Subtype /Image /Width 2480 /Height 3508 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${plan.jpeg.length} >>\nstream\n`;
+        const imgHeader = `${plan.imgObj} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${plan.jpeg.length} >>\nstream\n`;
         addPart(imgHeader);
         addBinaryPart(plan.jpeg);
         addPart("\nendstream\nendobj\n");
@@ -6507,16 +6752,20 @@
     }
 
     function autoCenterPhotoGrid(recalcTop = true) {
+      const pW = state.paperWidthMm || 210.0;
+      const pH = state.paperHeightMm || 297.0;
       const gridW = (photoState.cols * photoState.photoWidthMm) + ((photoState.cols - 1) * photoState.gapMm);
       const gridH = (photoState.rows * photoState.photoHeightMm) + ((photoState.rows - 1) * photoState.gapMm);
 
-      photoState.leftMarginMm = Math.max(0.0, Math.round(((210.0 - gridW) / 2.0) * 10) / 10);
+      photoState.leftMarginMm = Math.max(0.0, Math.round(((pW - gridW) / 2.0) * 10) / 10);
 
       if (recalcTop) {
-        if (photoState.rows <= 3) {
+        if (pH <= 160) {
+          photoState.topMarginMm = Math.max(0.0, Math.round(((pH - gridH) / 2.0) * 10) / 10);
+        } else if (photoState.rows <= 3) {
           photoState.topMarginMm = 20.0;
         } else {
-          photoState.topMarginMm = Math.max(0.0, Math.round(((297.0 - gridH) / 2.0) * 10) / 10);
+          photoState.topMarginMm = Math.max(0.0, Math.round(((pH - gridH) / 2.0) * 10) / 10);
         }
       }
 
@@ -6670,9 +6919,9 @@
     }
 
     async function renderHighResPhotoCanvas() {
-      const A4_W = 2480;
-      const A4_H = 3508;
-      const scale = A4_W / 210.0;
+      const scale = 300.0 / 25.4;
+      const A4_W = Math.round((state.paperWidthMm || 210.0) * scale);
+      const A4_H = Math.round((state.paperHeightMm || 297.0) * scale);
 
       const canvas = document.createElement('canvas');
       canvas.width = A4_W;

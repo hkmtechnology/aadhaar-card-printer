@@ -18,6 +18,7 @@ SETTINGS_FILE = os.path.join(CURRENT_DIR, "settings.json")
 
 DEFAULT_SETTINGS = {
     "scanDpi": 300,
+    "paperSize": "a4",
     "autoCrop": True,
     "aspectMode": "auto",
     "sizePreset": "standard",
@@ -522,6 +523,9 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 copies = max(1, min(99, int(params.get("copies", 1))))
                 action = params.get("action", "print")
 
+                paper_w_mm = float(params.get("paper_w_mm", 210.0))
+                paper_h_mm = float(params.get("paper_h_mm", 297.0))
+
                 sheet = autocrop.render_passport_grid_a4(
                     photo_pil,
                     rows=rows,
@@ -534,7 +538,9 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                     fill_count=fill_count,
                     border_style=border_style,
                     cut_guides=cut_guides,
-                    active_indices=active_indices
+                    active_indices=active_indices,
+                    paper_w_mm=paper_w_mm,
+                    paper_h_mm=paper_h_mm
                 )
 
                 # Export to PDF or image

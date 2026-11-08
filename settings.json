@@ -3,9 +3,9 @@
   "autoCrop": true,
   "aspectMode": "exact",
   "sizePreset": "standard",
-  "cardWidthMm": 89,
-  "topPosMm": 42,
-  "bottomPosMm": 173.5,
+  "cardWidthMm": 84,
+  "topPosMm": 27.5,
+  "bottomPosMm": 190,
   "borderStyle": "none",
   "cornerCurveMm": 3.18,
   "colorMode": "vibrant",
@@ -21,9 +21,10 @@
   "syncBottomWithMid": true,
   "copies": 1,
   "autoSave": true,
-  "frontXMm": 104.5,
+  "frontXMm": 105,
   "backXMm": 105,
   "frontAngle": 0,
   "backAngle": 0,
-  "borderClass": "border-none"
+  "borderClass": "border-none",
+  "paperSize": "a4"
 }
