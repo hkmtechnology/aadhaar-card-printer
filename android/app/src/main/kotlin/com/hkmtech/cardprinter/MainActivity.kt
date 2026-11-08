@@ -79,6 +79,24 @@ class MainActivity : ComponentActivity() {
         filePathCallback = null
     }
 
+    
+    private val tabReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val tab = intent?.getStringExtra("tab")
+            if (tab != null) {
+                runOnUiThread {
+                    webView.evaluateJavascript("if (typeof switchMobileTab === 'function') switchMobileTab('$tab');", null)
+                }
+            }
+            val mode = intent?.getStringExtra("mode")
+            if (mode != null) {
+                runOnUiThread {
+                    webView.evaluateJavascript("if (typeof switchAppMode === 'function') switchAppMode('$mode');", null)
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -92,6 +110,32 @@ class MainActivity : ComponentActivity() {
 
         setupWebView()
         webView.loadUrl("file:///android_asset/index.html")
+        val filter = android.content.IntentFilter().apply {
+            addAction("com.hkmtech.cardprinter.SWITCH_TAB")
+            addAction("com.hkmtech.cardprinter.SWITCH_MODE")
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(tabReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(tabReceiver, filter)
+        }
+
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleTabIntent(intent)
+    }
+
+    private fun handleTabIntent(intent: Intent?) {
+        val tab = intent?.getStringExtra("tab")
+        if (tab != null) {
+            webView.evaluateJavascript("if (typeof switchMobileTab === 'function') switchMobileTab('$tab');", null)
+        }
+        val mode = intent?.getStringExtra("mode")
+        if (mode != null) {
+            webView.evaluateJavascript("if (typeof switchAppMode === 'function') switchAppMode('$mode');", null)
+        }
     }
 
     private fun setupWebView() {
@@ -112,7 +156,12 @@ class MainActivity : ComponentActivity() {
         settings.cacheMode = WebSettings.LOAD_DEFAULT
 
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
-        webView.webViewClient = object : WebViewClient() {}
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                handleTabIntent(intent)
+            }
+        }
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onShowFileChooser(
@@ -159,12 +208,19 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun createImageFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val storageDir = cacheDir
-        return File.createTempFile("SCAN_${timeStamp}_", ".jpg", storageDir)
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir = getExternalFilesDir(null) ?: filesDir
+        return File.createTempFile("CARD_${timeStamp}_", ".jpg", storageDir)
     }
 
-    @Deprecated("Deprecated in Java")
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(tabReceiver)
+        } catch (e: Exception) {}
+    }
+
     override fun onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack()
@@ -173,6 +229,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * JavaScript Interface Bridge exposed to Web application as `window.AndroidBridge`
+     */
     inner class AndroidBridge(private val context: Context) {
 
         @JavascriptInterface
@@ -187,34 +246,9 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun getScannerBridgeIp(): String {
-            // Check saved IP in SharedPreferences
             val prefs = context.getSharedPreferences("hkm_prefs", Context.MODE_PRIVATE)
             val saved = prefs.getString("scanner_ip", null)
-            if (!saved.isNullOrEmpty()) return saved
-
-            // Auto-discover via UDP broadcast to local Wi-Fi subnet
-            try {
-                val socket = DatagramSocket()
-                socket.broadcast = true
-                socket.soTimeout = 400
-                val data = "HKM_SCANNER_DISCOVERY".toByteArray()
-                val packet = DatagramPacket(data, data.size, InetAddress.getByName("255.255.255.255"), 8766)
-                socket.send(packet)
-
-                val buf = ByteArray(1024)
-                val respPacket = DatagramPacket(buf, buf.size)
-                socket.receive(respPacket)
-                val resp = String(respPacket.data, 0, respPacket.length)
-                socket.close()
-
-                if (resp.startsWith("HKM_SCANNER_BRIDGE")) {
-                    val parts = resp.split("|")
-                    if (parts.size >= 2 && parts[1].isNotEmpty()) {
-                        return parts[1]
-                    }
-                }
-            } catch (_: Exception) {}
-
+            if (!saved.isNullOrBlank()) return saved
             return "192.168.31.156"
         }
 
@@ -227,7 +261,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun scanFromEpsonDirect(dpi: Int, docType: String): String? {
             val dev = DeviceDetector.detect(context)
-            val targetIp = dev.printerIp.ifEmpty { "192.168.192.168" }
+            val targetIp = if (dev.isWifiDirect) "192.168.223.1" else (dev.printerIp ?: "192.168.31.223")
             return EpsonDirectScanner.scanViaEscl(targetIp, dpi)
         }
 
@@ -254,10 +288,11 @@ class MainActivity : ComponentActivity() {
                 json.put("printer_connection", dev.port)
                 json.put("printer_status", if (dev.isReady) "Ready" else "Offline")
                 json.put("scanner_name", dev.scannerName)
-                json.put("scanner_online", dev.scannerOnline)
-                val bIp = getScannerBridgeIp()
-                json.put("scanner_message", if (dev.isWifiDirect) "Epson L3250 Ready on Wi-Fi Direct" else "Epson L3250 Ready on Wi-Fi")
+                json.put("scanner_online", dev.isReady)
+                val statusText = if (dev.isWifiDirect) "Ready on Wi-Fi Direct" else if (dev.isReady) "Ready on Wi-Fi" else "Offline"
+                json.put("scanner_message", "${dev.modelNumber} $statusText")
                 json.put("is_wifi_direct", dev.isWifiDirect)
+                json.put("is_usb", dev.connectionType.contains("USB", ignoreCase = true))
             } catch (e: Exception) {
                 json.put("error", e.message)
             }
@@ -268,22 +303,21 @@ class MainActivity : ComponentActivity() {
         fun printPdf(base64Data: String, jobName: String) {
             runOnUiThread {
                 try {
-                    val cleanBase64 = if (base64Data.contains(",")) base64Data.split(",")[1] else base64Data
-                    val pdfBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+                    val pdfBytes = Base64.decode(base64Data, Base64.DEFAULT)
+                    val pdfFile = File(context.cacheDir, "print_job_${System.currentTimeMillis()}.pdf")
+                    FileOutputStream(pdfFile).use { it.write(pdfBytes) }
 
-                    val file = File(cacheDir, "${jobName.replace(" ", "_")}.pdf")
-                    FileOutputStream(file).use { it.write(pdfBytes) }
-
-                    val printManager = getSystemService(Context.PRINT_SERVICE) as PrintManager
-                    val adapter = PdfPrintDocumentAdapter(file)
-                    val attributes = PrintAttributes.Builder()
+                    val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
+                    val printAdapter = PdfPrintDocumentAdapter(pdfFile)
+                    val printAttributes = PrintAttributes.Builder()
                         .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
                         .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                        .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                         .build()
 
-                    printManager.print(jobName, adapter, attributes)
+                    printManager.print(jobName, printAdapter, printAttributes)
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Print error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Print Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -292,27 +326,26 @@ class MainActivity : ComponentActivity() {
         fun sharePdf(base64Data: String, fileName: String) {
             runOnUiThread {
                 try {
-                    val cleanBase64 = if (base64Data.contains(",")) base64Data.split(",")[1] else base64Data
-                    val pdfBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
-
-                    val file = File(cacheDir, fileName)
-                    FileOutputStream(file).use { it.write(pdfBytes) }
+                    val pdfBytes = Base64.decode(base64Data, Base64.DEFAULT)
+                    val outputDir = File(context.getExternalFilesDir(null), "documents")
+                    if (!outputDir.exists()) outputDir.mkdirs()
+                    val pdfFile = File(outputDir, fileName)
+                    FileOutputStream(pdfFile).use { it.write(pdfBytes) }
 
                     val uri = FileProvider.getUriForFile(
-                        this@MainActivity,
-                        "${applicationContext.packageName}.fileprovider",
-                        file
+                        context,
+                        "${context.packageName}.fileprovider",
+                        pdfFile
                     )
 
-                    val intent = Intent(Intent.ACTION_SEND).apply {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "application/pdf"
                         putExtra(Intent.EXTRA_STREAM, uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-
-                    startActivity(Intent.createChooser(intent, "Share Document via..."))
+                    context.startActivity(Intent.createChooser(shareIntent, "Share PDF Document"))
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Share error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Share Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }

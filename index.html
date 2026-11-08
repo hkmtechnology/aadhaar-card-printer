@@ -63,7 +63,25 @@
       gap: 12px;
     }
 
-    .header-title h1 {
+    .brand-title {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex: 1 1 auto !important;
+      }
+
+      .brand-title h1 {
+        font-size: 0.95rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.01em !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+      }
+
+      .header-title h1 {
       font-size: 1.15rem;
       font-weight: 600;
       letter-spacing: -0.02em;
@@ -991,1010 +1009,6 @@
     }
 
     @media (max-width: 900px) {
-      .main-layout {
-        flex-direction: column;
-        overflow-y: auto;
-        height: auto;
-      }
-      .sidebar {
-        width: 100%;
-        height: auto;
-      }
-      .sidebar-scroll {
-        max-height: 480px;
-      }
-      .preview-workspace {
-        min-height: 540px;
-      }
-    }
-
-    /* MODE TABS SWITCHER IN HEADER */
-    .mode-nav-tabs {
-      display: flex;
-      background: rgba(9, 14, 26, 0.9);
-      padding: 4px;
-      border-radius: 10px;
-      border: 1px solid rgba(56, 189, 248, 0.22);
-      gap: 5px;
-      margin-left: 16px;
-      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
-    }
-
-    .mode-tab-btn {
-      background: transparent;
-      color: #94a3b8;
-      border: none;
-      border-radius: 7px;
-      padding: 7px 16px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      user-select: none;
-    }
-
-    .mode-tab-btn:hover {
-      color: #f1f5f9;
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .mode-tab-btn.active {
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      color: #ffffff;
-      box-shadow: 0 2px 14px rgba(14, 165, 233, 0.45);
-    }
-
-    /* MULTI-PAGE DOCUMENT SCANNER COMPONENTS */
-    .doc-pages-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 440px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .doc-page-item {
-      background: #1e293b;
-      border: 2px solid #334155;
-      border-radius: 8px;
-      padding: 8px 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .doc-page-item:hover {
-      border-color: #60a5fa;
-      background: #1e293b;
-    }
-
-    .doc-page-item.active {
-      border-color: #3b82f6;
-      background: #172554;
-      box-shadow: 0 0 0 1px #3b82f6;
-    }
-
-    .segmented-control {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 5px;
-      background: #090e1a;
-      padding: 4px;
-      border-radius: 8px;
-      border: 1.5px solid #1e293b;
-      margin-top: 2px;
-    }
-
-    .segmented-btn {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #94a3b8;
-      font-size: 0.78rem;
-      font-weight: 700;
-      padding: 6px 0;
-      border-radius: 6px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.15s ease;
-      user-select: none;
-    }
-
-    .segmented-btn:hover {
-      color: #f8fafc;
-      background: #334155;
-      border-color: #64748b;
-    }
-
-    .segmented-btn.active {
-      background: linear-gradient(135deg, #0284c7, #0369a1) !important;
-      color: #ffffff !important;
-      border-color: #38bdf8 !important;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.45) !important;
-    }
-
-    .doc-page-thumb {
-      width: 48px;
-      height: 64px;
-      background: #0f172a;
-      border-radius: 4px;
-      object-fit: contain;
-      border: 1px solid #475569;
-      flex-shrink: 0;
-    }
-
-    .doc-page-meta {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .doc-page-title {
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: #f8fafc;
-      margin-bottom: 2px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .doc-page-sub {
-      font-size: 0.7rem;
-      color: #94a3b8;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .doc-page-actions {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-
-    .doc-mini-btn {
-      background: #334155;
-      color: #e2e8f0;
-      border: none;
-      border-radius: 4px;
-      width: 24px;
-      height: 24px;
-      font-size: 0.72rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .doc-mini-btn:hover {
-      background: #475569;
-      color: white;
-    }
-
-    .doc-mini-btn.btn-del:hover {
-      background: #ef4444;
-      color: white;
-    }
-
-    .doc-sheet-container {
-      position: relative;
-      width: 595px;
-      height: 842px;
-      background: white;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .doc-sheet-image {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      transition: transform 0.2s ease;
-    }
-
-    .doc-empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      color: #94a3b8;
-      text-align: center;
-      padding: 30px;
-    }
-
-    #docPrintContainer {
-      display: none;
-    }
-
-    /* PASSPORT PHOTO STUDIO STYLES */
-    .photo-sheet-container {
-      position: relative;
-      width: 595px;
-      height: 842px;
-      background: white;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      overflow: hidden;
-      box-sizing: border-box;
-      user-select: none;
-    }
-
-    .photo-grid-slot {
-      position: absolute;
-      box-sizing: border-box;
-      background: #f8fafc;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-    }
-
-    .photo-grid-slot:hover {
-      box-shadow: 0 0 0 2px #3b82f6, 0 4px 12px rgba(0,0,0,0.3);
-      z-index: 10;
-    }
-
-    .photo-grid-slot.inactive {
-      opacity: 0.22;
-      border: 1px dashed #94a3b8 !important;
-      background: #f1f5f9 !important;
-    }
-
-    .photo-grid-slot.inactive:hover {
-      opacity: 0.6;
-    }
-
-    .photo-grid-slot img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      pointer-events: none;
-    }
-
-    .photo-grid-slot .slot-idx-badge {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      background: rgba(15, 23, 42, 0.85);
-      color: #93c5fd;
-      font-size: 8px;
-      font-weight: 700;
-      padding: 1px 4px;
-      border-radius: 3px;
-      pointer-events: none;
-      line-height: 1;
-    }
-
-    .photo-slot-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #94a3b8;
-      font-size: 9px;
-      text-align: center;
-      padding: 4px;
-      pointer-events: none;
-    }
-
-    .photo-crop-frame {
-      position: relative;
-      width: 140px;
-      height: 180px;
-      margin: 8px auto;
-      background: #0f172a;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 2px solid #3b82f6;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-    }
-
-    .photo-crop-guide-oval {
-      position: absolute;
-      top: 15%;
-      left: 17%;
-      width: 66%;
-      height: 70%;
-      border: 1.5px dashed rgba(59, 130, 246, 0.85);
-      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .photo-crop-guide-eye {
-      position: absolute;
-      top: 42%;
-      left: 15%;
-      width: 70%;
-      height: 1px;
-      background: rgba(239, 68, 68, 0.65);
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .photo-crop-guide-chin {
-      position: absolute;
-      bottom: 15%;
-      left: 25%;
-      width: 50%;
-      height: 1px;
-      background: rgba(234, 179, 8, 0.65);
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    #photoPrintContainer {
-      display: none;
-    }
-
-    @media print {
-      body.doc-mode-active #cardModeLayout,
-      body.doc-mode-active #photoModeLayout {
-        display: none !important;
-      }
-      body.doc-mode-active #docModeLayout {
-        display: none !important;
-      }
-      body.doc-mode-active #docPrintContainer {
-        display: block !important;
-      }
-      body.doc-mode-active .doc-print-page {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        width: 210mm !important;
-        height: 297mm !important;
-        page-break-after: always !important;
-        page-break-inside: avoid !important;
-        break-after: page !important;
-        margin: 0 !important;
-        padding: 8mm !important;
-        box-sizing: border-box !important;
-        background: white !important;
-      }
-      body.doc-mode-active .doc-print-page img {
-        max-width: 100% !important;
-        max-height: 100% !important;
-        object-fit: contain !important;
-      }
-
-      body.photo-mode-active #cardModeLayout,
-      body.photo-mode-active #docModeLayout {
-        display: none !important;
-      }
-      body.photo-mode-active #photoModeLayout {
-        display: none !important;
-      }
-      body.photo-mode-active #photoPrintContainer {
-        display: block !important;
-      }
-      body.photo-mode-active .photo-print-page {
-        display: block !important;
-        width: 210mm !important;
-        height: 297mm !important;
-        page-break-after: always !important;
-        page-break-inside: avoid !important;
-        break-after: page !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: white !important;
-      }
-      body.photo-mode-active .photo-print-page img {
-        width: 210mm !important;
-        height: 297mm !important;
-        display: block !important;
-      }
-    }
-  
-    /* ==========================================
-       MANUAL CROP MODAL & TOAST STYLES
-       ========================================== */
-    .toast-container {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 9999999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-    }
-
-    .toast-msg {
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid #38bdf8;
-      color: #f8fafc;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-      animation: toastFadeIn 0.25s ease-out;
-      pointer-events: auto;
-      max-width: 380px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .toast-msg.toast-success { border-color: #10b981; color: #a7f3d0; }
-    .toast-msg.toast-danger { border-color: #ef4444; color: #fecaca; }
-    .toast-msg.toast-warning { border-color: #f59e0b; color: #fde68a; }
-    .toast-msg.toast-info { border-color: #38bdf8; color: #bae6fd; }
-
-    @keyframes toastFadeIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .slot-actions-bar {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      display: flex;
-      gap: 6px;
-      z-index: 70;
-      opacity: 0;
-      transition: opacity 0.2s ease, transform 0.2s ease;
-      transform: translateY(-2px);
-    }
-
-    .card-slot:hover .slot-actions-bar {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .slot-crop-btn {
-      background: rgba(15, 23, 42, 0.94);
-      color: #38bdf8;
-      border: 1px solid #0284c7;
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-
-    .slot-crop-btn:hover {
-      background: #0284c7;
-      color: #ffffff;
-      transform: scale(1.05);
-    }
-
-    .slot-orig-btn {
-      background: rgba(15, 23, 42, 0.94);
-      color: #fbbf24;
-      border: 1px solid #f59e0b;
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-
-    .slot-orig-btn:hover {
-      background: #f59e0b;
-      color: #000000;
-      transform: scale(1.05);
-    }
-
-    .slot-orig-btn.active {
-      background: #f59e0b !important;
-      color: #000000 !important;
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
-    }
-
-    .slot-orig-badge {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #000000;
-      font-size: 9px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-      z-index: 45;
-      pointer-events: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .btn-toggle-orig {
-      background: rgba(245, 158, 11, 0.15) !important;
-      border: 1px solid #f59e0b !important;
-      color: #fbbf24 !important;
-      font-weight: 700 !important;
-    }
-
-    .btn-toggle-orig:hover {
-      background: rgba(245, 158, 11, 0.3) !important;
-      color: #ffffff !important;
-    }
-
-    .btn-toggle-orig.active {
-      background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-      color: #000000 !important;
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5) !important;
-    }
-
-    .doc-orig-floating-badge {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #000000;
-      font-size: 11px;
-      font-weight: 800;
-      padding: 5px 12px;
-      border-radius: 6px;
-      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.5);
-      z-index: 70;
-      pointer-events: none;
-      animation: fadeIn 0.2s ease;
-    }
-
-    .crop-modal-box {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 14px;
-      width: 95vw;
-      max-width: 1080px;
-      height: 90vh;
-      max-height: 860px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
-      animation: modalZoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes modalZoomIn {
-      from { transform: scale(0.96); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    .crop-modal-header {
-      padding: 12px 20px;
-      background: #0b1120;
-      border-bottom: 1px solid #1e293b;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .crop-modal-toolbar {
-      padding: 10px 20px;
-      background: #0f172a;
-      border-bottom: 1px solid #1e293b;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .crop-toolbar-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .crop-toolbar-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .crop-ratio-btn-group {
-      display: flex;
-      gap: 4px;
-      background: #070b14;
-      padding: 3px;
-      border-radius: 8px;
-      border: 1px solid #1e293b;
-    }
-
-    .crop-ratio-btn {
-      background: transparent;
-      color: #94a3b8;
-      border: none;
-      border-radius: 6px;
-      padding: 5px 11px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-
-    .crop-ratio-btn:hover {
-      color: #f8fafc;
-      background: #1e293b;
-    }
-
-    .crop-ratio-btn.active {
-      background: #0284c7;
-      color: #ffffff;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-    }
-
-    .crop-workspace-wrapper {
-      flex: 1;
-      position: relative;
-      overflow: auto;
-      display: flex;
-      padding: 36px 28px;
-      user-select: none;
-      -webkit-user-select: none;
-      background: #060911;
-      background-image: 
-        linear-gradient(45deg, #0e1526 25%, transparent 25%), 
-        linear-gradient(-45deg, #0e1526 25%, transparent 25%), 
-        linear-gradient(45deg, transparent 75%, #0e1526 75%), 
-        linear-gradient(-45deg, transparent 75%, #0e1526 75%);
-      background-size: 20px 20px;
-      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-      scroll-behavior: smooth;
-    }
-
-    .crop-workspace {
-      position: relative;
-      display: inline-block;
-      line-height: 0;
-      margin: auto; /* Centers when smaller than viewport; aligns to top-left (0,0) with clean scrollbars when overflowing - prevents negative scroll clipping */
-      box-shadow: 0 12px 36px rgba(0,0,0,0.85);
-      border-radius: 4px;
-      overflow: visible;
-    }
-
-    .crop-target-image {
-      display: block;
-      max-width: calc(88vw - 60px);
-      max-height: calc(84vh - 240px);
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      pointer-events: none;
-      user-select: none;
-      border-radius: 2px;
-      transition: max-height 0.18s ease;
-    }
-
-    .crop-target-image.crop-fit-all {
-      max-height: calc(78vh - 250px) !important;
-      max-width: calc(82vw - 80px) !important;
-    }
-
-    .crop-target-image.crop-zoom-100 {
-      max-height: none !important;
-      max-width: none !important;
-    }
-
-    .crop-selection-box {
-      position: absolute;
-      border: 2px solid #38bdf8;
-      box-shadow: 0 0 0 9999px rgba(8, 12, 22, 0.72);
-      cursor: move;
-      touch-action: none;
-      user-select: none;
-      z-index: 20;
-    }
-
-    .crop-grid-line {
-      position: absolute;
-      pointer-events: none;
-    }
-    .crop-grid-h1 { top: 33.333%; left: 0; right: 0; height: 1px; border-top: 1px dashed rgba(255,255,255,0.4); }
-    .crop-grid-h2 { top: 66.666%; left: 0; right: 0; height: 1px; border-top: 1px dashed rgba(255,255,255,0.4); }
-    .crop-grid-v1 { left: 33.333%; top: 0; bottom: 0; width: 1px; border-left: 1px dashed rgba(255,255,255,0.4); }
-    .crop-grid-v2 { left: 66.666%; top: 0; bottom: 0; width: 1px; border-left: 1px dashed rgba(255,255,255,0.4); }
-
-    .crop-handle {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      background: #0284c7;
-      border: 2.5px solid #ffffff;
-      border-radius: 50%;
-      z-index: 50;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-      transition: transform 0.12s ease, background 0.12s;
-    }
-    .crop-handle:hover {
-      transform: scale(1.35);
-      background: #38bdf8;
-    }
-    .crop-handle-tl { top: -9px; left: -9px; cursor: nwse-resize; }
-    .crop-handle-tr { top: -9px; right: -9px; cursor: nesw-resize; }
-    .crop-handle-bl { bottom: -9px; left: -9px; cursor: nesw-resize; }
-    .crop-handle-br { bottom: -9px; right: -9px; cursor: nwse-resize; }
-
-    .crop-edge-handle {
-      position: absolute;
-      background: #0284c7;
-      border: 2px solid #ffffff;
-      border-radius: 4px;
-      z-index: 45;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
-      transition: transform 0.12s ease, background 0.12s;
-    }
-    .crop-edge-handle:hover {
-      background: #38bdf8;
-      transform: scale(1.2);
-    }
-    .crop-edge-t { top: -5px; left: 50%; transform: translateX(-50%); width: 28px; height: 8px; cursor: ns-resize; }
-    .crop-edge-b { bottom: -5px; left: 50%; transform: translateX(-50%); width: 28px; height: 8px; cursor: ns-resize; }
-    .crop-edge-l { left: -5px; top: 50%; transform: translateY(-50%); width: 8px; height: 28px; cursor: ew-resize; }
-    .crop-edge-r { right: -5px; top: 50%; transform: translateY(-50%); width: 8px; height: 28px; cursor: ew-resize; }
-
-    .crop-dimension-chip {
-      position: absolute;
-      bottom: 8px;
-      right: 8px;
-      background: rgba(11, 19, 41, 0.96);
-      color: #38bdf8;
-      border: 1px solid #0284c7;
-      border-radius: 6px;
-      padding: 3px 9px;
-      font-size: 11px;
-      font-weight: 700;
-      pointer-events: none;
-      z-index: 60;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.85);
-      letter-spacing: 0.3px;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      line-height: 1;
-      height: 22px;
-      box-sizing: border-box;
-      max-width: calc(100% - 16px);
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Free-Form Quad Selection Styles */
-    .crop-quad-container {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 25;
-    }
-
-    .crop-quad-chip {
-      position: absolute;
-      bottom: auto !important;
-      right: auto !important;
-      background: rgba(11, 19, 41, 0.94);
-      color: #38bdf8;
-      border: 1px solid #0284c7;
-      border-radius: 6px;
-      padding: 3px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      pointer-events: none;
-      z-index: 70;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-      letter-spacing: 0.3px;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      height: 24px;
-      box-sizing: border-box;
-      max-width: 90%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .crop-quad-svg {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-      pointer-events: none;
-    }
-    .crop-quad-polygon {
-      fill: rgba(14, 165, 233, 0.12);
-      stroke: #38bdf8;
-      stroke-width: 2.5;
-      stroke-linejoin: round;
-      cursor: move;
-      pointer-events: auto;
-    }
-    .crop-quad-dot {
-      position: absolute;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: #0284c7;
-      border: 3px solid #ffffff;
-      box-shadow: 0 0 0 2px #0284c7, 0 4px 14px rgba(0, 0, 0, 0.85);
-      cursor: crosshair;
-      pointer-events: auto;
-      touch-action: none;
-      user-select: none;
-      transform: translate(-50%, -50%);
-      z-index: 45;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .crop-quad-dot:hover, .crop-quad-dot.active {
-      transform: translate(-50%, -50%) scale(1.35);
-      background: #38bdf8;
-      box-shadow: 0 0 0 3px #38bdf8, 0 0 16px rgba(56, 189, 248, 0.9);
-      z-index: 55;
-    }
-    .quad-dot-label {
-      font-size: 8.5px;
-      font-weight: 800;
-      color: #ffffff;
-      pointer-events: none;
-      user-select: none;
-    }
-    .crop-quad-mid {
-      position: absolute;
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      background: rgba(14, 165, 233, 0.9);
-      border: 2px solid #ffffff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
-      cursor: move;
-      pointer-events: auto;
-      touch-action: none;
-      user-select: none;
-      transform: translate(-50%, -50%);
-      z-index: 38;
-      transition: transform 0.08s ease, background 0.08s ease;
-    }
-    .crop-quad-mid:hover, .crop-quad-mid.active {
-      transform: translate(-50%, -50%) scale(1.35);
-      background: #38bdf8;
-      box-shadow: 0 0 0 2px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.8);
-      z-index: 50;
-    }
-
-    .crop-magnifier {
-      position: fixed;
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      border: 3px solid #38bdf8;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.85);
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 100000;
-      background: #000;
-    }
-
-    .crop-magnifier-crosshair {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 16px;
-      height: 16px;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-    .crop-magnifier-crosshair::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 1.5px;
-      background: #ef4444;
-      transform: translateY(-50%);
-    }
-    .crop-magnifier-crosshair::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 0;
-      bottom: 0;
-      width: 1.5px;
-      background: #ef4444;
-      transform: translateX(-50%);
-    }
-
-    .crop-nudge-bar {
-      padding: 7px 20px;
-      background: #0b1120;
-      border-top: 1px solid #1e293b;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .crop-nudge-controls {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .crop-nudge-group {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.75rem;
-      color: #cbd5e1;
-    }
-
-    .nudge-btn {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #334155;
-      border-radius: 4px;
-      padding: 3px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-    .nudge-btn:hover {
-      background: #334155;
-      color: #38bdf8;
-      border-color: #38bdf8;
-    }
-
-    .crop-modal-footer {
-      padding: 12px 20px;
-      border-top: 1px solid #1e293b;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #0f172a;
-    }
-
-
-    /* ==========================================================================
-       MOBILE NATIVE RESPONSIVE UI ADAPTATION
-       ========================================================================== */
-    .mobile-bottom-nav {
-      display: none;
-    }
-
-    .mobile-sheet-quick-bar {
-      display: none;
-    }
-
-    @media (max-width: 900px) {
       html, body {
         width: 100% !important;
         max-width: 100vw !important;
@@ -2003,55 +1017,89 @@
       }
 
       body {
-        padding-bottom: 70px !important;
+        padding-bottom: 74px !important;
       }
 
-      /* Compact, Touch-Friendly Mobile Header */
+      /* Compact, Modern Touch Header */
       header {
-        padding: 8px 12px !important;
+        padding: 8px 12px 10px !important;
         flex-direction: column !important;
-        gap: 8px !important;
+        gap: 6px !important;
         align-items: stretch !important;
         width: 100% !important;
         box-sizing: border-box !important;
+        background: linear-gradient(180deg, #0e172a 0%, #090e1a 100%) !important;
+        border-bottom: 1px solid rgba(56, 189, 248, 0.2) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
       }
 
       .header-title {
         display: flex !important;
+        flex-wrap: wrap !important;
         justify-content: space-between !important;
         align-items: center !important;
         width: 100% !important;
+        gap: 6px !important;
       }
 
       .header-title h1 {
-        font-size: 1.05rem !important;
+        font-size: 0.98rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.01em !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex: 1 1 auto !important;
+        margin: 0 !important;
       }
 
+      /* Hide redundant clutter on mobile header */
+      .header-title .badge,
+      .header-title #deviceConnectionBadge,
+      .header-title .paper-selector-wrap,
+      #headerSubtext {
+        display: none !important;
+      }
+
+      /* Single compact status pill on header right */
+      #scannerBadge {
+        margin: 0 !important;
+        font-size: 0.70rem !important;
+        padding: 4px 10px !important;
+        border-radius: 999px !important;
+        white-space: nowrap !important;
+        max-width: 180px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        flex-shrink: 0 !important;
+      }
+
+      /* Mode Switcher Segmented Control Bar */
       .mode-nav-tabs {
         margin-left: 0 !important;
         width: 100% !important;
         display: flex !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        scrollbar-width: none !important;
-        justify-content: space-between !important;
+        flex-direction: row !important;
+        background: rgba(15, 23, 42, 0.95) !important;
+        padding: 3px !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(56, 189, 248, 0.22) !important;
+        gap: 4px !important;
         box-sizing: border-box !important;
       }
 
-      .mode-nav-tabs::-webkit-scrollbar {
-        display: none !important;
-      }
-
       .mode-tab-btn {
-        flex: 1 !important;
+        flex: 1 1 0 !important;
         text-align: center !important;
         justify-content: center !important;
-        padding: 9px 8px !important;
-        font-size: 0.8rem !important;
+        padding: 8px 4px !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
         white-space: nowrap !important;
+        border-radius: 7px !important;
       }
 
-      /* Main Layout as Single Column with Tabs */
+      /* Main Layout Display Controller */
       .main-layout.mode-hidden {
         display: none !important;
       }
@@ -2062,46 +1110,47 @@
         overflow-y: visible !important;
       }
 
-      /* Mobile Tab Switching in Card Mode */
-      body[data-mob-tab="upload"] #cardModeLayout .sidebar-left { display: block !important; width: 100% !important; }
-      body[data-mob-tab="upload"] #cardModeLayout .preview-workspace { display: none !important; }
-      body[data-mob-tab="upload"] #cardModeLayout .sidebar-right { display: none !important; }
+      /* Mobile Tab 1: Cards & Scan (Default or data-mob-tab="upload") */
+      body:not([data-mob-tab]) .sidebar-left,
+      body[data-mob-tab="upload"] .sidebar-left {
+        display: block !important;
+        width: 100% !important;
+      }
+      body:not([data-mob-tab]) .preview-workspace,
+      body:not([data-mob-tab]) .sidebar-right,
+      body[data-mob-tab="upload"] .preview-workspace,
+      body[data-mob-tab="upload"] .sidebar-right {
+        display: none !important;
+      }
 
-      body[data-mob-tab="preview"] #cardModeLayout .sidebar-left { display: none !important; }
-      body[data-mob-tab="preview"] #cardModeLayout .preview-workspace { display: flex !important; width: 100% !important; min-height: 72vh !important; }
-      body[data-mob-tab="preview"] #cardModeLayout .sidebar-right { display: none !important; }
+      /* Mobile Tab 2: Live Sheet (data-mob-tab="preview") */
+      body[data-mob-tab="preview"] .sidebar-left {
+        display: none !important;
+      }
+      body[data-mob-tab="preview"] .preview-workspace {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+        min-height: calc(100vh - 140px) !important;
+      }
+      body[data-mob-tab="preview"] .sidebar-right {
+        display: none !important;
+      }
 
-      body[data-mob-tab="settings"] #cardModeLayout .sidebar-left { display: none !important; }
-      body[data-mob-tab="settings"] #cardModeLayout .preview-workspace { display: none !important; }
-      body[data-mob-tab="settings"] #cardModeLayout .sidebar-right { display: block !important; width: 100% !important; }
+      /* Mobile Tab 3: Print & Size (data-mob-tab="settings") */
+      body[data-mob-tab="settings"] .sidebar-left {
+        display: none !important;
+      }
+      body[data-mob-tab="settings"] .preview-workspace {
+        display: none !important;
+      }
+      body[data-mob-tab="settings"] .sidebar-right {
+        display: block !important;
+        width: 100% !important;
+      }
 
-      /* Mobile Tab Switching in Multi-Page Mode */
-      body[data-mob-tab="upload"] #docModeLayout .sidebar-left { display: block !important; width: 100% !important; }
-      body[data-mob-tab="upload"] #docModeLayout .preview-workspace { display: none !important; }
-      body[data-mob-tab="upload"] #docModeLayout .sidebar-right { display: none !important; }
-
-      body[data-mob-tab="preview"] #docModeLayout .sidebar-left { display: none !important; }
-      body[data-mob-tab="preview"] #docModeLayout .preview-workspace { display: flex !important; width: 100% !important; min-height: 72vh !important; }
-      body[data-mob-tab="preview"] #docModeLayout .sidebar-right { display: none !important; }
-
-      body[data-mob-tab="settings"] #docModeLayout .sidebar-left { display: none !important; }
-      body[data-mob-tab="settings"] #docModeLayout .preview-workspace { display: none !important; }
-      body[data-mob-tab="settings"] #docModeLayout .sidebar-right { display: block !important; width: 100% !important; }
-
-      /* Mobile Tab Switching in Photo Studio Mode */
-      body[data-mob-tab="upload"] #photoModeLayout .sidebar-left { display: block !important; width: 100% !important; }
-      body[data-mob-tab="upload"] #photoModeLayout .preview-workspace { display: none !important; }
-      body[data-mob-tab="upload"] #photoModeLayout .sidebar-right { display: none !important; }
-
-      body[data-mob-tab="preview"] #photoModeLayout .sidebar-left { display: none !important; }
-      body[data-mob-tab="preview"] #photoModeLayout .preview-workspace { display: flex !important; width: 100% !important; min-height: 72vh !important; }
-      body[data-mob-tab="preview"] #photoModeLayout .sidebar-right { display: none !important; }
-
-      body[data-mob-tab="settings"] #photoModeLayout .sidebar-left { display: none !important; }
-      body[data-mob-tab="settings"] #photoModeLayout .preview-workspace { display: none !important; }
-      body[data-mob-tab="settings"] #photoModeLayout .sidebar-right { display: block !important; width: 100% !important; }
-
-      /* Sidebar full width & comfortable scrolling */
+      /* Sidebars full width and comfortable padding */
       .sidebar {
         width: 100% !important;
         border: none !important;
@@ -2116,36 +1165,78 @@
       }
 
       .section-card {
-        margin-bottom: 14px !important;
-        padding: 16px !important;
+        margin-bottom: 12px !important;
+        padding: 14px 12px !important;
+        border-radius: 12px !important;
+        background: #1e293b !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
       }
 
-      /* Finger-Friendly Large Touch Targets */
-      .btn-scan-action, .btn-wizard, .btn-primary, .btn-success, .btn-danger {
+      .guided-scan-box {
+        padding: 14px 12px !important;
+        border-radius: 12px !important;
+        margin-bottom: 12px !important;
+      }
+
+      /* Touch Action Buttons */
+      .btn-scan-action {
+        min-height: 44px !important;
+        padding: 8px 14px !important;
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(5, 150, 105, 0.35) !important;
+      }
+
+      .btn-wizard, .btn-primary, .btn-success, .btn-danger {
         min-height: 48px !important;
         font-size: 0.95rem !important;
         font-weight: 700 !important;
+        border-radius: 10px !important;
       }
 
       .mini-btn {
-        min-height: 40px !important;
-        padding: 8px 14px !important;
-        font-size: 0.85rem !important;
+        min-height: 38px !important;
+        padding: 8px 12px !important;
+        font-size: 0.82rem !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
       }
 
+      /* Upload / Drop Box in Mobile */
       .upload-box {
-        padding: 26px 16px !important;
-        border-width: 2px !important;
-        margin: 8px 0 !important;
+        padding: 16px 12px !important;
+        border-width: 1.5px !important;
+        border-radius: 10px !important;
+        margin: 6px 0 !important;
+        background: rgba(15, 23, 42, 0.5) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
 
       .upload-label {
-        font-size: 1rem !important;
+        font-size: 0.88rem !important;
         font-weight: 700 !important;
       }
 
       .upload-sub {
-        font-size: 0.8rem !important;
+        font-size: 0.72rem !important;
+      }
+
+      /* Image Controls Row */
+      .image-controls-row {
+        gap: 6px !important;
+        margin-top: 8px !important;
+      }
+
+      .image-controls-row .mini-btn {
+        flex: 1 1 calc(50% - 6px) !important;
+        text-align: center !important;
+        justify-content: center !important;
       }
 
       /* Range Sliders Touch Comfort */
@@ -2158,23 +1249,30 @@
         height: 24px !important;
       }
 
-      /* Mobile Preview Workspace & Scaled Sheet */
+      /* Preview Workspace & Scaled Sheet */
       .preview-workspace {
         width: 100% !important;
-        padding: 10px 4px !important;
+        padding: 8px 6px 80px !important;
         box-sizing: border-box !important;
       }
 
       .preview-toolbar {
         width: 100% !important;
         padding: 8px 10px !important;
+        border-radius: 10px !important;
+        background: rgba(15, 23, 42, 0.92) !important;
+        border: 1px solid rgba(56, 189, 248, 0.22) !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        box-sizing: border-box !important;
+        margin-bottom: 8px !important;
         flex-wrap: wrap !important;
         gap: 6px !important;
-        box-sizing: border-box !important;
       }
 
       .preview-viewport {
-        padding: 6px 2px !important;
+        padding: 6px 0 !important;
         display: flex !important;
         justify-content: center !important;
         align-items: flex-start !important;
@@ -2183,7 +1281,7 @@
         -webkit-overflow-scrolling: touch !important;
       }
 
-      /* Mobile Bottom Navigation Bar */
+      /* Mobile Navigation Bottom Bar */
       .mobile-bottom-nav {
         display: flex !important;
         position: fixed !important;
@@ -2193,6 +1291,7 @@
         height: 62px !important;
         background: rgba(10, 16, 30, 0.98) !important;
         backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
         border-top: 1px solid rgba(56, 189, 248, 0.25) !important;
         z-index: 9999 !important;
         box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.7) !important;
@@ -2238,17 +1337,79 @@
         line-height: 1 !important;
       }
 
-      /* Mobile Sheet Quick Action Bar */
-      .mobile-sheet-quick-bar {
-        display: flex !important;
-        justify-content: center !important;
-        gap: 10px !important;
-        padding: 10px 12px !important;
+      /* Step Transition Buttons */
+      .mobile-next-step-wrap {
+        display: block !important;
+        margin-top: 14px !important;
+        margin-bottom: 24px !important;
+      }
+
+      .mobile-next-step-btn {
         width: 100% !important;
+        min-height: 52px !important;
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid #38bdf8 !important;
+        border-radius: 12px !important;
+        font-size: 0.95rem !important;
+        font-weight: 800 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        box-shadow: 0 4px 18px rgba(14, 165, 233, 0.4) !important;
+        cursor: pointer !important;
+      }
+
+      .mobile-sheet-nav-bar {
+        display: flex !important;
+        gap: 10px !important;
+        width: 100% !important;
+        margin-top: 14px !important;
+        padding: 0 4px !important;
         box-sizing: border-box !important;
       }
 
-      
+      .mobile-sheet-nav-bar button {
+        min-height: 46px !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+      }
+
+      /* Print & Download buttons in Tab 3 */
+      .btn-print {
+        min-height: 54px !important;
+        font-size: 1.05rem !important;
+        font-weight: 800 !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        border: 1px solid #34d399 !important;
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4) !important;
+        margin-bottom: 8px !important;
+      }
+
+      .btn-download {
+        min-height: 48px !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+      }
+
+      /* Fullscreen Crop Modal on Mobile */
+      .crop-modal-box {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+      }
+
+      .crop-modal-toolbar {
+        padding: 8px 10px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
       /* Responsive Device Detection Modal on Mobile */
       .device-modal-card {
         border-radius: 14px !important;
@@ -2274,24 +1435,8 @@
       .device-status-badge {
         align-self: flex-start !important;
       }
-
-      /* Fullscreen Crop Modal on Mobile */
-      .crop-modal-box {
-        width: 100vw !important;
-        height: 100vh !important;
-        max-width: 100vw !important;
-        max-height: 100vh !important;
-        border-radius: 0 !important;
-      }
-
-      .crop-modal-toolbar {
-        padding: 8px 10px !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-      }
     }
-
-  
+    
     /* ==========================================================================
        DEVICE & PRINTER CONNECTION DETECTION MODAL
        ========================================================================== */
@@ -2583,12 +1728,14 @@
   <!-- HEADER -->
   <header>
     <div class="header-title">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa;">
-        <polyline points="6 9 6 2 18 2 18 9"></polyline>
-        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-        <rect x="6" y="14" width="12" height="8"></rect>
-      </svg>
-      <h1><span style="color: #38bdf8; font-weight: 800; letter-spacing: 0.5px;">HKMTECH</span> Card & Document Printer</h1>
+      <div class="brand-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa; flex-shrink: 0;">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        <h1><span style="color: #38bdf8; font-weight: 800; letter-spacing: 0.5px;">HKMTECH</span> Card Printer</h1>
+      </div>
       <span class="badge">100% Offline & Private</span>
       <span class="epson-tag checking" id="scannerBadge" onclick="checkScannerServer(true)" title="Click to refresh connection status">⏳ Checking Scanner...</span>
         <span class="epson-tag checking" id="deviceConnectionBadge" onclick="openDeviceDetectionModal(true)" title="Click to view Wi-Fi / USB, Printer Name & Model" style="cursor: pointer; margin-left: 6px;">📶 Detecting Connection...</span>
@@ -2723,7 +1870,7 @@
 
             <div class="upload-box" id="frontDrop">
               <input type="file" id="frontInput" accept="image/*">
-              <span class="upload-label" id="frontLabel">Or Drag & Drop Front Photo</span>
+              <span class="upload-label" id="frontLabel">📷 Tap to Choose Photo / Camera</span>
               <span class="upload-sub">Supports JPG, PNG, WebP</span>
             </div>
             <div class="image-controls-row" id="frontControls" style="display: none; flex-wrap: wrap; gap: 4px;">
@@ -2750,7 +1897,7 @@
 
             <div class="upload-box" id="backDrop">
               <input type="file" id="backInput" accept="image/*">
-              <span class="upload-label" id="backLabel">Or Drag & Drop Back Photo</span>
+              <span class="upload-label" id="backLabel">📷 Tap to Choose Photo / Camera</span>
               <span class="upload-sub">Address & QR Code side</span>
             </div>
             <div class="image-controls-row" id="backControls" style="display: none; flex-wrap: wrap; gap: 4px;">
@@ -2792,7 +1939,15 @@
         </div>
 
       </div>
-    </aside>
+    
+        <!-- MOBILE STEP 1 NEXT BUTTON -->
+        <div class="mobile-next-step-wrap">
+          <button class="mobile-next-step-btn" onclick="switchMobileTab('preview')">
+            <span>👉 Next: View Live Sheet & Align (Tab 2)</span>
+            <span style="font-size: 1.15rem;">➔</span>
+          </button>
+        </div>
+</aside>
 
     <!-- CENTER PREVIEW: LIVE A4 PAPER SIMULATION -->
     <main class="preview-workspace">
@@ -2902,7 +2057,17 @@
 
         </div>
       </div>
-    </main>
+    
+        <!-- MOBILE SHEET NAVIGATION BAR -->
+        <div class="mobile-sheet-nav-bar">
+          <button class="mini-btn" onclick="switchMobileTab('upload')" style="flex:1; min-height: 46px; font-weight:700; background: rgba(30, 41, 59, 0.9); border: 1px solid #475569;">
+            ← 1. Cards & Scan
+          </button>
+          <button class="btn btn-primary" onclick="switchMobileTab('settings')" style="flex:1.5; min-height: 46px; font-weight:800; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8;">
+            3. Print & Size ➔
+          </button>
+        </div>
+</main>
 
     <!-- RIGHT SIDEBAR: SIZING, FILTERS & OUTPUT -->
     <aside class="sidebar sidebar-right">
@@ -3417,7 +2582,15 @@
         </div>
 
       </div>
-    </aside>
+    
+        <!-- MOBILE STEP 1 NEXT BUTTON (DOC MODE) -->
+        <div class="mobile-next-step-wrap">
+          <button class="mobile-next-step-btn" onclick="switchMobileTab('preview')">
+            <span>👉 Next: View Document Sheet (Tab 2)</span>
+            <span style="font-size: 1.15rem;">➔</span>
+          </button>
+        </div>
+</aside>
 
     <!-- CENTER PREVIEW WORKSPACE -->
     <main class="preview-workspace">
@@ -3462,7 +2635,17 @@
           <img id="docSheetImg" class="doc-sheet-image" style="display: none;" alt="Scanned Document Page" />
         </div>
       </div>
-    </main>
+    
+        <!-- MOBILE SHEET NAVIGATION BAR (DOC MODE) -->
+        <div class="mobile-sheet-nav-bar">
+          <button class="mini-btn" onclick="switchMobileTab('upload')" style="flex:1; min-height: 46px; font-weight:700; background: rgba(30, 41, 59, 0.9); border: 1px solid #475569;">
+            ← 1. Pages & Scan
+          </button>
+          <button class="btn btn-primary" onclick="switchMobileTab('settings')" style="flex:1.5; min-height: 46px; font-weight:800; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8;">
+            3. Print & PDF ➔
+          </button>
+        </div>
+</main>
 
     <!-- RIGHT SIDEBAR: ENHANCEMENTS & PRINT ACTIONS -->
     <aside class="sidebar sidebar-right">
@@ -3704,7 +2887,15 @@
         </div>
 
       </div>
-    </aside>
+    
+        <!-- MOBILE STEP 1 NEXT BUTTON (PHOTO MODE) -->
+        <div class="mobile-next-step-wrap">
+          <button class="mobile-next-step-btn" onclick="switchMobileTab('preview')">
+            <span>👉 Next: View Photo Grid (Tab 2)</span>
+            <span style="font-size: 1.15rem;">➔</span>
+          </button>
+        </div>
+</aside>
 
     <!-- CENTER PANE: LIVE A4 PHOTO GRID PREVIEW -->
     <main class="preview-workspace">
@@ -3736,7 +2927,17 @@
           <!-- Dynamic Photo Grid Slots populated by renderPhotoGridSheet() -->
         </div>
       </div>
-    </main>
+    
+        <!-- MOBILE SHEET NAVIGATION BAR (PHOTO MODE) -->
+        <div class="mobile-sheet-nav-bar">
+          <button class="mini-btn" onclick="switchMobileTab('upload')" style="flex:1; min-height: 46px; font-weight:700; background: rgba(30, 41, 59, 0.9); border: 1px solid #475569;">
+            ← 1. Photo & Crop
+          </button>
+          <button class="btn btn-primary" onclick="switchMobileTab('settings')" style="flex:1.5; min-height: 46px; font-weight:800; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8;">
+            3. Print & Size ➔
+          </button>
+        </div>
+</main>
 
     <!-- RIGHT SIDEBAR: GRID SETUP, FILTERS & PRINT -->
     <aside class="sidebar sidebar-right">
@@ -5201,6 +4402,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      if (!document.body.getAttribute('data-mob-tab')) switchMobileTab('upload');
       populatePaperSelects();
       setupDropzones();
       await loadSavedSettings();
@@ -5491,10 +4693,20 @@
 
     function autoFitZoom() {
       const container = document.querySelector('.preview-viewport');
-      if (!container) return;
-      const availHeight = container.clientHeight - 60;
+      const isMobile = window.innerWidth <= 900;
+      const availWidth = (container && container.clientWidth > 100) ? (container.clientWidth - 16) : (window.innerWidth - 24);
+      const availHeight = (container && container.clientHeight > 100) ? (container.clientHeight - 40) : (window.innerHeight - 180);
+      const sheetWidth = 595;
       const sheetHeight = 842;
-      const fitZoom = Math.min(Math.max(availHeight / sheetHeight, 0.5), 1.2);
+      
+      let fitZoom;
+      if (isMobile) {
+        // On mobile phone, prioritize fitting the sheet width with slight padding
+        fitZoom = Math.min(availWidth / sheetWidth, 1.0);
+        fitZoom = Math.max(fitZoom, 0.40);
+      } else {
+        fitZoom = Math.min(Math.max(availHeight / sheetHeight, 0.5), 1.2);
+      }
       state.zoom = Math.round(fitZoom * 100) / 100;
       applyZoom();
     }
@@ -6934,13 +6146,20 @@
       document.body.classList.toggle('doc-mode-active', mode === 'doc');
       document.body.classList.toggle('photo-mode-active', mode === 'photo');
 
+      const lbl1 = document.getElementById('mobLabelTab1');
+      const lbl2 = document.getElementById('mobLabelTab2');
+      const lbl3 = document.getElementById('mobLabelTab3');
+      const icn1 = document.querySelector('#mobBtnUpload .mobile-nav-icon');
       if (mode === 'card') {
+        if (lbl1) lbl1.innerText = '1. Cards & Scan';
+        if (lbl2) lbl2.innerText = '2. Live Sheet';
+        if (lbl3) lbl3.innerText = '3. Print & Size';
+        if (icn1) icn1.innerText = '🪪';
         if (subtext) subtext.innerText = 'Top Half = Front | Bottom Half = Back';
         updateSheetLayout();
       } else if (mode === 'doc') {
         if (subtext) subtext.innerText = 'Scan Multiple Pages (A4 or Small Docs) • Auto-Enhance • Print';
-        renderDocPageList();
-        renderCurrentDocPage();
+        if (lbl1) lbl1.innerText = '1. Pages & Scan'; if (lbl2) lbl2.innerText = '2. Doc Preview'; if (lbl3) lbl3.innerText = '3. Print & PDF'; if (icn1) icn1.innerText = '📄'; renderDocPageList(); renderCurrentDocPage();
       } else if (mode === 'photo') {
         if (subtext) subtext.innerText = 'Passport Photo Studio • Grid Layout on A4 • Auto-Enhance • Print';
         if (typeof syncPhotoMarginUI === 'function') syncPhotoMarginUI();
@@ -7229,8 +6448,7 @@
       const newIdx = docState.currentIndex + delta;
       if (newIdx >= 0 && newIdx < docState.pages.length) {
         docState.currentIndex = newIdx;
-        renderDocPageList();
-        renderCurrentDocPage();
+        if (lbl1) lbl1.innerText = '1. Pages & Scan'; if (lbl2) lbl2.innerText = '2. Doc Preview'; if (lbl3) lbl3.innerText = '3. Print & PDF'; if (icn1) icn1.innerText = '📄'; renderDocPageList(); renderCurrentDocPage();
       }
     }
 
@@ -7321,8 +6539,7 @@
       }
 
       applyClientDocEnhance(page).then(() => {
-        renderDocPageList();
-        renderCurrentDocPage();
+        if (lbl1) lbl1.innerText = '1. Pages & Scan'; if (lbl2) lbl2.innerText = '2. Doc Preview'; if (lbl3) lbl3.innerText = '3. Print & PDF'; if (icn1) icn1.innerText = '📄'; renderDocPageList(); renderCurrentDocPage();
       });
     }
 
@@ -7341,8 +6558,7 @@
       document.getElementById('docValBrightness').innerText = (page.brightness > 0 ? '+' : '') + page.brightness + '%';
 
       applyClientDocEnhance(page).then(() => {
-        renderDocPageList();
-        renderCurrentDocPage();
+        if (lbl1) lbl1.innerText = '1. Pages & Scan'; if (lbl2) lbl2.innerText = '2. Doc Preview'; if (lbl3) lbl3.innerText = '3. Print & PDF'; if (icn1) icn1.innerText = '📄'; renderDocPageList(); renderCurrentDocPage();
       });
     }
 
@@ -7358,8 +6574,7 @@
       });
 
       Promise.all(docState.pages.map(p => applyClientDocEnhance(p))).then(() => {
-        renderDocPageList();
-        renderCurrentDocPage();
+        if (lbl1) lbl1.innerText = '1. Pages & Scan'; if (lbl2) lbl2.innerText = '2. Doc Preview'; if (lbl3) lbl3.innerText = '3. Print & PDF'; if (icn1) icn1.innerText = '📄'; renderDocPageList(); renderCurrentDocPage();
         showToast('Enhancement applied to all pages!', 'success');
       });
     }
@@ -9853,6 +9068,32 @@
         showToast(`Could not connect to http://${targetIp}:8765. Make sure Start_App.bat or server is running on PC.`, 'danger');
       }
     }
+
+    // =========================================================================
+    // MOBILE BOTTOM NAVIGATION & TAB CONTROLLER
+    // =========================================================================
+    function switchMobileTab(tab) {
+      document.body.setAttribute('data-mob-tab', tab);
+      const tabs = ['upload', 'preview', 'settings'];
+      const btnIds = ['mobBtnUpload', 'mobBtnPreview', 'mobBtnSettings'];
+      btnIds.forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', tabs[idx] === tab);
+      });
+
+      if (tab === 'preview') {
+        setTimeout(() => {
+          if (typeof autoFitZoom === 'function') autoFitZoom();
+          if (typeof drawCanvas === 'function') drawCanvas();
+          if (typeof currentAppMode !== 'undefined') {
+            if (currentAppMode === 'doc' && typeof renderCurrentDocPage === 'function') renderCurrentDocPage();
+            else if (currentAppMode === 'photo' && typeof renderPhotoGridSheet === 'function') renderPhotoGridSheet();
+          }
+        }, 60);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.switchMobileTab = switchMobileTab;
 </script>
 
   <!-- MOBILE BOTTOM NAVIGATION (Active on Mobile Phones & Android App) -->
@@ -9863,11 +9104,11 @@
     </button>
     <button class="mobile-nav-btn" id="mobBtnPreview" onclick="switchMobileTab('preview')">
       <span class="mobile-nav-icon">📄</span>
-      <span class="mobile-nav-label">2. Live Sheet</span>
+      <span class="mobile-nav-label" id="mobLabelTab2">2. Live Sheet</span>
     </button>
     <button class="mobile-nav-btn" id="mobBtnSettings" onclick="switchMobileTab('settings')">
       <span class="mobile-nav-icon">🖨️</span>
-      <span class="mobile-nav-label">3. Print & Size</span>
+      <span class="mobile-nav-label" id="mobLabelTab3">3. Print & Size</span>
     </button>
   </nav>
 
