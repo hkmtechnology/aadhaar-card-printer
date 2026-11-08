@@ -266,6 +266,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
             doc_type = params.get("doc_type", "id_card")
             auto_enhance = bool(params.get("auto_enhance", False))
             enhance_preset = params.get("enhance_preset", "clean")
+            corner_curve_mm = float(params.get("corner_curve_mm", 0))
 
             temp_out = os.path.join(CURRENT_DIR, f"web_scan_{side}_{int(time.time())}.png")
             result = scanner.scan_from_epson(
@@ -275,7 +276,8 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 do_autocrop=autocrop_flag,
                 doc_type=doc_type,
                 auto_enhance=auto_enhance,
-                enhance_preset=enhance_preset
+                enhance_preset=enhance_preset,
+                corner_curve_mm=corner_curve_mm
             )
 
             response_data = {}

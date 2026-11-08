@@ -151,7 +151,7 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
 
     return bx, by, bw, bh
 
-def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_right=True, allow_top=True, allow_bottom=True):
+def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_right=True, allow_top=True, allow_bottom=True, bg_color=None):
     """
     Trims empty scanner lid fringes from the outer borders.
     Uses is_scanner_bed_strip to ensure card text, borders, and emblems are 100% protected.
@@ -161,11 +161,14 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
         return img_bgr
 
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    bg_gray = float(np.mean(bg_color)) if bg_color is not None else None
+    is_white_lid = (bg_gray >= 128.0) if bg_gray is not None else True
+
     x_start = 0
     strip_w = min(max_trim, w // 8)
     if allow_left:
         for x in range(strip_w):
-            if is_scanner_bed_strip(gray[:, x]):
+            if is_scanner_bed_strip(gray[:, x], is_white_lid, bg_val=bg_gray):
                 x_start = x + 1
             else:
                 break
@@ -173,7 +176,7 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     x_end = w
     if allow_right:
         for x in range(w - 1, max(0, w - strip_w - 1), -1):
-            if is_scanner_bed_strip(gray[:, x]):
+            if is_scanner_bed_strip(gray[:, x], is_white_lid, bg_val=bg_gray):
                 x_end = x
             else:
                 break
@@ -182,7 +185,7 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     strip_h = min(max_trim, h // 8)
     if allow_top:
         for y in range(strip_h):
-            if is_scanner_bed_strip(gray[y, :]):
+            if is_scanner_bed_strip(gray[y, :], is_white_lid, bg_val=bg_gray):
                 y_start = y + 1
             else:
                 break
@@ -190,7 +193,7 @@ def trim_shadow_edges_all_sides(img_bgr, max_trim=8, allow_left=True, allow_righ
     y_end = h
     if allow_bottom:
         for y in range(h - 1, max(0, h - strip_h - 1), -1):
-            if is_scanner_bed_strip(gray[y, :]):
+            if is_scanner_bed_strip(gray[y, :], is_white_lid, bg_val=bg_gray):
                 y_end = y
             else:
                 break
@@ -672,7 +675,7 @@ def warp_quad_card(image_input, points, corner_curve_mm=3.18, deskew=True, auto_
     }
     return warped_pil, True, (bx, by, bw, bh), info
 
-def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=True):
+def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=True, corner_curve_mm=0):
     """
     Detects and crops full A4 pages or small documents (receipts, cards, bills, slips).
     Uses CamScanner perspective transform to eliminate scanner margins and tilt.
@@ -1139,7 +1142,7 @@ def enhance_passport_photo(image_input, preset="studio", brightness=0, contrast=
     enhanced_lab = cv2.merge([l_channel, a_adj, b_adj])
     enhanced_bgr = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
     enhanced_rgb = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2RGB)
-    return _wrap_enh_out(Image.fromarray(enhanced_rgb))
+    return Image.fromarray(enhanced_rgb)
 
 def render_passport_grid_a4(
     photo_input,

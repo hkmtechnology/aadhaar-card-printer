@@ -219,7 +219,7 @@ try {
 
     return status_dict
 
-def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_type="id_card", auto_enhance=False, enhance_preset="clean"):
+def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_type="id_card", auto_enhance=False, enhance_preset="clean", corner_curve_mm=0):
     """
     Triggers the Epson L3250 scanner via WIA, saves the scan,
     and optionally auto-crops (ID card, full A4 page, or small document).
@@ -314,9 +314,10 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
 
         if do_autocrop:
             if doc_type in ("a4", "small", "auto"):
-                cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_document(raw_scan_path, doc_type=doc_type)
+                cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_document(raw_scan_path, doc_type=doc_type, corner_curve_mm=corner_curve_mm)
             else:
-                cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_id_card(raw_scan_path)
+                card_curve = corner_curve_mm if corner_curve_mm > 0 else 3.18
+                cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_id_card(raw_scan_path, corner_curve_mm=card_curve)
             if crop_box:
                 r_info["bbox"] = list(crop_box)
             ratio_info = r_info
