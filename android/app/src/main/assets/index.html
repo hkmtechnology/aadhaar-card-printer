@@ -557,6 +557,30 @@
     }
 
     /* THE A4 SHEET REPLICA */
+    .sheet-scale-stage {
+      position: relative;
+      margin: 0 auto;
+      flex-shrink: 0;
+      transition: width 0.15s ease, height 0.15s ease;
+      overflow: visible;
+      display: block;
+    }
+
+    .sheet-scale-stage > .a4-sheet {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      transform-origin: 0 0 !important;
+      margin: 0 !important;
+    }
+
+    .tab-label-short {
+      display: none;
+    }
+    .tab-label-full {
+      display: inline;
+    }
+
     .a4-sheet {
       width: 595px;
       height: 842px;
@@ -1088,7 +1112,42 @@
         box-sizing: border-box !important;
       }
 
+      .tab-label-short {
+        display: inline !important;
+      }
+      .tab-label-full {
+        display: none !important;
+      }
+
+      .mode-nav-tabs {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: flex !important;
+        flex-direction: row !important;
+        background: rgba(15, 23, 42, 0.95) !important;
+        padding: 3px !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(56, 189, 248, 0.22) !important;
+        gap: 4px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+      }
+
       .mode-tab-btn {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        text-align: center !important;
+        justify-content: center !important;
+        padding: 8px 2px !important;
+        font-size: 0.74rem !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        border-radius: 7px !important;
+        overflow: hidden !important;
+      }
+
+      .old-mode-tab-btn-ignore {
         flex: 1 1 0 !important;
         text-align: center !important;
         justify-content: center !important;
@@ -1279,6 +1338,10 @@
         width: 100% !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
+      }
+
+      .preview-viewport .sheet-scale-stage {
+        margin: 0 auto !important;
       }
 
       /* Mobile Navigation Bottom Bar */
@@ -1782,14 +1845,20 @@
 
       <!-- APPLICATION MODE SWITCHER -->
       <div class="mode-nav-tabs">
-        <button class="mode-tab-btn active" id="btnModeCard" onclick="switchAppMode('card')">
-          🪪 2-in-1 Card Mode
+        <button class="mode-tab-btn active" id="btnModeCard" onclick="switchAppMode('card')" title="2-in-1 Card Mode">
+          <span class="tab-icon">🪪</span>
+          <span class="tab-label-full">2-in-1 Card Mode</span>
+          <span class="tab-label-short">2-in-1 Card</span>
         </button>
-        <button class="mode-tab-btn" id="btnModeDoc" onclick="switchAppMode('doc')">
-          📑 Multi-Page Scanner
+        <button class="mode-tab-btn" id="btnModeDoc" onclick="switchAppMode('doc')" title="Multi-Page Document Scanner">
+          <span class="tab-icon">📑</span>
+          <span class="tab-label-full">Multi-Page Scanner</span>
+          <span class="tab-label-short">Multi-Doc</span>
         </button>
-        <button class="mode-tab-btn" id="btnModePhoto" onclick="switchAppMode('photo')">
-          📷 Passport Photo Studio
+        <button class="mode-tab-btn" id="btnModePhoto" onclick="switchAppMode('photo')" title="Passport Photo Studio">
+          <span class="tab-icon">📷</span>
+          <span class="tab-label-full">Passport Photo Studio</span>
+          <span class="tab-label-short">Passport</span>
         </button>
       </div>
     </div>
@@ -1968,8 +2037,10 @@
       </div>
 
       <div class="preview-viewport">
-        <!-- A4 SHEET -->
-        <div class="a4-sheet" id="a4Sheet">
+        <!-- SHEET SCALE STAGE: Resizes layout box to prevent horizontal overflow on phone -->
+        <div class="sheet-scale-stage" id="sheetScaleStage">
+          <!-- A4 SHEET -->
+          <div class="a4-sheet" id="a4Sheet">
 
           <!-- Top Half Guide -->
           <div class="a4-half-guide a4-top-half">
@@ -2056,6 +2127,7 @@
           </div>
 
         </div>
+        </div> <!-- /#sheetScaleStage -->
       </div>
     
         <!-- MOBILE SHEET NAVIGATION BAR -->
@@ -3543,6 +3615,9 @@
       'env_c6': { key: 'env_c6', name: 'C6 Envelope', widthMm: 114.0, heightMm: 162.0, label: 'C6 Envelope (114 × 162 mm)', cssPage: '114mm 162mm' },
       'env_10': { key: 'env_10', name: '#10 Envelope', widthMm: 104.8, heightMm: 241.3, label: '#10 Business Envelope (105 × 241 mm)', cssPage: '104.8mm 241.3mm' }
     };
+    window.PAPER_SIZES = PAPER_SIZES;
+    window.paperSpecs = PAPER_SIZES;
+
 
     function populatePaperSelects() {
       const groups = [
@@ -4694,18 +4769,27 @@
     function autoFitZoom() {
       const container = document.querySelector('.preview-viewport');
       const isMobile = window.innerWidth <= 900;
-      const availWidth = (container && container.clientWidth > 100) ? (container.clientWidth - 16) : (window.innerWidth - 24);
-      const availHeight = (container && container.clientHeight > 100) ? (container.clientHeight - 40) : (window.innerHeight - 180);
-      const sheetWidth = 595;
-      const sheetHeight = 842;
-      
+      const spec = (typeof PAPER_SIZES !== "undefined" && PAPER_SIZES[state.paperSize] ? PAPER_SIZES[state.paperSize] : { widthMm: 210, heightMm: 297 }) || { widthMm: 210, heightMm: 297 };
+      const baseW = spec.widthMm * PX_PER_MM;
+      const baseH = spec.heightMm * PX_PER_MM;
+
+      let availW = window.innerWidth - 32;
+      if (container && container.clientWidth > 100) {
+        availW = container.clientWidth - 20;
+      }
+      let availH = window.innerHeight - 200;
+      if (container && container.clientHeight > 100) {
+        availH = container.clientHeight - 40;
+      }
+
       let fitZoom;
       if (isMobile) {
-        // On mobile phone, prioritize fitting the sheet width with slight padding
-        fitZoom = Math.min(availWidth / sheetWidth, 1.0);
-        fitZoom = Math.max(fitZoom, 0.40);
+        // On mobile phone screen, fit sheet width with comfortable margins
+        fitZoom = Math.min(availW / baseW, 0.95);
+        fitZoom = Math.max(fitZoom, 0.35);
       } else {
-        fitZoom = Math.min(Math.max(availHeight / sheetHeight, 0.5), 1.2);
+        fitZoom = Math.min(availW / baseW, availH / baseH, 1.2);
+        fitZoom = Math.max(fitZoom, 0.5);
       }
       state.zoom = Math.round(fitZoom * 100) / 100;
       applyZoom();
@@ -5754,8 +5838,25 @@
     }
 
     function applyZoom() {
-      document.getElementById('a4Sheet').style.transform = `scale(${state.zoom})`;
-      document.getElementById('zoomVal').innerText = Math.round(state.zoom * 100) + '%';
+      const z = state.zoom || 0.6;
+      const stage = document.getElementById('sheetScaleStage');
+      const sheet = document.getElementById('a4Sheet');
+      const spec = (typeof PAPER_SIZES !== "undefined" && PAPER_SIZES[state.paperSize] ? PAPER_SIZES[state.paperSize] : { widthMm: 210, heightMm: 297 }) || { widthMm: 210, heightMm: 297 };
+      const baseW = spec.widthMm * PX_PER_MM;
+      const baseH = spec.heightMm * PX_PER_MM;
+
+      if (stage) {
+        stage.style.width = Math.round(baseW * z) + 'px';
+        stage.style.height = Math.round(baseH * z) + 'px';
+      }
+      if (sheet) {
+        sheet.style.width = Math.round(baseW) + 'px';
+        sheet.style.height = Math.round(baseH) + 'px';
+        sheet.style.transform = `scale(${z})`;
+        sheet.style.transformOrigin = 'top left';
+      }
+      const zoomVal = document.getElementById('zoomVal');
+      if (zoomVal) zoomVal.innerText = Math.round(z * 100) + '%';
     }
 
     function setCopies(num) {
