@@ -1946,7 +1946,120 @@
       justify-content: center;
     }
 
-  </style>
+  
+    /* Slot Action Buttons (Always visible on left side of placeholder) */
+    .slot-actions-bar {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: flex !important;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 25;
+      pointer-events: auto;
+    }
+
+    .slot-orig-btn,
+    .slot-crop-btn {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.90);
+      color: #f1f5f9;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .slot-orig-btn:hover,
+    .slot-crop-btn:hover {
+      background: rgba(2, 132, 199, 0.95);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: scale(1.04);
+    }
+
+    .slot-orig-btn.active {
+      background: rgba(245, 158, 11, 0.95);
+      border-color: #fbbf24;
+      color: #ffffff;
+    }
+
+    .card-placeholder {
+      padding-left: 95px !important;
+    }
+
+    /* Scanning Progress Bar Styles */
+    .scan-progress-box {
+      width: 100%;
+      margin: 14px 0 6px 0;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      box-sizing: border-box;
+    }
+
+    .scan-progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .scan-progress-track {
+      width: 100%;
+      height: 12px;
+      background: rgba(11, 19, 43, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .scan-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #34d399 100%);
+      border-radius: 999px;
+      transition: width 0.15s ease-out;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+    }
+
+    .btn-abort-action {
+      background: rgba(239, 68, 68, 0.18) !important;
+      border: 1.5px solid #ef4444 !important;
+      color: #fca5a5 !important;
+      font-weight: 800 !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .btn-abort-action:hover,
+    .btn-abort-action:active {
+      background: #ef4444 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.6) !important;
+      transform: scale(1.02);
+    }
+
+    @media print {
+      .slot-actions-bar,
+      .slot-orig-btn,
+      .slot-crop-btn,
+      .slot-orig-badge {
+        display: none !important;
+      }
+    }
+
+</style>
 
   <!-- SVG SHARPENING CONVOLUTION FILTERS FOR CRISP AADHAAR TEXT & QR -->
   <svg style="position: absolute; width: 0; height: 0; pointer-events: none;" aria-hidden="true">
@@ -2247,8 +2360,8 @@
 
           <!-- FRONT CARD SLOT -->
           <div class="card-slot slot-front border-none" id="frontSlot" data-side="front" ondblclick="openManualCropModal('front')">
-            <div class="slot-actions-bar" style="display: none;">
-              <button class="slot-orig-btn" id="frontSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('front')" title="Toggle original uncropped scan vs cropped card" style="display: none;">👁️ Original</button>
+            <div class="slot-actions-bar">
+              <button type="button" class="slot-orig-btn" id="frontSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('front')" title="Toggle original uncropped scan vs cropped card">👁️ Original</button>
               <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('front');" title="Adjust crop box">✂ Adjust Crop</button>
             </div>
             <div class="slot-orig-badge" id="frontOrigBadge" style="display: none;">👁️ Viewing Original Scan</div>
@@ -2282,8 +2395,8 @@
 
           <!-- BACK CARD SLOT -->
           <div class="card-slot slot-back border-none" id="backSlot" data-side="back" ondblclick="openManualCropModal('back')">
-            <div class="slot-actions-bar" style="display: none;">
-              <button class="slot-orig-btn" id="backSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('back')" title="Toggle original uncropped scan vs cropped card" style="display: none;">👁️ Original</button>
+            <div class="slot-actions-bar">
+              <button type="button" class="slot-orig-btn" id="backSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('back')" title="Toggle original uncropped scan vs cropped card">👁️ Original</button>
               <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('back');" title="Adjust crop box">✂ Adjust Crop</button>
             </div>
             <div class="slot-orig-badge" id="backOrigBadge" style="display: none;">👁️ Viewing Original Scan</div>
@@ -3705,21 +3818,36 @@
         <div class="modal-title" id="scanModalTitle">⚡ Scanner Wizard</div>
         <button class="mini-btn btn-danger" onclick="handleModalClose()">✕</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
         <div id="scanAnim" class="scanner-anim"></div>
-        <div id="scanStepTitle" style="font-size: 1.1rem; font-weight: 700;">Place Card on Scanner Glass</div>
-        <div id="scanStepDesc" style="font-size: 0.85rem; color: var(--text-muted); max-width: 420px;">
+        <div id="scanStepTitle" style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-top: 6px;">Place Card on Scanner Glass</div>
+        <div id="scanStepDesc" style="font-size: 0.86rem; color: var(--text-muted); max-width: 420px; margin-top: 4px; line-height: 1.4;">
           Place the <strong>FRONT</strong> of your Aadhaar card face-down on the flatbed scanner glass, then click Scan.
         </div>
+
+        <!-- SCAN PROGRESS BAR COMPONENT -->
+        <div class="scan-progress-box" id="scanProgressSection" style="display: none;">
+          <div class="scan-progress-header">
+            <span id="scanProgressStage" style="font-size: 0.82rem; font-weight: 700; color: #38bdf8;">⚡ Scanning Flatbed Glass...</span>
+            <span id="scanProgressPercent" style="font-size: 0.88rem; font-weight: 800; color: #34d399; font-variant-numeric: tabular-nums;">0%</span>
+          </div>
+          <div class="scan-progress-track">
+            <div class="scan-progress-fill" id="scanProgressFill" style="width: 0%;"></div>
+          </div>
+          <div id="scanProgressDetail" style="font-size: 0.74rem; color: #94a3b8; margin-top: 6px; text-align: left;">
+            Initializing Epson L3250 scanner carriage...
+          </div>
+        </div>
         
-        <div id="scanActionBtnRow" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-          <button class="btn btn-print" id="btnDoScan" style="padding: 10px 24px;" onclick="executeScanStep()">
+        <div id="scanActionBtnRow" style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px; width: 100%; align-items: center;">
+          <button class="btn btn-print" id="btnDoScan" style="padding: 12px 28px; width: 100%; max-width: 320px; font-size: 1rem; font-weight: 800;" onclick="executeScanStep()">
             ⚡ Scan Now
           </button>
           
           <!-- SCAN ABORT BUTTON -->
-          <button class="btn-abort-action" id="btnAbortScan" style="display: none;" onclick="triggerAbortScan()">
-            ⏹️ Abort Scan
+          <button class="btn-abort-action" id="btnAbortScan" style="display: none; width: 100%; max-width: 320px; min-height: 48px; font-size: 0.95rem; font-weight: 800; border-radius: 12px; align-items: center; justify-content: center; gap: 8px; cursor: pointer;" onclick="triggerAbortScan()">
+            <span style="font-size: 1.15rem;">⛔</span>
+            <span>Abort Scan Now</span>
           </button>
         </div>
       </div>
@@ -3902,29 +4030,38 @@
 // UNIFIED SCAN & PRINT ENGINE (NATIVE ANDROID BRIDGE + HTTP FETCH)
 // =========================================================================
 async function performUnifiedScan(payload) {
-  if (window.AndroidBridge && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
-    try {
-      const respStr = window.AndroidBridge.scanDirectOrBridge(
-        payload.side || 'front',
-        payload.autocrop !== false,
-        payload.dpi || 300,
-        payload.doc_type || 'id_card'
-      );
-      if (respStr) {
-        return JSON.parse(respStr);
-      }
-    } catch (e) {
-      console.warn('Native scan error, falling back to fetch:', e);
+  // Use async non-blocking fetch so progress bar animations and abort events run smoothly at 60fps
+  try {
+    const res = await fetch(getApiUrl('/api/scan'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: state.abortController ? state.abortController.signal : (window.docState && docState.abortController ? docState.abortController.signal : undefined)
+    });
+    if (res.ok) {
+      return await res.json();
     }
+  } catch (fetchErr) {
+    console.warn('Fetch scan error or aborted:', fetchErr);
+    if (fetchErr.name === 'AbortError') {
+      return { success: false, aborted: true, message: 'Scan aborted by user' };
+    }
+    // Fallback to native Android Bridge if fetch fails and not aborted
+    if (window.AndroidBridge && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
+      try {
+        const respStr = window.AndroidBridge.scanDirectOrBridge(
+          payload.side || 'front',
+          payload.autocrop !== false,
+          payload.dpi || 300,
+          payload.doc_type || 'id_card'
+        );
+        if (respStr) return JSON.parse(respStr);
+      } catch (e) {
+        console.warn('Native scan error:', e);
+      }
+    }
+    throw fetchErr;
   }
-
-  const res = await fetch(getApiUrl('/api/scan'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: state.abortController ? state.abortController.signal : undefined
-  });
-  return await res.json();
 }
 
 function triggerUnifiedPrint() {
@@ -4867,7 +5004,14 @@ function getApiUrl(endpoint) {
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      if (!document.body.getAttribute('data-mob-tab')) switchMobileTab('upload');
+      let initTab = 'upload';
+      if (window.AndroidBridge && typeof window.AndroidBridge.getInitialTab === 'function') {
+        try {
+          const t = window.AndroidBridge.getInitialTab();
+          if (t) initTab = t;
+        } catch (e) {}
+      }
+      switchMobileTab(initTab);
       populatePaperSelects();
       setupDropzones();
       await loadSavedSettings();
@@ -5074,12 +5218,12 @@ function getApiUrl(endpoint) {
               docBadge.style.color = '#f59e0b';
             }
             if (offlineNotice) offlineNotice.style.display = 'none';
-          } else if (data.online) {
+          } else if (data.online || data.scanner_online || data.printer_status === 'Ready') {
             isScannerOnline = true;
             if (badge) {
               badge.className = 'epson-tag online';
               badge.innerHTML = '🟢 ' + (data.message || 'Epson L3250 Ready');
-              badge.title = 'Scanner is online & ready. Click to re-check.';
+              badge.title = 'Scanner & Printer are online & ready. Click to re-check.';
             }
             if (docBadge) {
               docBadge.innerText = '🟢 Ready';
@@ -5098,6 +5242,15 @@ function getApiUrl(endpoint) {
               docBadge.style.color = '#ef4444';
             }
             if (offlineNotice) offlineNotice.style.display = 'block';
+          }
+
+          // Update Desktop Header Printer Connection Badge
+          const devConnBadge = document.getElementById('deviceConnectionBadge');
+          if (devConnBadge) {
+            const isPrinterReady = (data.printer_status === 'Ready');
+            devConnBadge.className = isPrinterReady ? 'epson-tag online' : 'epson-tag offline';
+            devConnBadge.innerHTML = (isPrinterReady ? '🖨️ ' : '⚠️ ') + (data.printer_name || 'Epson L3250') + (isPrinterReady ? ' (Ready)' : ' (Offline)');
+            devConnBadge.title = `Port: ${data.port || 'USB/Network'} • Status: ${data.printer_status || 'Unknown'}. Click for settings.`;
           }
         } else {
           setScannerOfflineUI();
@@ -5293,6 +5446,7 @@ function getApiUrl(endpoint) {
 
     // ABORT SCAN HANDLER
     async function triggerAbortScan() {
+      stopScanProgressBar(true);
       document.getElementById('statusIndicator').innerText = 'Aborting scan...';
       document.getElementById('scanStepTitle').innerText = 'Aborting Scanner...';
       document.getElementById('scanStepDesc').innerText = 'Stopping Epson L3250 scanner motor...';
@@ -5372,6 +5526,7 @@ function getApiUrl(endpoint) {
         }
 
         if (data.success && data.image) {
+          completeScanProgressBar();
           const img = new Image();
           img.onload = () => {
             state[side].rawImg = img;
@@ -5389,8 +5544,10 @@ function getApiUrl(endpoint) {
             renderSlot(side);
             document.getElementById(side + 'Controls').style.display = 'flex';
             document.getElementById(side + 'Label').innerText = `Scanned ${side.toUpperCase()} (${data.cropped ? 'Auto-Cropped' : 'Full'})`;
-            setScanningState(false);
-            closeScanModal();
+            setTimeout(() => {
+              setScanningState(false);
+              closeScanModal();
+            }, 600);
           };
           img.src = data.image;
         } else {
@@ -5475,6 +5632,7 @@ function getApiUrl(endpoint) {
 
               setScanningState(false);
 
+              completeScanProgressBar();
               // Advance to Step 2
               state.wizardStep = 2;
               document.getElementById('scanAnim').style.display = 'none';
@@ -5528,9 +5686,12 @@ function getApiUrl(endpoint) {
               document.getElementById('backControls').style.display = 'flex';
               document.getElementById('backLabel').innerText = 'Scanned Back Side';
 
-              setScanningState(false);
-              closeScanModal();
-              alert('🎉 Both sides scanned successfully!\nFront is on the top half and Back is on the bottom half of A4.\nClick "Print to Epson L3250" whenever you are ready!');
+              completeScanProgressBar();
+              setTimeout(() => {
+                setScanningState(false);
+                closeScanModal();
+                alert('🎉 Both sides scanned successfully!\nFront is on the top half and Back is on the bottom half of A4.\nClick "Print to Epson L3250" whenever you are ready!');
+              }, 600);
             };
             img.src = data.image;
           } else {
@@ -5548,16 +5709,112 @@ function getApiUrl(endpoint) {
       }
     }
 
+
+    // =========================================================================
+    // SCAN PROGRESS BAR & ABORT CONTROLLER
+    // =========================================================================
+    let scanProgressInterval = null;
+    let scanProgressStartTime = 0;
+
+    function startScanProgressBar(side, dpi = 150) {
+      const section = document.getElementById('scanProgressSection');
+      const fill = document.getElementById('scanProgressFill');
+      const percentText = document.getElementById('scanProgressPercent');
+      const stageText = document.getElementById('scanProgressStage');
+      const detailText = document.getElementById('scanProgressDetail');
+      const abortBtn = document.getElementById('btnAbortScan');
+
+      if (!section) return;
+      section.style.display = 'block';
+      if (abortBtn) abortBtn.style.display = 'inline-flex';
+
+      fill.style.width = '0%';
+      fill.style.background = 'linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #34d399 100%)';
+      percentText.innerText = '0%';
+      stageText.innerText = `⚡ Scanning ${side ? side.toUpperCase() : 'Card'} (${dpi} DPI)...`;
+      detailText.innerText = 'Warming up optical lamp & positioning carriage...';
+
+      if (scanProgressInterval) clearInterval(scanProgressInterval);
+
+      scanProgressStartTime = Date.now();
+      const estDurationMs = dpi >= 600 ? 36000 : (dpi >= 300 ? 18000 : 9500);
+
+      scanProgressInterval = setInterval(() => {
+        const elapsed = Date.now() - scanProgressStartTime;
+        let progress = Math.min(94, Math.round((elapsed / estDurationMs) * 94));
+
+        fill.style.width = progress + '%';
+        percentText.innerText = progress + '%';
+
+        if (progress < 20) {
+          detailText.innerText = 'Warming up lamp & positioning flatbed scanner head...';
+        } else if (progress < 68) {
+          detailText.innerText = 'Moving optical sensor & reading glass (' + progress + '%)...';
+        } else if (progress < 86) {
+          detailText.innerText = 'Transferring scan buffer to app...';
+        } else {
+          detailText.innerText = 'Detecting card contours & applying auto-crop...';
+        }
+      }, 120);
+    }
+
+    function completeScanProgressBar() {
+      if (scanProgressInterval) {
+        clearInterval(scanProgressInterval);
+        scanProgressInterval = null;
+      }
+      const fill = document.getElementById('scanProgressFill');
+      const percentText = document.getElementById('scanProgressPercent');
+      const stageText = document.getElementById('scanProgressStage');
+      const detailText = document.getElementById('scanProgressDetail');
+
+      if (fill) fill.style.width = '100%';
+      if (percentText) percentText.innerText = '100%';
+      if (stageText) stageText.innerText = '✅ Scan Completed!';
+      if (detailText) detailText.innerText = 'Card aligned and placed on Live Sheet!';
+    }
+
+    function stopScanProgressBar(aborted = false) {
+      if (scanProgressInterval) {
+        clearInterval(scanProgressInterval);
+        scanProgressInterval = null;
+      }
+      const fill = document.getElementById('scanProgressFill');
+      const percentText = document.getElementById('scanProgressPercent');
+      const stageText = document.getElementById('scanProgressStage');
+      const detailText = document.getElementById('scanProgressDetail');
+
+      if (aborted) {
+        if (fill) {
+          fill.style.background = '#ef4444';
+          fill.style.width = '100%';
+        }
+        if (stageText) stageText.innerText = '⛔ Scan Aborted';
+        if (percentText) percentText.innerText = 'Stopped';
+        if (detailText) detailText.innerText = 'Scanner carriage stopped. Ready.';
+      }
+    }
+
     function openScanModal(title, desc, showSpinner) {
       document.getElementById('scanModal').classList.add('active');
       document.getElementById('scanStepTitle').innerText = title;
       document.getElementById('scanStepDesc').innerText = desc;
       document.getElementById('scanAnim').style.display = showSpinner ? 'block' : 'none';
-      document.getElementById('btnDoScan').style.display = 'none';
-      document.getElementById('btnAbortScan').style.display = showSpinner ? 'inline-flex' : 'none';
+      document.getElementById('btnDoScan').style.display = showSpinner ? 'none' : 'block';
+      
+      const progBox = document.getElementById('scanProgressSection');
+      if (progBox) progBox.style.display = showSpinner ? 'block' : 'none';
+      
+      const abortBtn = document.getElementById('btnAbortScan');
+      if (abortBtn) abortBtn.style.display = showSpinner ? 'inline-flex' : 'none';
+
+      if (showSpinner) {
+        startScanProgressBar(title, state.scanDpi || 150);
+      }
     }
 
     function closeScanModal() {
+      stopScanProgressBar(false);
       document.getElementById('scanModal').classList.remove('active');
       setScanningState(false);
     }
@@ -5724,7 +5981,7 @@ function getApiUrl(endpoint) {
       const slotBtn = document.getElementById(side + 'SlotOrigBtn');
       const badge = document.getElementById(side + 'OrigBadge');
       const actionsBar = document.querySelector('#' + side + 'Slot .slot-actions-bar');
-      if (actionsBar) actionsBar.style.display = targetImg ? 'flex' : 'none';
+      if (actionsBar) actionsBar.style.display = 'flex';
 
       if (targetImg) {
         imgElem.src = targetImg.src;

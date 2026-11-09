@@ -46,6 +46,9 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        var currentRequestedTab: String = "upload"
+    }
 
     private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
@@ -132,7 +135,7 @@ class MainActivity : ComponentActivity() {
         } else {
             registerReceiver(tabReceiver, filter)
         }
-
+        handleTabIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -143,11 +146,22 @@ class MainActivity : ComponentActivity() {
     private fun handleTabIntent(intent: Intent?) {
         val tab = intent?.getStringExtra("tab")
         if (tab != null) {
-            webView.evaluateJavascript("if (typeof switchMobileTab === 'function') switchMobileTab('$tab');", null)
+            currentRequestedTab = tab
+            runOnUiThread {
+                webView.evaluateJavascript("if (typeof switchMobileTab === 'function') switchMobileTab('$tab');", null)
+            }
         }
         val mode = intent?.getStringExtra("mode")
         if (mode != null) {
-            webView.evaluateJavascript("if (typeof switchAppMode === 'function') switchAppMode('$mode');", null)
+            runOnUiThread {
+                webView.evaluateJavascript("if (typeof switchAppMode === 'function') switchAppMode('$mode');", null)
+            }
+        }
+        val evalJs = intent?.getStringExtra("eval_js")
+        if (evalJs != null) {
+            runOnUiThread {
+                webView.evaluateJavascript(evalJs, null)
+            }
         }
     }
 
@@ -280,6 +294,9 @@ class MainActivity : ComponentActivity() {
      * JavaScript Interface Bridge exposed to Web application as `window.AndroidBridge`
      */
     inner class AndroidBridge(private val context: Context) {
+
+        @JavascriptInterface
+        fun getInitialTab(): String = currentRequestedTab
 
         @JavascriptInterface
         fun isAndroidApp(): Boolean = true

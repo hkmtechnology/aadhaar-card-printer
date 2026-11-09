@@ -501,6 +501,12 @@ def get_system_device_info(force=False):
         info["printer_status"] = "Ready" if info["scanner_online"] or info["wifi_device"]["online"] else "Offline"
         info["scanner_name"] = info["wifi_device"]["name"]
 
+    info["online"] = (info["scanner_online"] or info["printer_status"] == "Ready")
+    info["message"] = (
+        info["scanner_message"] if info["scanner_online"]
+        else (f"{info['printer_name']} Ready on {info['connection_type']}" if info["printer_status"] == "Ready" else "Printer Offline")
+    )
+
     with _DEVICE_INFO_LOCK:
         _LAST_DEVICE_INFO_TIME = time.time()
         _CACHED_DEVICE_INFO = info
