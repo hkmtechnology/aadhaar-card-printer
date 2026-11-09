@@ -79,9 +79,15 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
     2. If the initial contour missed any card borders, emblems, or text, expands outwards until clean scanner lid is reached.
     Guarantees 100% of card borders, Ashoka emblem, and text are preserved with 0px cut-off.
     """
+    if img_bgr is None:
+        return bx, by, bw, bh
+
     orig_h, orig_w = img_bgr.shape[:2]
+    if orig_h < 40 or orig_w < 40:
+        return bx, by, bw, bh
+
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    bg_gray = float(np.mean(bg_color))
+    bg_gray = float(np.mean(bg_color)) if bg_color is not None else 250.0
     is_white_lid = bg_gray >= 128.0
 
     bed_m_x = max(2, int(orig_w * 0.006))
@@ -93,6 +99,7 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
     orig_left = bx
     orig_right = bx + bw
     max_inward_trim = 4  # Never trim more than 4px inward from detected card contour
+    max_outward_expand = max(25, int(min(orig_w, orig_h) * 0.06))
 
     # Initial safety clamp
     bx = max(0, min(orig_w - 40, bx))
@@ -102,8 +109,8 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
 
     for _ in range(3):
         # Sample middle 60% of card height
-        y1 = max(0, by + int(bh * 0.20))
-        y2 = min(orig_h, by + int(bh * 0.80))
+        y1 = max(0, min(orig_h - 1, by + int(bh * 0.20)))
+        y2 = max(y1 + 1, min(orig_h, by + int(bh * 0.80)))
         if y2 <= y1:
             break
 
@@ -113,7 +120,7 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
             bw -= 1
 
         # Expand left outwards if card extends to the left
-        while bx > bed_m_x and not is_scanner_bed_strip(gray[y1:y2, bx - 1], is_white_lid, bg_val=bg_gray):
+        while bx > bed_m_x and bx > 0 and (orig_left - bx < max_outward_expand) and not is_scanner_bed_strip(gray[y1:y2, bx - 1], is_white_lid, bg_val=bg_gray):
             bx -= 1
             bw += 1
 
@@ -122,12 +129,12 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
             bw -= 1
 
         # Expand right outwards if card extends to the right
-        while (bx + bw) < (orig_w - bed_m_x) and not is_scanner_bed_strip(gray[y1:y2, bx + bw], is_white_lid, bg_val=bg_gray):
+        while (bx + bw) < (orig_w - bed_m_x) and (bx + bw) < orig_w and ((bx + bw) - orig_right < max_outward_expand) and not is_scanner_bed_strip(gray[y1:y2, bx + bw], is_white_lid, bg_val=bg_gray):
             bw += 1
 
         # Sample middle 60% of card width
-        x1 = max(0, bx + int(bw * 0.20))
-        x2 = min(orig_w, bx + int(bw * 0.80))
+        x1 = max(0, min(orig_w - 1, bx + int(bw * 0.20)))
+        x2 = max(x1 + 1, min(orig_w, bx + int(bw * 0.80)))
         if x2 <= x1:
             break
 
@@ -137,8 +144,8 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
             bh -= 1
 
         # Expand top outwards if card extends to the top (ensures 100% of emblem and text are captured)
-        while by > bed_m_y and not is_scanner_bed_strip(gray[by - 1, x1:x2], is_white_lid, bg_val=bg_gray):
-            by += 1
+        while by > bed_m_y and by > 0 and (orig_top - by < max_outward_expand) and not is_scanner_bed_strip(gray[by - 1, x1:x2], is_white_lid, bg_val=bg_gray):
+            by -= 1
             bh += 1
 
         # Trim bottom inwards if sitting on empty scanner bed (max 4px inward)
@@ -146,8 +153,20 @@ def refine_card_bounding_box(img_bgr, bx, by, bw, bh, bg_color):
             bh -= 1
 
         # Expand bottom outwards if card extends to the bottom
-        while (by + bh) < (orig_h - bed_m_y) and not is_scanner_bed_strip(gray[by + bh, x1:x2], is_white_lid, bg_val=bg_gray):
+        while (by + bh) < (orig_h - bed_m_y) and (by + bh) < orig_h and ((by + bh) - orig_bottom < max_outward_expand) and not is_scanner_bed_strip(gray[by + bh, x1:x2], is_white_lid, bg_val=bg_gray):
             bh += 1
+
+        # Clamp after each iteration
+        bx = max(0, min(orig_w - 40, bx))
+        by = max(0, min(orig_h - 40, by))
+        bw = max(40, min(orig_w - bx, bw))
+        bh = max(40, min(orig_h - by, bh))
+
+    # Exit safety clamp
+    bx = max(0, min(orig_w - 40, bx))
+    by = max(0, min(orig_h - 40, by))
+    bw = max(40, min(orig_w - bx, bw))
+    bh = max(40, min(orig_h - by, bh))
 
     return bx, by, bw, bh
 

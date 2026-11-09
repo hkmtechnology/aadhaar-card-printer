@@ -738,19 +738,35 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
         ratio_info = {"ratio_type": "custom", "aspect": 1.585}
 
         if do_autocrop:
-            if doc_type in ("a4", "small", "auto"):
-                cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_document(raw_scan_path, doc_type=doc_type, corner_curve_mm=corner_curve_mm)
-            else:
-                card_curve = corner_curve_mm if corner_curve_mm > 0 else 3.18
-                cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_id_card(raw_scan_path, corner_curve_mm=card_curve)
-            if crop_box:
-                r_info["bbox"] = list(crop_box)
-            ratio_info = r_info
-            if cropped_pil is not None:
-                final_img = cropped_pil
-                was_cropped = detected
-            else:
+            try:
+                if doc_type in ("a4", "small", "auto"):
+                    cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_document(raw_scan_path, doc_type=doc_type, corner_curve_mm=corner_curve_mm)
+                else:
+                    card_curve = corner_curve_mm if corner_curve_mm > 0 else 3.18
+                    cropped_pil, detected, crop_box, r_info = autocrop.detect_and_crop_id_card(raw_scan_path, corner_curve_mm=card_curve)
+                if crop_box:
+                    r_info["bbox"] = list(crop_box)
+                ratio_info = r_info
+                if cropped_pil is not None:
+                    final_img = cropped_pil
+                    was_cropped = detected
+                else:
+                    final_img = Image.open(raw_scan_path)
+            except Exception as crop_err:
+                print(f"[Scanner] Auto-crop fallback: {crop_err}")
+                import traceback
+                traceback.print_exc()
                 final_img = Image.open(raw_scan_path)
+                was_cropped = False
+                ratio_info = {
+                    "doc_type": doc_type,
+                    "ratio_type": "custom",
+                    "aspect": final_img.width / float(final_img.height),
+                    "width": final_img.width,
+                    "height": final_img.height,
+                    "is_portrait": (final_img.height > final_img.width),
+                    "bbox": [0, 0, final_img.width, final_img.height]
+                }
         else:
             final_img = Image.open(raw_scan_path)
             aspect = final_img.width / float(final_img.height)
@@ -812,6 +828,8 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
             "cropped": False
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         if ABORT_REQUESTED:
             return {
                 "success": False,
