@@ -36,6 +36,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import org.json.JSONObject
+import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 import java.net.DatagramPacket
@@ -549,7 +550,74 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun printDirect(base64Data: String, copies: Int = 1, title: String = "HKM_Card_Print"): String {
+            val candidates = DeviceDetector.getCandidateBridgeIps(context)
+            val bridgeIps = mutableListOf("127.0.0.1")
+            for (c in candidates) {
+                if (!bridgeIps.contains(c)) bridgeIps.add(c)
+            }
+
+            for (ip in bridgeIps) {
+                try {
+                    val url = java.net.URL("http://$ip:8767/api/print_silent")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    conn.connectTimeout = 3000
+                    conn.readTimeout = 45000
+                    conn.doOutput = true
+                    conn.doInput = true
+
+                    val payload = JSONObject().apply {
+                        put("image", base64Data)
+                        put("copies", copies)
+                        put("title", title)
+                    }.toString()
+
+                    conn.outputStream.use { os ->
+                        os.write(payload.toByteArray(Charsets.UTF_8))
+                    }
+
+                    val code = conn.responseCode
+                    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+                    val response = stream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(response)
+                    if (json.optBoolean("success", false)) {
+                        val msg = json.optString("message", "Document sent directly to Epson L3250!")
+                        runOnUiThread {
+                            Toast.makeText(context, "🖨️ $msg", Toast.LENGTH_LONG).show()
+                        }
+                        return response
+                    }
+                } catch (e: Exception) {
+                    Log.w("HKM_PRINT", "Direct print attempt to $ip:8767 failed: ${e.message}")
+                }
+            }
+
+            // Bridge not reachable: ask user if they want to fallback to Android System Print
+            runOnUiThread {
+                android.app.AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Epson L3250 Direct Print")
+                    .setMessage("Could not connect to PC Bridge for direct silent printing.\n\nMake sure the PC Bridge is connected via USB/Wi-Fi, or tap 'System Dialog' to use Android's print spooler.")
+                    .setPositiveButton("System Dialog") { _, _ ->
+                        printPdfSystem(base64Data, title)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+            return JSONObject().apply {
+                put("success", false)
+                put("error", "PC Bridge not reachable")
+            }.toString()
+        }
+
+        @JavascriptInterface
         fun printPdf(base64Data: String, jobName: String) {
+            printDirect(base64Data, 1, jobName)
+        }
+
+        @JavascriptInterface
+        fun printPdfSystem(base64Data: String, jobName: String) {
             runOnUiThread {
                 try {
                     val pdfBytes = Base64.decode(base64Data, Base64.DEFAULT)

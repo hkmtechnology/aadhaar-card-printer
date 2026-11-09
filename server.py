@@ -6,6 +6,7 @@ import io
 from PIL import Image
 import os
 import sys
+import subprocess
 import json
 import base64
 import time
@@ -50,6 +51,141 @@ DEFAULT_SETTINGS = {
     "copies": 1,
     "autoSave": True
 }
+
+
+def silent_print_images(images, printer_name=None, copies=1):
+    """
+    Directly prints one or more PIL Images, data URLs, or image file paths to the specified Windows printer
+    (defaulting to EPSON L3250 Series) with 0 dialogs using System.Drawing.Printing.PrintDocument.
+    """
+    if sys.platform != "win32":
+        return False, "Silent printing is only supported on Windows host."
+    if not images:
+        return False, "No images provided to print."
+
+    temp_files = []
+    try:
+        from PIL import Image
+        for idx, item in enumerate(images):
+            if isinstance(item, str):
+                if item.startswith("data:"):
+                    b64 = item.split(",", 1)[1]
+                    raw = base64.b64decode(b64)
+                    tpath = os.path.join(tempfile.gettempdir(), f"silent_print_{int(time.time())}_{idx}.png")
+                    with open(tpath, "wb") as f:
+                        f.write(raw)
+                    temp_files.append(tpath)
+                elif os.path.isfile(item):
+                    temp_files.append(os.path.abspath(item))
+                else:
+                    raw = base64.b64decode(item)
+                    tpath = os.path.join(tempfile.gettempdir(), f"silent_print_{int(time.time())}_{idx}.png")
+                    with open(tpath, "wb") as f:
+                        f.write(raw)
+                    temp_files.append(tpath)
+            elif isinstance(item, Image.Image):
+                tpath = os.path.join(tempfile.gettempdir(), f"silent_print_{int(time.time())}_{idx}.png")
+                item.save(tpath, "PNG")
+                temp_files.append(tpath)
+
+        if not temp_files:
+            return False, "Failed to decode print images."
+
+        target = printer_name or "EPSON L3250 Series"
+        img_array_ps = ",\n    ".join([f"'{p.replace(chr(92), '/')}'" for p in temp_files])
+
+        ps_script = f"""
+Add-Type -AssemblyName System.Drawing
+$doc = New-Object System.Drawing.Printing.PrintDocument
+$doc.PrinterSettings.PrinterName = '{target}'
+if (-not $doc.PrinterSettings.IsValid) {{
+    $doc.PrinterSettings.PrinterName = 'EPSON L3250 Series (Network)'
+}}
+if (-not $doc.PrinterSettings.IsValid) {{
+    $defaultP = (New-Object System.Drawing.Printing.PrinterSettings).PrinterName
+    $doc.PrinterSettings.PrinterName = $defaultP
+}}
+if (-not $doc.PrinterSettings.IsValid) {{
+    Write-Host "PRINTER_INVALID"
+    exit 1
+}}
+
+$doc.PrinterSettings.Copies = [Math]::Max(1, [Math]::Min(99, {int(copies)}))
+$doc.PrintController = New-Object System.Drawing.Printing.StandardPrintController
+
+$a4 = ($doc.PrinterSettings.PaperSizes | Where-Object {{ $_.PaperName -like "*A4*" }} | Select-Object -First 1)
+if ($a4) {{
+    $doc.DefaultPageSettings.PaperSize = $a4
+}}
+$doc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
+$doc.OriginAtMargins = $false
+if ($doc.PrinterSettings.PrinterName -like '*PDF*') {{
+    $doc.PrinterSettings.PrintToFile = $true
+    $doc.PrinterSettings.PrintFileName = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), 'virtual_silent_print.pdf')
+}}
+
+$images = @(
+    {img_array_ps}
+)
+$script:idx = 0
+
+$doc.add_PrintPage({{
+    param($sender, $e)
+    if ($script:idx -lt $images.Count) {{
+        $img = [System.Drawing.Image]::FromFile($images[$script:idx])
+        $e.Graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $e.Graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $e.Graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+        $e.Graphics.DrawImage($img, $e.PageBounds)
+        $img.Dispose()
+        $script:idx++
+        $e.HasMorePages = ($script:idx -lt $images.Count)
+    }} else {{
+        $e.HasMorePages = $false
+    }}
+}})
+
+$doc.Print()
+$doc.Dispose()
+Write-Host "PRINT_SUCCESS:$($doc.PrinterSettings.PrinterName)"
+"""
+        ps_file = os.path.join(tempfile.gettempdir(), f"silent_print_job_{int(time.time())}_{uuid.uuid4().hex[:6]}.ps1")
+        with open(ps_file, "w", encoding="utf-8") as f:
+            f.write(ps_script)
+
+        cf = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        proc = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_file],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            creationflags=cf
+        )
+        try:
+            if os.path.exists(ps_file):
+                os.remove(ps_file)
+        except Exception:
+            pass
+
+        out = proc.stdout.strip()
+        if "PRINT_SUCCESS:" in out:
+            pname = out.split("PRINT_SUCCESS:")[1].strip()
+            return True, f"Document sent to {pname} ({copies} copy)"
+        elif "PRINTER_INVALID" in out:
+            return False, f"Epson printer '{target}' is not installed or available on this PC."
+        else:
+            err = proc.stderr.strip() or out
+            return False, f"Print error: {err[:200]}"
+    except Exception as e:
+        return False, str(e)
+    finally:
+        for p in temp_files:
+            try:
+                if os.path.exists(p) and "silent_print_" in p:
+                    os.remove(p)
+            except Exception:
+                pass
+
 
 class ScanRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -473,6 +609,39 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
             threading.Thread(target=_delayed_exit, daemon=True).start()
             return
 
+        if url.path == "/api/print_silent":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            try:
+                params = json.loads(body)
+                img_data = params.get("image", "")
+                pages_data = params.get("pages", [])
+                copies = max(1, min(99, int(params.get("copies", 1))))
+                printer_name = params.get("printer_name") or None
+
+                items_to_print = []
+                if img_data:
+                    items_to_print.append(img_data)
+                elif pages_data:
+                    items_to_print.extend(pages_data)
+                else:
+                    raise ValueError("No image or pages provided to print.")
+
+                ok, msg = silent_print_images(items_to_print, printer_name=printer_name, copies=copies)
+                if ok:
+                    resp = {"success": True, "message": msg, "copies": copies}
+                else:
+                    resp = {"success": False, "error": msg}
+            except Exception as e:
+                resp = {"success": False, "error": str(e)}
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         if url.path == "/api/print_pages":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
@@ -545,14 +714,24 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                     final_pages[0].save(temp_pdf, "PDF", resolution=float(dpi), save_all=True, append_images=final_pages[1:])
 
                 if action == "print" and sys.platform == "win32":
-                    os.startfile(temp_pdf)
-
-                resp = {
-                    "success": True,
-                    "pages_count": len(pil_pages),
-                    "copies": copies,
-                    "pdf_path": temp_pdf
-                }
+                    ok, msg = silent_print_images(pil_pages, copies=copies)
+                    if not ok:
+                        resp = {"success": False, "error": msg}
+                    else:
+                        resp = {
+                            "success": True,
+                            "message": msg,
+                            "pages_count": len(pil_pages),
+                            "copies": copies,
+                            "pdf_path": temp_pdf
+                        }
+                else:
+                    resp = {
+                        "success": True,
+                        "pages_count": len(pil_pages),
+                        "copies": copies,
+                        "pdf_path": temp_pdf
+                    }
             except Exception as e:
                 resp = {"success": False, "error": str(e)}
 
@@ -742,14 +921,17 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 sheets_list[0].save(temp_pdf, "PDF", resolution=300.0, save_all=(copies > 1), append_images=sheets_list[1:] if copies > 1 else [])
 
                 if action == "print" and sys.platform == "win32":
-                    os.startfile(temp_pdf)
+                    ok, msg = silent_print_images([sheet], copies=copies)
+                else:
+                    ok, msg = True, "Grid generated"
 
                 out_io = BytesIO()
                 sheet.save(out_io, format="JPEG", quality=95)
                 sheet_b64 = base64.b64encode(out_io.getvalue()).decode("utf-8")
 
                 resp = {
-                    "success": True,
+                    "success": ok,
+                    "message": msg,
                     "pdf_path": temp_pdf,
                     "preview_image": f"data:image/jpeg;base64,{sheet_b64}",
                     "total_photos": fill_count * copies,

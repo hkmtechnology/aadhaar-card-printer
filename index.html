@@ -7767,15 +7767,22 @@ async function performUnifiedScan(payload) {
 }
 
 function triggerUnifiedPrint() {
-  if (window.AndroidBridge && typeof window.AndroidBridge.printCurrentPage === 'function') {
+  if (window.AndroidBridge && typeof window.AndroidBridge.printPdfSystem === 'function') {
     try {
-      window.AndroidBridge.printCurrentPage();
+      const canvas = renderHighResA4Canvas();
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      const binaryImg = atob(jpegDataUrl.split(',')[1]);
+      const pdfBytes = createA4ImagePDF(binaryImg, 1);
+      let binaryStr = '';
+      const bytes = new Uint8Array(pdfBytes);
+      for (let i = 0; i < bytes.length; i++) binaryStr += String.fromCharCode(bytes[i]);
+      window.AndroidBridge.printPdfSystem(btoa(binaryStr), "HKM_Document_Print");
       return;
     } catch (e) {
-      console.warn('Native printCurrentPage error:', e);
+      console.warn('Native printPdfSystem error:', e);
     }
   }
-  triggerUnifiedPrint();
+  window.print();
 }
 
 function getApiUrl(endpoint) {
@@ -10429,48 +10436,51 @@ function getApiUrl(endpoint) {
       setCopies((state.copies || 1) + delta);
     }
 
-    function doPrint() {
-      if (window.AndroidBridge && window.AndroidBridge.printPdf) {
-        try {
-          const canvas = renderHighResA4Canvas();
-          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-          const base64Data = jpegDataUrl.split(',')[1];
-          const binaryImg = atob(base64Data);
-          const copies = state.copies || 1;
-          const pdfBytes = createA4ImagePDF(binaryImg, copies);
-          let binaryStr = '';
-          const bytes = new Uint8Array(pdfBytes);
-          for (let i = 0; i < bytes.length; i++) {
-            binaryStr += String.fromCharCode(bytes[i]);
-          }
-          const b64Pdf = btoa(binaryStr);
-          window.AndroidBridge.printPdf(b64Pdf, "Aadhaar_Card_A4_Print");
-          return;
-        } catch(err) {
-          console.error("Android print error:", err);
-        }
-      }
-
+    async function doPrint() {
       const copies = state.copies || 1;
-      const originalSheet = document.getElementById('a4Sheet');
-      const clonedSheets = [];
+      showToast(`🖨️ Printing ${copies} copy to Epson L3250...`, 'info');
 
-      if (copies > 1 && originalSheet && originalSheet.parentNode) {
-        for (let i = 1; i < copies; i++) {
-          const clone = originalSheet.cloneNode(true);
-          clone.id = 'a4Sheet_copy_' + i;
-          clone.classList.add('print-copy-sheet');
-          originalSheet.parentNode.appendChild(clone);
-          clonedSheets.push(clone);
+      try {
+        const canvas = renderHighResA4Canvas();
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+        // 1. If on Android with native bridge, call printDirect
+        if (window.AndroidBridge && typeof window.AndroidBridge.printDirect === 'function') {
+          try {
+            const resp = window.AndroidBridge.printDirect(jpegDataUrl, copies, "Aadhaar_Card_A4_Print");
+            const data = JSON.parse(resp);
+            if (data.success) {
+              showToast(`✅ ${data.message || 'Document printed directly to Epson L3250!'}`, 'success');
+              return;
+            }
+          } catch(e) {
+            console.warn("AndroidBridge printDirect failed:", e);
+          }
+        }
+
+        // 2. Direct HTTP call to /api/print_silent (works in app via ADB reverse or Wi-Fi, and in desktop browser)
+        const res = await fetch(getApiUrl('/api/print_silent'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: jpegDataUrl,
+            copies: copies,
+            title: 'Aadhaar_Card_A4_Print'
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`✅ ${data.message || 'Document printed directly to Epson L3250!'}`, 'success');
+          return;
+        } else {
+          showToast(`⚠️ Print Bridge: ${data.error || 'Failed to print'}`, 'error');
+        }
+      } catch (err) {
+        console.warn("Silent print bridge error:", err);
+        if (confirm("PC Bridge is not reachable for direct silent printing.\nWould you like to open the print dialog instead?")) {
+          triggerUnifiedPrint();
         }
       }
-
-      triggerUnifiedPrint();
-
-      // Clean up cloned copies after print dialog finishes
-      setTimeout(() => {
-        clonedSheets.forEach(c => c.remove());
-      }, 1500);
     }
 
     function renderHighResA4Canvas() {
@@ -11356,43 +11366,53 @@ function getApiUrl(endpoint) {
       if (label) label.innerText = '85%';
     }
 
-    // PRINT ALL PAGES ACTION
-    function printDocAllPages() {
+    // PRINT ALL PAGES ACTION (DIRECT SILENT PRINT)
+    async function printDocAllPages() {
       if (docState.pages.length === 0) {
         alert('Please scan or upload at least one page before printing.');
         return;
       }
 
-      // 1. Populate #docPrintContainer for clean @media print pagination
-      const printContainer = document.getElementById('docPrintContainer');
-      if (printContainer) {
-        printContainer.innerHTML = '';
-        for (let c = 0; c < docState.copies; c++) {
-          docState.pages.forEach((p, idx) => {
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'doc-print-page';
-            const pageImg = document.createElement('img');
-            pageImg.src = p.enhancedImg;
-            pageImg.style.transform = `rotate(${p.rotation}deg)`;
-            pageDiv.appendChild(pageImg);
-            printContainer.appendChild(pageDiv);
-          });
+      showToast(`🖨️ Printing ${docState.pages.length} page(s) (${docState.copies} copies) to Epson L3250...`, 'info');
+
+      try {
+        const res = await fetch(getApiUrl('/api/print_pages'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pages: docState.pages.map(p => ({ image: p.enhancedImg, rotation: p.rotation || 0 })),
+            copies: docState.copies,
+            action: 'print'
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`✅ ${data.message || 'Document sent directly to Epson L3250!'}`, 'success');
+          return;
+        } else {
+          showToast(`⚠️ Print Bridge: ${data.error || 'Failed to print'}`, 'error');
+        }
+      } catch (err) {
+        console.warn("Print pages bridge error:", err);
+        if (confirm("PC Bridge is not reachable for direct silent printing.\nWould you like to open the print dialog instead?")) {
+          const printContainer = document.getElementById('docPrintContainer');
+          if (printContainer) {
+            printContainer.innerHTML = '';
+            for (let c = 0; c < docState.copies; c++) {
+              docState.pages.forEach((p, idx) => {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'doc-print-page';
+                const pageImg = document.createElement('img');
+                pageImg.src = p.enhancedImg;
+                pageImg.style.transform = `rotate(${p.rotation}deg)`;
+                pageDiv.appendChild(pageImg);
+                printContainer.appendChild(pageDiv);
+              });
+            }
+          }
+          triggerUnifiedPrint();
         }
       }
-
-      // 2. Also send to Windows print bridge in parallel
-      fetch(getApiUrl('/api/print_pages'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pages: docState.pages.map(p => ({ image: p.enhancedImg, rotation: p.rotation || 0 })),
-          copies: docState.copies,
-          action: 'print'
-        })
-      }).catch(() => {});
-
-      // 3. Open browser print dialog
-      triggerUnifiedPrint();
     }
 
     // SAVE MULTI-PAGE DYNAMIC DPI PDF
@@ -12363,13 +12383,13 @@ function getApiUrl(endpoint) {
       return canvas;
     }
 
-    async function printPhotoGridSheet() {
+    async async function printPhotoGridSheet() {
       if (!photoState.enhancedImg) {
         alert('Please scan or upload a photo first.');
         return;
       }
 
-      showToast('Preparing 300 DPI Photo Grid for Printing...', 'info');
+      showToast(🖨️ Printing Photo Sheet ( copies) to Epson L3250..., 'info');
 
       try {
         const res = await fetch(getApiUrl('/api/photo/print_grid'), {
@@ -12392,23 +12412,32 @@ function getApiUrl(endpoint) {
             action: 'print'
           })
         });
-      } catch (e) {}
-
-      const canvas = await renderHighResPhotoCanvas();
-      const printContainer = document.getElementById('photoPrintContainer');
-      if (printContainer) {
-        printContainer.innerHTML = '';
-        for (let c = 0; c < photoState.copies; c++) {
-          const pageDiv = document.createElement('div');
-          pageDiv.className = 'photo-print-page';
-          const img = document.createElement('img');
-          img.src = canvas.toDataURL('image/jpeg', 0.98);
-          pageDiv.appendChild(img);
-          printContainer.appendChild(pageDiv);
+        const data = await res.json();
+        if (data.success) {
+          showToast(✅ , 'success');
+          return;
+        } else {
+          showToast(⚠️ Print Bridge: , 'error');
+        }
+      } catch (e) {
+        console.warn('Print photo bridge error:', e);
+        if (confirm('PC Bridge is not reachable for direct silent printing.\nWould you like to open the print dialog instead?')) {
+          const canvas = await renderHighResPhotoCanvas();
+          const printContainer = document.getElementById('photoPrintContainer');
+          if (printContainer) {
+            printContainer.innerHTML = '';
+            for (let c = 0; c < photoState.copies; c++) {
+              const pageDiv = document.createElement('div');
+              pageDiv.className = 'photo-print-page';
+              const img = document.createElement('img');
+              img.src = canvas.toDataURL('image/jpeg', 0.98);
+              pageDiv.appendChild(img);
+              printContainer.appendChild(pageDiv);
+            }
+          }
+          triggerUnifiedPrint();
         }
       }
-
-      triggerUnifiedPrint();
     }
 
     async function exportPhotoSheetImage() {
