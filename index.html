@@ -1558,6 +1558,9 @@
       flex-shrink: 0 !important;
     }
 
+    .crop-mobile-ratio-select {
+      display: none;
+    }
     .crop-modal-toolbar {
       padding: 8px 16px !important;
       background: rgba(15, 23, 42, 0.85) !important;
@@ -4462,40 +4465,50 @@
         flex-shrink: 0 !important;
       }
 
-      /* Compact Horizontal-Scrolling Toolbar Rows on Mobile */
+      /* Modern Adjust Crop Modal Toolbar: 100% Fits on Screen, Zero Horizontal Scrolling */
       .crop-modal-toolbar {
-        padding: 6px 10px !important;
+        padding: 6px 8px !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
         gap: 6px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
         overflow-x: hidden !important;
         background: #111a2e !important;
         border-bottom: 1px solid rgba(148, 163, 184, 0.16) !important;
         flex-shrink: 0 !important;
       }
 
-      .crop-toolbar-group {
+      .crop-toolbar-top-row {
         display: flex !important;
         align-items: center !important;
+        justify-content: space-between !important;
         gap: 6px !important;
         width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        flex-wrap: nowrap !important;
-        -webkit-overflow-scrolling: touch !important;
-        scrollbar-width: none !important;
-        margin-left: 0 !important;
-        padding-bottom: 2px !important;
+        box-sizing: border-box !important;
       }
 
-      .crop-toolbar-group::-webkit-scrollbar {
-        display: none !important;
+      .crop-mode-group {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex-shrink: 0 !important;
+      }
+
+      .crop-ratio-group {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+        justify-content: flex-end !important;
       }
 
       .crop-toolbar-label {
         font-size: 0.68rem !important;
         color: #94a3b8 !important;
+        font-weight: 600 !important;
         flex-shrink: 0 !important;
       }
 
@@ -4505,6 +4518,27 @@
         background: rgba(15, 23, 42, 0.9) !important;
       }
 
+      /* Strictly hide desktop ratio button strip on mobile so it never overflows */
+      #cropRatioButtons,
+      .crop-desktop-ratio-group,
+      .crop-ratio-btn-group.crop-desktop-ratio-group {
+        display: none !important;
+      }
+
+      .crop-mobile-ratio-select {
+        display: block !important;
+        width: 100% !important;
+        max-width: 200px !important;
+        padding: 5px 8px !important;
+        font-size: 0.74rem !important;
+        font-weight: 600 !important;
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        border: 1px solid #475569 !important;
+        border-radius: 6px !important;
+        outline: none !important;
+      }
+
       .crop-ratio-btn {
         padding: 4px 8px !important;
         font-size: 0.72rem !important;
@@ -4512,14 +4546,31 @@
         white-space: nowrap !important;
       }
 
-      .crop-modal-toolbar .mini-btn {
-        padding: 4px 9px !important;
+      /* 8 Action Buttons Grid: 4 columns x 2 rows, fits screen perfectly */
+      .crop-actions-group {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 4px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin-left: 0 !important;
+        overflow-x: visible !important;
+        white-space: normal !important;
+      }
+
+      .crop-actions-group .mini-btn {
+        width: 100% !important;
+        padding: 6px 2px !important;
         font-size: 0.72rem !important;
+        font-weight: 600 !important;
         white-space: nowrap !important;
-        flex-shrink: 0 !important;
-        display: inline-flex !important;
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
         align-items: center !important;
-        gap: 3px !important;
+        gap: 2px !important;
+        border-radius: 6px !important;
+        box-sizing: border-box !important;
       }
 
       /* Workspace: Fills remaining viewport so image is prominently displayed */
@@ -4556,47 +4607,61 @@
         display: block !important;
       }
 
-      /* Single-Row Compact Fine Nudge Bar */
+      /* Single-Row Compact Fine Nudge Bar: 100% Fits on Screen */
       .crop-nudge-bar {
-        padding: 4px 10px !important;
+        padding: 4px 8px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
-        overflow-x: auto !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
         white-space: nowrap !important;
-        -webkit-overflow-scrolling: touch !important;
-        scrollbar-width: none !important;
         flex-shrink: 0 !important;
-        gap: 6px !important;
+        gap: 4px !important;
         background: #0d1527 !important;
         border-top: 1px solid rgba(148, 163, 184, 0.16) !important;
       }
 
-      .crop-nudge-bar::-webkit-scrollbar {
-        display: none !important;
-      }
-
-      .crop-nudge-bar > div:first-child span:last-child {
-        display: none !important;
+      .crop-nudge-badge {
+        font-size: 0.68rem !important;
+        color: #94a3b8 !important;
+        font-weight: 600 !important;
+        flex-shrink: 0 !important;
       }
 
       .crop-nudge-controls {
-        flex-wrap: nowrap !important;
-        gap: 4px !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 3px !important;
+        flex: 1 !important;
+        overflow-x: visible !important;
+      }
+      #cropBoxNudgeControls[style*="display: none"],
+      #cropQuadNudgeControls[style*="display: none"] {
+        display: none !important;
       }
 
       .crop-nudge-group {
-        padding: 2px 4px !important;
+        display: inline-flex !important;
+        align-items: center !important;
         gap: 2px !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        padding: 2px 4px !important;
+        border-radius: 4px !important;
       }
 
       .crop-nudge-label {
         font-size: 0.65rem !important;
+        color: #64748b !important;
+        font-weight: 700 !important;
       }
 
       .nudge-btn {
         padding: 2px 5px !important;
-        font-size: 0.65rem !important;
+        min-width: 20px !important;
+        font-size: 0.68rem !important;
+        border-radius: 3px !important;
       }
 
       /* Mobile Footer: Stacks cleanly so Cancel and Apply Crop are 100% visible and unclipped */
@@ -6339,9 +6404,9 @@
           <!-- Studio Preset Chips -->
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 10px;">
             <button type="button" class="mini-btn active" id="btnRawPresetStudio" onclick="setCameraRawPreset('studio')">✨ Studio Portrait</button>
+            <button type="button" class="mini-btn" id="btnRawPresetBaby" onclick="setCameraRawPreset('baby_skin')" style="background:linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.25)); border-color:#ec4899; color:#f472b6; font-weight:700;">👶 Soft Baby Skin</button>
             <button type="button" class="mini-btn" id="btnRawPresetPrint" onclick="setCameraRawPreset('epson_print')" title="Optimized for Epson Inkjet photo paper">+ Print Boost</button>
             <button type="button" class="mini-btn" id="btnRawPresetPunchy" onclick="setCameraRawPreset('punchy')">📸 Punchy Glossy</button>
-            <button type="button" class="mini-btn" id="btnRawPresetWarm" onclick="setCameraRawPreset('warm')">☀️ Warm Portrait</button>
           </div>
 
           <!-- COLLAPSIBLE ACCORDION PANELS MATCHING PHOTOSHOP CAMERA RAW -->
@@ -6482,6 +6547,13 @@
                 </div>
                 <input type="range" id="rawVignette" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
               </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawGrain')">Grain</span>
+                  <span class="raw-slider-val" id="rawGrainVal">0</span>
+                </div>
+                <input type="range" id="rawGrain" min="0" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
             </div>
           </div>
 
@@ -6505,6 +6577,13 @@
                   <span class="raw-slider-val" id="rawNoiseReductionVal">0</span>
                 </div>
                 <input type="range" id="rawNoiseReduction" min="0" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawColorNoiseReduction')">Color Noise Reduction</span>
+                  <span class="raw-slider-val" id="rawColorNoiseReductionVal">0</span>
+                </div>
+                <input type="range" id="rawColorNoiseReduction" min="0" max="100" value="0" oninput="onCameraRawSliderInput()">
               </div>
             </div>
           </div>
@@ -7010,54 +7089,57 @@
 
       <!-- TOOLBAR -->
       <div class="crop-modal-toolbar">
-        <div class="crop-toolbar-group">
-          <label class="crop-toolbar-label">Crop Tool:</label>
-          <div class="crop-ratio-btn-group" id="cropToolModeButtons">
-            <button class="crop-ratio-btn active" id="btnCropModeBox" onclick="setCropToolMode('box')" title="Standard rectangular bounding box with aspect ratio control">
-              🔲 Box (Rectangle)
-            </button>
-            <button class="crop-ratio-btn" id="btnCropModeQuad" onclick="setCropToolMode('quad')" title="Free-form selection: drag each corner dot freely to fit tilted/angled cards">
-              📐 Free-Form Quad (4 Dots)
-            </button>
+        <div class="crop-toolbar-top-row">
+          <div class="crop-toolbar-group crop-mode-group">
+            <label class="crop-toolbar-label">Tool:</label>
+            <div class="crop-ratio-btn-group" id="cropToolModeButtons">
+              <button class="crop-ratio-btn active" id="btnCropModeBox" onclick="setCropToolMode('box')" title="Standard rectangular bounding box with aspect ratio control">
+                🔲 Box
+              </button>
+              <button class="crop-ratio-btn" id="btnCropModeQuad" onclick="setCropToolMode('quad')" title="Free-form selection: drag each corner dot freely">
+                📐 Quad
+              </button>
+            </div>
+          </div>
+
+          <div class="crop-toolbar-group crop-ratio-group" id="cropRatioToolbarGroup">
+            <label class="crop-toolbar-label">Ratio:</label>
+            <!-- Mobile Responsive Dropdown: 100% fits on screen -->
+            <select id="cropMobileRatioSelect" class="crop-mobile-ratio-select" onchange="setCropRatio(this.value)">
+              <option value="id_landscape">🪪 Standard ID (85.6×54)</option>
+              <option value="id_portrait">📱 ID Portrait (54×85.6)</option>
+              <option value="4:3">🖼️ 4 : 3 Photo</option>
+              <option value="3:4">📷 3 : 4 Portrait</option>
+              <option value="free">🔓 Free Custom</option>
+            </select>
+            <!-- Desktop Buttons -->
+            <div class="crop-ratio-btn-group crop-desktop-ratio-group" id="cropRatioButtons">
+              <button class="crop-ratio-btn active" data-ratio="id_landscape" onclick="setCropRatio('id_landscape')">
+                Standard ID (85.6×54)
+              </button>
+              <button class="crop-ratio-btn" data-ratio="id_portrait" onclick="setCropRatio('id_portrait')">
+                Standard ID Portrait (54×85.6)
+              </button>
+              <button class="crop-ratio-btn" data-ratio="4:3" onclick="setCropRatio('4:3')">
+                4 : 3
+              </button>
+              <button class="crop-ratio-btn" data-ratio="3:4" onclick="setCropRatio('3:4')">
+                3 : 4
+              </button>
+              <button class="crop-ratio-btn" data-ratio="free" onclick="setCropRatio('free')">
+                Free (Custom)
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="crop-toolbar-group" id="cropRatioToolbarGroup">
-          <label class="crop-toolbar-label">Aspect Ratio:</label>
-          <div class="crop-ratio-btn-group" id="cropRatioButtons">
-            <button class="crop-ratio-btn active" data-ratio="id_landscape" onclick="setCropRatio('id_landscape')">
-              Standard ID (85.6×54)
-            </button>
-            <button class="crop-ratio-btn" data-ratio="id_portrait" onclick="setCropRatio('id_portrait')">
-              Standard ID Portrait (54×85.6)
-            </button>
-            <button class="crop-ratio-btn" data-ratio="4:3" onclick="setCropRatio('4:3')">
-              4 : 3
-            </button>
-            <button class="crop-ratio-btn" data-ratio="3:4" onclick="setCropRatio('3:4')">
-              3 : 4
-            </button>
-            <button class="crop-ratio-btn" data-ratio="free" onclick="setCropRatio('free')">
-              Free (Custom)
-            </button>
-          </div>
-        </div>
-
-        <div class="crop-toolbar-group" style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap;">
-          <button class="mini-btn" id="cropBtnFitView" onclick="toggleCropZoomFit()" title="Fit entire scanned page into view without scrolling">
-            🔍 Fit Page
-          </button>
-          <button class="mini-btn btn-toggle-orig" id="cropBtnToggleSource" onclick="toggleCropModalSource()" title="Toggle between raw uncropped scan and current cropped image">
-            👁️ Original Scan
-          </button>
-          <button class="mini-btn" onclick="cropOrientByText()" title="Auto-detect text direction and orient image" style="background: rgba(14, 165, 233, 0.2); border: 1px solid #0284c7; color: #38bdf8; font-weight: 600;">
-            📐 Orient by Text
-          </button>
+        <!-- 8 Action Buttons Grid: 4 columns x 2 rows, perfectly fitted on screen -->
+        <div class="crop-toolbar-group crop-actions-group">
           <button class="mini-btn" onclick="autoDetectCropBox()" title="Auto-detect card borders using edge analysis">
-            ✨ Auto-Detect
+            ✨ Auto
           </button>
-          <button class="mini-btn" onclick="resetCropToFull()" title="Expand crop box to full image">
-            ⛶ Full Image
+          <button class="mini-btn" onclick="cropOrientByText()" title="Auto-detect text direction and orient image">
+            📐 Orient
           </button>
           <button class="mini-btn" onclick="rotateCropImage(-90)" title="Rotate image 90° counter-clockwise">
             ⟲ 90°
@@ -7067,6 +7149,15 @@
           </button>
           <button class="mini-btn" onclick="rotateCropImage(180)" title="Flip image 180° (Turn upside down)">
             180° Flip
+          </button>
+          <button class="mini-btn" onclick="resetCropToFull()" title="Expand crop box to full image">
+            ⛶ Full
+          </button>
+          <button class="mini-btn" id="cropBtnFitView" onclick="toggleCropZoomFit()" title="Fit entire scanned page into view without scrolling">
+            🔍 Fit
+          </button>
+          <button class="mini-btn btn-toggle-orig" id="cropBtnToggleSource" onclick="toggleCropModalSource()" title="Toggle between raw uncropped scan and current cropped image">
+            👁️ Original
           </button>
         </div>
       </div>
@@ -7159,36 +7250,32 @@
 
       <!-- NUDGE & FINE-TUNE BAR -->
       <div class="crop-nudge-bar">
-        <div style="font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
-          <span>🎯 Fine Nudge (1px):</span>
-          <span style="color: #64748b;">(Use Arrow Keys to nudge selection)</span>
-        </div>
+        <span class="crop-nudge-badge">🎯 Nudge (1px):</span>
         <div class="crop-nudge-controls" id="cropBoxNudgeControls">
           <div class="crop-nudge-group">
-            <span class="crop-nudge-label">Left:</span>
-            <button class="nudge-btn" onclick="nudgeCropEdge('l', -1)">◀ -1</button>
-            <button class="nudge-btn" onclick="nudgeCropEdge('l', 1)">▶ +1</button>
+            <span class="crop-nudge-label">L:</span>
+            <button class="nudge-btn" onclick="nudgeCropEdge('l', -1)">◀</button>
+            <button class="nudge-btn" onclick="nudgeCropEdge('l', 1)">▶</button>
           </div>
           <div class="crop-nudge-group">
-            <span class="crop-nudge-label">Right:</span>
-            <button class="nudge-btn" onclick="nudgeCropEdge('r', -1)">◀ -1</button>
-            <button class="nudge-btn" onclick="nudgeCropEdge('r', 1)">▶ +1</button>
+            <span class="crop-nudge-label">R:</span>
+            <button class="nudge-btn" onclick="nudgeCropEdge('r', -1)">◀</button>
+            <button class="nudge-btn" onclick="nudgeCropEdge('r', 1)">▶</button>
           </div>
           <div class="crop-nudge-group">
-            <span class="crop-nudge-label">Top:</span>
-            <button class="nudge-btn" onclick="nudgeCropEdge('t', -1)">▲ -1</button>
-            <button class="nudge-btn" onclick="nudgeCropEdge('t', 1)">▼ +1</button>
+            <span class="crop-nudge-label">T:</span>
+            <button class="nudge-btn" onclick="nudgeCropEdge('t', -1)">▲</button>
+            <button class="nudge-btn" onclick="nudgeCropEdge('t', 1)">▼</button>
           </div>
           <div class="crop-nudge-group">
-            <span class="crop-nudge-label">Bottom:</span>
-            <button class="nudge-btn" onclick="nudgeCropEdge('b', -1)">▲ -1</button>
-            <button class="nudge-btn" onclick="nudgeCropEdge('b', 1)">▼ +1</button>
+            <span class="crop-nudge-label">B:</span>
+            <button class="nudge-btn" onclick="nudgeCropEdge('b', -1)">▲</button>
+            <button class="nudge-btn" onclick="nudgeCropEdge('b', 1)">▼</button>
           </div>
         </div>
 
-        <div class="crop-nudge-controls" id="cropQuadNudgeControls" style="display: none; align-items: center; gap: 8px;">
-          <span class="crop-nudge-label">Nudge Dot:</span>
-          <select id="cropQuadNudgeTarget" class="mini-select" style="padding: 3px 6px; font-size: 0.75rem; background: #0b1329; border: 1px solid #0284c7; color: #38bdf8; border-radius: 4px;">
+        <div class="crop-nudge-controls" id="cropQuadNudgeControls" style="display: none; align-items: center; gap: 6px;">
+          <select id="cropQuadNudgeTarget" class="mini-select" style="padding: 2px 6px; font-size: 0.74rem; background: #0b1329; border: 1px solid #0284c7; color: #38bdf8; border-radius: 4px;">
             <option value="0" selected>Dot TL (Top-Left)</option>
             <option value="1">Dot TR (Top-Right)</option>
             <option value="2">Dot BR (Bottom-Right)</option>
@@ -12528,6 +12615,12 @@ function getApiUrl(endpoint) {
 
       sharpening: 0,
       noiseReduction: 0,
+      colorNoiseReduction: 0,
+      grain: 0,
+      distortion: 0,
+      opticsVignette: 0,
+      cgBlending: 50,
+      cgBalance: 0,
 
       // Curves
       curveMode: 'parametric', // 'parametric' | 'point_rgb' | 'point_r' | 'point_g' | 'point_b'
@@ -12649,8 +12742,9 @@ function getApiUrl(endpoint) {
       const sliders = [
         'rawExposure', 'rawContrast', 'rawHighlights', 'rawShadows', 'rawWhites', 'rawBlacks',
         'rawTemp', 'rawTint', 'rawVibrance', 'rawSaturation',
-        'rawTexture', 'rawClarity', 'rawDehaze', 'rawVignette',
-        'rawSharpening', 'rawNoiseReduction',
+        'rawTexture', 'rawClarity', 'rawDehaze', 'rawVignette', 'rawGrain',
+        'rawSharpening', 'rawNoiseReduction', 'rawColorNoiseReduction',
+        'rawDistortion', 'rawOpticsVignette',
         'rawCurveHighlights', 'rawCurveLights', 'rawCurveDarks', 'rawCurveShadows',
         'rawRgbWhites', 'rawRgbHighlights', 'rawRgbMidtones', 'rawRgbShadows', 'rawRgbBlacks',
         'rawRedWhites', 'rawRedHighlights', 'rawRedMidtones', 'rawRedShadows', 'rawRedBlacks',
@@ -12659,6 +12753,8 @@ function getApiUrl(endpoint) {
         'rawOrangeLum', 'rawOrangeSat', 'rawRedLum', 'rawYellowSat'
       ];
       sliders.forEach(s => setSliderVal(s, 0));
+      setSliderVal('rawCgBlending', 50);
+      setSliderVal('rawCgBalance', 0);
       cameraRawState.isBw = false;
       const btn1 = document.getElementById('btnRawBw');
       const btn2 = document.getElementById('btnRawModalBw');
@@ -12667,6 +12763,36 @@ function getApiUrl(endpoint) {
       const wb = document.getElementById('rawWbSelect');
       if (wb) wb.value = 'as_shot';
       cameraRawState.wb = 'as_shot';
+
+      if (window.cameraRawState && window.cameraRawState.hsl) {
+        const colors = ['Reds', 'Oranges', 'Yellows', 'Greens', 'Aquas', 'Blues', 'Purples', 'Magentas'];
+        colors.forEach(c => {
+          window.cameraRawState.hsl[c] = { sat: 0, lum: 0, hue: 0 };
+        });
+        setRawHslTab(window.cameraRawState.hslTab || 'sat');
+      }
+
+      if (window.cameraRawState && window.cameraRawState.colorGrading) {
+        window.cameraRawState.colorGrading = {
+          mid: { angle: 0, sat: 0, lum: 0 },
+          shadow: { angle: 0, sat: 0, lum: 0 },
+          highlight: { angle: 0, sat: 0, lum: 0 },
+          blending: 50,
+          balance: 0
+        };
+        ['Mid', 'Shadow', 'Highlight'].forEach(type => {
+          const ind = document.getElementById('indWheel' + type);
+          if (ind) {
+            ind.style.left = '38px';
+            ind.style.top = '38px';
+          }
+          const span = document.getElementById('valWheelLum' + type);
+          if (span) span.textContent = '0';
+          const sld = document.getElementById('sliderWheelLum' + type);
+          if (sld) sld.value = 0;
+        });
+      }
+
       onCameraRawSliderInput();
       showToast('Camera Raw filters reset', 'info');
     }
@@ -12767,7 +12893,7 @@ function getApiUrl(endpoint) {
 
     function setCameraRawPreset(preset) {
       cameraRawState.preset = preset;
-      const presets = ['btnRawPresetStudio', 'btnRawPresetPrint', 'btnRawPresetPunchy', 'btnRawPresetWarm'];
+      const presets = ['btnRawPresetStudio', 'btnRawPresetBaby', 'btnRawPresetPrint', 'btnRawPresetPunchy', 'btnRawPresetWarm'];
       presets.forEach(p => {
         const b = document.getElementById(p);
         if (b) b.classList.remove('active');
@@ -12775,7 +12901,9 @@ function getApiUrl(endpoint) {
 
       if (preset === 'baby_skin') {
         // Exact numbers matching user's uploaded Photoshop Camera Raw 18.3 screenshots:
-        // Texture -28, Noise Reduction 16, Shadows +68, Whites +30, Highlights +25, Saturation +15
+        // Texture -28 (Smooth Skin Pores), Noise Reduction 16, Shadows +68, Whites +30, Blacks +66, Highlights +25, Saturation +15, Curve: +18/+14/+15/+65, Yellows Sat -29
+        const bBaby = document.getElementById('btnRawPresetBaby');
+        if (bBaby) bBaby.classList.add('active');
         setSliderVal('rawExposure', 0);
         setSliderVal('rawContrast', 5);
         setSliderVal('rawHighlights', 25);
@@ -12789,21 +12917,33 @@ function getApiUrl(endpoint) {
         setSliderVal('rawTexture', -28);
         setSliderVal('rawClarity', 0);
         setSliderVal('rawDehaze', 0);
+        setSliderVal('rawVignette', 0);
+        setSliderVal('rawGrain', 0);
         setSliderVal('rawSharpening', 0);
         setSliderVal('rawNoiseReduction', 16);
+        setSliderVal('rawColorNoiseReduction', 0);
         setSliderVal('rawCurveHighlights', 18);
         setSliderVal('rawCurveLights', 14);
         setSliderVal('rawCurveDarks', 15);
         setSliderVal('rawCurveShadows', 65);
-        setSliderVal('rawOrangeLum', 15);
-        setSliderVal('rawOrangeSat', 5);
+        setSliderVal('rawOrangeLum', 0);
+        setSliderVal('rawOrangeSat', 0);
         setSliderVal('rawYellowSat', -29);
         setSliderVal('rawHslYellows', -29);
-        setSliderVal('rawHslOranges', 15);
+        setSliderVal('rawHslOranges', 0);
+        setSliderVal('rawDistortion', 0);
+        setSliderVal('rawOpticsVignette', 0);
+        setSliderVal('rawCgBlending', 50);
+        setSliderVal('rawCgBalance', 0);
+        setRawCurveChannel('parametric');
         if (window.cameraRawState && window.cameraRawState.hsl) {
-          window.cameraRawState.hsl.Yellows.sat = -29;
-          window.cameraRawState.hsl.Oranges.lum = 15;
-          window.cameraRawState.hsl.Oranges.sat = 5;
+          const colors = ['Reds', 'Oranges', 'Yellows', 'Greens', 'Aquas', 'Blues', 'Purples', 'Magentas'];
+          colors.forEach(c => {
+            window.cameraRawState.hsl[c].sat = (c === 'Yellows') ? -29 : 0;
+            window.cameraRawState.hsl[c].lum = 0;
+            window.cameraRawState.hsl[c].hue = 0;
+          });
+          setRawHslTab('sat');
         }
         cameraRawState.isBw = false;
         showToast('👶 Applied Camera Raw 18.3 Soft Baby Skin Preset', 'success');
@@ -12902,6 +13042,12 @@ function getApiUrl(endpoint) {
 
       cameraRawState.sharpening = getVal('rawSharpening');
       cameraRawState.noiseReduction = getVal('rawNoiseReduction');
+      cameraRawState.colorNoiseReduction = getVal('rawColorNoiseReduction');
+      cameraRawState.grain = getVal('rawGrain');
+      cameraRawState.distortion = getVal('rawDistortion');
+      cameraRawState.opticsVignette = getVal('rawOpticsVignette');
+      cameraRawState.cgBlending = getVal('rawCgBlending');
+      cameraRawState.cgBalance = getVal('rawCgBalance');
 
       // Curves
       cameraRawState.curveHighlights = getVal('rawCurveHighlights');
@@ -12962,6 +13108,12 @@ function getApiUrl(endpoint) {
 
       setTxt('rawSharpeningVal', '+' + cameraRawState.sharpening);
       setTxt('rawNoiseReductionVal', '+' + cameraRawState.noiseReduction);
+      setTxt('rawColorNoiseReductionVal', '+' + cameraRawState.colorNoiseReduction);
+      setTxt('rawGrainVal', '+' + cameraRawState.grain);
+      setTxt('rawDistortionVal', (cameraRawState.distortion > 0 ? '+' : '') + cameraRawState.distortion);
+      setTxt('rawOpticsVignetteVal', (cameraRawState.opticsVignette > 0 ? '+' : '') + cameraRawState.opticsVignette);
+      setTxt('rawCgBlendingVal', cameraRawState.cgBlending);
+      setTxt('rawCgBalanceVal', (cameraRawState.cgBalance > 0 ? '+' : '') + cameraRawState.cgBalance);
 
       setTxt('rawCurveHighlightsVal', (cameraRawState.curveHighlights > 0 ? '+' : '') + cameraRawState.curveHighlights);
       setTxt('rawCurveLightsVal', (cameraRawState.curveLights > 0 ? '+' : '') + cameraRawState.curveLights);
@@ -13372,6 +13524,7 @@ function getApiUrl(endpoint) {
     function renderCameraRawCanvas(srcCanvas, params) {
       const w = srcCanvas.width;
       const h = srcCanvas.height;
+      if (!w || !h) return null;
       const ctx = srcCanvas.getContext('2d', { willReadFrequently: true });
       const imgData = ctx.getImageData(0, 0, w, h);
       const data = imgData.data;
@@ -13463,11 +13616,71 @@ function getApiUrl(endpoint) {
       const isBw = !!params.isBw;
       const satFactor = 1.0 + (params.saturation || 0) * 0.01;
       const vibrance = (params.vibrance || 0) * 0.01;
+
+      // Color Mixer (Full 8-Channel HSL)
+      const hslData = (window.cameraRawState && window.cameraRawState.hsl) ? window.cameraRawState.hsl : null;
+      let hasHsl = false;
+      const hslBands = [
+        { name: 'Reds', center: 0, width: 28 },
+        { name: 'Oranges', center: 30, width: 20 },
+        { name: 'Yellows', center: 60, width: 20 },
+        { name: 'Greens', center: 120, width: 45 },
+        { name: 'Aquas', center: 180, width: 30 },
+        { name: 'Blues', center: 235, width: 35 },
+        { name: 'Purples', center: 285, width: 30 },
+        { name: 'Magentas', center: 325, width: 30 }
+      ];
+      if (hslData) {
+        for (let b of hslBands) {
+          const c = hslData[b.name];
+          if (c && (c.sat !== 0 || c.lum !== 0 || c.hue !== 0)) {
+            hasHsl = true;
+            break;
+          }
+        }
+      }
       const orangeLum = (params.hslOrangeLum || 0) * 0.5;
       const orangeSat = (params.hslOrangeSat || 0) * 0.5;
       const redLum = (params.hslRedLum || 0) * 0.5;
       const yellowSat = (params.hslYellowSat || 0) * 0.5;
+      if (!hasHsl && (orangeLum !== 0 || orangeSat !== 0 || redLum !== 0 || yellowSat !== 0)) {
+        hasHsl = true;
+      }
 
+      // 3-Way Color Grading Precomputation
+      const cg = (window.cameraRawState && window.cameraRawState.colorGrading) ? window.cameraRawState.colorGrading : null;
+      let hasCg = false;
+      let cgMid = null, cgSh = null, cgHl = null;
+      let cgBalance = (params.cgBalance || (cg ? cg.balance : 0)) || 0;
+      if (cg) {
+        if ((cg.mid && (cg.mid.sat > 0 || cg.mid.lum !== 0)) ||
+            (cg.shadow && (cg.shadow.sat > 0 || cg.shadow.lum !== 0)) ||
+            (cg.highlight && (cg.highlight.sat > 0 || cg.highlight.lum !== 0))) {
+          hasCg = true;
+          const precalcWheel = (wObj) => {
+            if (!wObj) return { dr: 0, dg: 0, db: 0, lum: 0, active: false };
+            const sat = wObj.sat || 0;
+            const lum = (wObj.lum || 0) * 0.5;
+            if (sat <= 0 && lum === 0) return { dr: 0, dg: 0, db: 0, lum: 0, active: false };
+            const [wr, wg, wb] = hsvToRgb((wObj.angle || 0) / 360, sat, 1.0);
+            return {
+              dr: (wr - 128) * sat * 0.55,
+              dg: (wg - 128) * sat * 0.55,
+              db: (wb - 128) * sat * 0.55,
+              lum: lum,
+              active: true
+            };
+          };
+          cgMid = precalcWheel(cg.mid);
+          cgSh = precalcWheel(cg.shadow);
+          cgHl = precalcWheel(cg.highlight);
+        }
+      }
+
+      const clipShadows = !!(window.cameraRawState && window.cameraRawState.clipShadows);
+      const clipHighlights = !!(window.cameraRawState && window.cameraRawState.clipHighlights);
+
+      // Pass 1: Pixel color transformations
       for (let i = 0; i < data.length; i += 4) {
         let r = data[i];
         let g = data[i + 1];
@@ -13490,12 +13703,12 @@ function getApiUrl(endpoint) {
         g = finalLutG[Math.round(g)];
         b = finalLutB[Math.round(b)];
 
-        // Color Mixer: Skin Tone Tuning (Orange, Red, Yellow)
-        if (orangeLum !== 0 || orangeSat !== 0 || redLum !== 0 || yellowSat !== 0) {
+        // Color Mixer (8-Channel HSL)
+        if (hasHsl) {
           const maxC = Math.max(r, g, b);
           const minC = Math.min(r, g, b);
           const delta = maxC - minC;
-          if (delta > 10) {
+          if (delta > 8) {
             let hue = 0;
             if (maxC === r) hue = ((g - b) / delta) % 6;
             else if (maxC === g) hue = (b - r) / delta + 2;
@@ -13503,27 +13716,84 @@ function getApiUrl(endpoint) {
             hue *= 60;
             if (hue < 0) hue += 360;
 
-            if (hue >= 15 && hue <= 45) {
-              const wgt = 1.0 - Math.abs(hue - 30) / 15.0;
-              if (orangeLum !== 0) {
-                r = Math.min(255, r + orangeLum * wgt);
-                g = Math.min(255, g + orangeLum * wgt * 0.8);
+            if (hslData) {
+              let dSat = 0, dLum = 0;
+              for (let band of hslBands) {
+                const conf = hslData[band.name];
+                if (!conf || (conf.sat === 0 && conf.lum === 0 && conf.hue === 0)) continue;
+                let dist = Math.abs(hue - band.center);
+                if (band.center === 0) dist = Math.min(hue, Math.abs(hue - 360));
+                if (dist < band.width) {
+                  const wgt = 1.0 - (dist / band.width);
+                  if (conf.sat) dSat += conf.sat * wgt * 0.01;
+                  if (conf.lum) dLum += conf.lum * wgt * 0.5;
+                }
               }
-              if (orangeSat !== 0) {
+              if (dSat !== 0) {
                 const mean = (r + g + b) / 3;
-                r = Math.min(255, Math.max(0, mean + (r - mean) * (1 + orangeSat * wgt * 0.01)));
-                g = Math.min(255, Math.max(0, mean + (g - mean) * (1 + orangeSat * wgt * 0.01)));
+                const sMul = Math.max(0, 1.0 + dSat);
+                r = Math.max(0, Math.min(255, mean + (r - mean) * sMul));
+                g = Math.max(0, Math.min(255, mean + (g - mean) * sMul));
+                b = Math.max(0, Math.min(255, mean + (b - mean) * sMul));
               }
-            }
-            if (hue >= 45 && hue <= 75 && yellowSat !== 0) {
-              const mean = (r + g + b) / 3;
-              r = Math.min(255, Math.max(0, mean + (r - mean) * (1 + yellowSat * 0.01)));
-              g = Math.min(255, Math.max(0, mean + (g - mean) * (1 + yellowSat * 0.01)));
-            }
-            if ((hue >= 345 || hue <= 15) && redLum !== 0) {
-              r = Math.min(255, r + redLum * 0.5);
+              if (dLum !== 0) {
+                r = Math.max(0, Math.min(255, r + dLum));
+                g = Math.max(0, Math.min(255, g + dLum));
+                b = Math.max(0, Math.min(255, b + dLum));
+              }
+            } else {
+              if (hue >= 15 && hue <= 45) {
+                const wgt = 1.0 - Math.abs(hue - 30) / 15.0;
+                if (orangeLum !== 0) {
+                  r = Math.min(255, r + orangeLum * wgt);
+                  g = Math.min(255, g + orangeLum * wgt * 0.8);
+                }
+                if (orangeSat !== 0) {
+                  const mean = (r + g + b) / 3;
+                  r = Math.min(255, Math.max(0, mean + (r - mean) * (1 + orangeSat * wgt * 0.01)));
+                  g = Math.min(255, Math.max(0, mean + (g - mean) * (1 + orangeSat * wgt * 0.01)));
+                }
+              }
+              if (hue >= 45 && hue <= 75 && yellowSat !== 0) {
+                const mean = (r + g + b) / 3;
+                r = Math.min(255, Math.max(0, mean + (r - mean) * (1 + yellowSat * 0.01)));
+                g = Math.min(255, Math.max(0, mean + (g - mean) * (1 + yellowSat * 0.01)));
+              }
+              if ((hue >= 345 || hue <= 15) && redLum !== 0) {
+                r = Math.min(255, r + redLum * 0.5);
+              }
             }
           }
+        }
+
+        // 3-Way Color Grading
+        if (hasCg) {
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const shift = cgBalance * 0.5;
+          const midPoint = 128 + shift;
+          const wSh = Math.max(0, Math.min(1, (midPoint - lum) / Math.max(1, midPoint)));
+          const wHl = Math.max(0, Math.min(1, (lum - midPoint) / Math.max(1, 255 - midPoint)));
+          const wMid = Math.max(0, 1.0 - (wSh + wHl));
+
+          let dr = 0, dg = 0, db = 0;
+          if (cgSh && cgSh.active) {
+            dr += (cgSh.dr + cgSh.lum) * wSh;
+            dg += (cgSh.dg + cgSh.lum) * wSh;
+            db += (cgSh.db + cgSh.lum) * wSh;
+          }
+          if (cgMid && cgMid.active) {
+            dr += (cgMid.dr + cgMid.lum) * wMid;
+            dg += (cgMid.dg + cgMid.lum) * wMid;
+            db += (cgMid.db + cgMid.lum) * wMid;
+          }
+          if (cgHl && cgHl.active) {
+            dr += (cgHl.dr + cgHl.lum) * wHl;
+            dg += (cgHl.dg + cgHl.lum) * wHl;
+            db += (cgHl.db + cgHl.lum) * wHl;
+          }
+          r = Math.max(0, Math.min(255, r + dr));
+          g = Math.max(0, Math.min(255, g + dg));
+          b = Math.max(0, Math.min(255, b + db));
         }
 
         // B&W Conversion
@@ -13550,12 +13820,183 @@ function getApiUrl(endpoint) {
           b = Math.min(255, Math.max(0, gray + (b - gray) * effSat));
         }
 
-        data[i] = r;
-        data[i + 1] = g;
-        data[i + 2] = b;
+        // Clipping Warnings Overlay
+        if (clipShadows && r <= 1 && g <= 1 && b <= 1) {
+          data[i] = 0; data[i + 1] = 160; data[i + 2] = 255;
+        } else if (clipHighlights && r >= 254 && g >= 254 && b >= 254) {
+          data[i] = 255; data[i + 1] = 30; data[i + 2] = 30;
+        } else {
+          data[i] = r;
+          data[i + 1] = g;
+          data[i + 2] = b;
+        }
       }
 
-      // Vignette
+      // Pass 2: Spatial Filters (Texture, Noise Reduction, Clarity, Sharpening, Color Noise Reduction, Grain)
+      const textureVal = params.texture || 0;
+      const nrVal = params.noiseReduction || 0;
+      const cnrVal = params.colorNoiseReduction || 0;
+      const clarityVal = params.clarity || 0;
+      const sharpVal = params.sharpening || 0;
+      const grainVal = params.grain || 0;
+
+      // 1. Skin Texture Softening (ACR Texture Slider: softens skin pores without blurring edge details)
+      if (textureVal !== 0 || nrVal > 0) {
+        const copyData = new Uint8ClampedArray(data);
+        const radius = Math.abs(textureVal) > 40 || nrVal > 30 ? 2 : 1;
+        const colorThresh = 32 + (nrVal * 0.4);
+        const blendAmount = textureVal < 0
+          ? Math.min(0.85, (Math.abs(textureVal) * 0.008) + (nrVal * 0.006))
+          : (nrVal * 0.006);
+
+        for (let y = 0; y < h; y++) {
+          const rowOffset = y * w * 4;
+          for (let x = 0; x < w; x++) {
+            const idx = rowOffset + x * 4;
+            const cr = copyData[idx];
+            const cg = copyData[idx + 1];
+            const cb = copyData[idx + 2];
+
+            let sumR = cr, sumG = cg, sumB = cb, sumW = 1.0;
+
+            for (let dy = -radius; dy <= radius; dy++) {
+              const ny = y + dy;
+              if (ny < 0 || ny >= h) continue;
+              const nRow = ny * w * 4;
+              for (let dx = -radius; dx <= radius; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                if (nx < 0 || nx >= w) continue;
+                const nIdx = nRow + nx * 4;
+                const nr = copyData[nIdx];
+                const ng = copyData[nIdx + 1];
+                const nb = copyData[nIdx + 2];
+
+                const diff = Math.abs(cr - nr) + Math.abs(cg - ng) + Math.abs(cb - nb);
+                if (diff < colorThresh * 3) {
+                  const edgeWgt = Math.max(0, 1.0 - diff / (colorThresh * 3));
+                  sumR += nr * edgeWgt;
+                  sumG += ng * edgeWgt;
+                  sumB += nb * edgeWgt;
+                  sumW += edgeWgt;
+                }
+              }
+            }
+
+            const smR = sumR / sumW;
+            const smG = sumG / sumW;
+            const smB = sumB / sumW;
+
+            if (textureVal < 0 || nrVal > 0) {
+              data[idx] = Math.round(cr * (1 - blendAmount) + smR * blendAmount);
+              data[idx + 1] = Math.round(cg * (1 - blendAmount) + smG * blendAmount);
+              data[idx + 2] = Math.round(cb * (1 - blendAmount) + smB * blendAmount);
+            } else if (textureVal > 0) {
+              const tBoost = (textureVal * 0.006);
+              data[idx] = Math.max(0, Math.min(255, cr + (cr - smR) * tBoost));
+              data[idx + 1] = Math.max(0, Math.min(255, cg + (cg - smG) * tBoost));
+              data[idx + 2] = Math.max(0, Math.min(255, cb + (cb - smB) * tBoost));
+            }
+          }
+        }
+      }
+
+      // 2. Color Noise Reduction (Smooth Chroma)
+      if (cnrVal > 0) {
+        const copyData = new Uint8ClampedArray(data);
+        const cnrRadius = cnrVal > 40 ? 2 : 1;
+        const cnrBlend = Math.min(0.85, cnrVal * 0.01);
+        for (let y = 0; y < h; y++) {
+          const rowOffset = y * w * 4;
+          for (let x = 0; x < w; x++) {
+            const idx = rowOffset + x * 4;
+            const luma = 0.299 * copyData[idx] + 0.587 * copyData[idx + 1] + 0.114 * copyData[idx + 2];
+            let sumU = 0, sumV = 0, count = 0;
+            for (let dy = -cnrRadius; dy <= cnrRadius; dy++) {
+              const ny = y + dy;
+              if (ny < 0 || ny >= h) continue;
+              const nRow = ny * w * 4;
+              for (let dx = -cnrRadius; dx <= cnrRadius; dx++) {
+                const nx = x + dx;
+                if (nx < 0 || nx >= w) continue;
+                const nIdx = nRow + nx * 4;
+                const r = copyData[nIdx], g = copyData[nIdx + 1], b = copyData[nIdx + 2];
+                sumU += -0.14713 * r - 0.28886 * g + 0.436 * b;
+                sumV += 0.615 * r - 0.51499 * g - 0.10001 * b;
+                count++;
+              }
+            }
+            const avgU = sumU / count;
+            const avgV = sumV / count;
+            const tgtR = Math.max(0, Math.min(255, luma + 1.13983 * avgV));
+            const tgtG = Math.max(0, Math.min(255, luma - 0.39465 * avgU - 0.58060 * avgV));
+            const tgtB = Math.max(0, Math.min(255, luma + 2.03211 * avgU));
+
+            data[idx] = Math.round(data[idx] * (1 - cnrBlend) + tgtR * cnrBlend);
+            data[idx + 1] = Math.round(data[idx + 1] * (1 - cnrBlend) + tgtG * cnrBlend);
+            data[idx + 2] = Math.round(data[idx + 2] * (1 - cnrBlend) + tgtB * cnrBlend);
+          }
+        }
+      }
+
+      // 3. Clarity & Sharpening
+      if (clarityVal !== 0 || sharpVal > 0) {
+        const copyData = new Uint8ClampedArray(data);
+        const shFactor = sharpVal * 0.02;
+        const clFactor = clarityVal * 0.008;
+
+        for (let y = 1; y < h - 1; y++) {
+          const rowOffset = y * w * 4;
+          for (let x = 1; x < w - 1; x++) {
+            const idx = rowOffset + x * 4;
+            const cr = copyData[idx];
+            const cg = copyData[idx + 1];
+            const cb = copyData[idx + 2];
+
+            const avgR = (
+              copyData[idx - 4] + copyData[idx + 4] +
+              copyData[idx - w * 4] + copyData[idx + w * 4]
+            ) * 0.25;
+            const avgG = (
+              copyData[idx - 4 + 1] + copyData[idx + 4 + 1] +
+              copyData[idx - w * 4 + 1] + copyData[idx + w * 4 + 1]
+            ) * 0.25;
+            const avgB = (
+              copyData[idx - 4 + 2] + copyData[idx + 4 + 2] +
+              copyData[idx - w * 4 + 2] + copyData[idx + w * 4 + 2]
+            ) * 0.25;
+
+            const deltaR = cr - avgR;
+            const deltaG = cg - avgG;
+            const deltaB = cb - avgB;
+
+            let boost = 0;
+            if (sharpVal > 0) boost += shFactor;
+            if (clarityVal !== 0) {
+              const lum = 0.299 * cr + 0.587 * cg + 0.114 * cb;
+              const midWeight = Math.sin((lum / 255) * Math.PI);
+              boost += clFactor * midWeight;
+            }
+
+            data[idx] = Math.max(0, Math.min(255, cr + deltaR * boost));
+            data[idx + 1] = Math.max(0, Math.min(255, cg + deltaG * boost));
+            data[idx + 2] = Math.max(0, Math.min(255, cb + deltaB * boost));
+          }
+        }
+      }
+
+      // 4. Grain
+      if (grainVal > 0) {
+        const grainAmt = grainVal * 0.35;
+        for (let i = 0; i < data.length; i += 4) {
+          const noise = (Math.random() - 0.5) * grainAmt;
+          data[i] = Math.max(0, Math.min(255, data[i] + noise));
+          data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
+          data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
+        }
+      }
+
+      // 5. Vignette
       if (params.vignette && params.vignette !== 0) {
         const vig = params.vignette * 0.01;
         const cx = w / 2;
@@ -14538,6 +14979,8 @@ function getApiUrl(endpoint) {
         if (boxElem) boxElem.style.display = 'none';
         if (quadElem) quadElem.style.display = 'block';
         if (ratioGroup) ratioGroup.style.opacity = '0.5';
+        const mobRatioSel = document.getElementById('cropMobileRatioSelect');
+        if (mobRatioSel) mobRatioSel.disabled = true;
         if (boxNudge) boxNudge.style.display = 'none';
         if (quadNudge) quadNudge.style.display = 'flex';
 
@@ -14696,6 +15139,10 @@ function getApiUrl(endpoint) {
         modalTitle.innerText = `Adjust Crop — ${side === 'front' ? 'Top Half (Front Side)' : 'Bottom Half (Back Side)'}`;
       }
 
+      // Pre-select ratio and corner curve in dropdown
+      const mobRatioSel = document.getElementById('cropMobileRatioSelect');
+      if (mobRatioSel) mobRatioSel.value = cropState.ratioMode || 'id_landscape';
+
       // Pre-select corner curve in dropdown
       const curveSelect = document.getElementById('cropModalCornerCurve');
       if (curveSelect) {
@@ -14839,6 +15286,8 @@ function getApiUrl(endpoint) {
       document.querySelectorAll('#cropRatioButtons .crop-ratio-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.ratio === mode);
       });
+      const mobSel = document.getElementById('cropMobileRatioSelect');
+      if (mobSel && mobSel.value !== mode) mobSel.value = mode;
 
       if (mode === 'id_landscape') {
         cropState.targetRatio = 85.6 / 54.0;

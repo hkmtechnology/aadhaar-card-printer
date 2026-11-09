@@ -1334,6 +1334,10 @@ def apply_camera_raw_filter(image_input, raw_params=None):
     hsl_orange_sat = float(raw_params.get("hsl_orange_sat", 0.0))
     hsl_red_lum = float(raw_params.get("hsl_red_lum", 0.0))
     hsl_yellow_sat = float(raw_params.get("hsl_yellow_sat", 0.0))
+    color_noise_reduction = float(raw_params.get("color_noise_reduction", raw_params.get("colorNoiseReduction", 0.0)))
+    grain = float(raw_params.get("grain", 0.0))
+    hsl_dict = raw_params.get("hsl", {})
+    cg_dict = raw_params.get("colorGrading", raw_params.get("color_grading", {}))
     is_bw = bool(raw_params.get("is_bw", False))
 
     h, w = img_bgr.shape[:2]
@@ -1428,8 +1432,35 @@ def apply_camera_raw_filter(image_input, raw_params=None):
     r_chan = cv2.LUT(r_chan, final_lut_r)
     img_bgr = cv2.merge([b_chan, g_chan, r_chan])
 
-    # 7. Color Mixer & Skin Tone Tuning (Orange / Red Hue Bands)
-    if hsl_orange_lum != 0 or hsl_orange_sat != 0 or hsl_red_lum != 0 or hsl_yellow_sat != 0:
+    # 7. Color Mixer (Full 8-Channel HSL)
+    if hsl_dict:
+        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
+        h_chan, s_chan, v_chan = cv2.split(hsv)
+        bands = [
+            ("Reds", 0, 14), ("Oranges", 15, 10), ("Yellows", 30, 10),
+            ("Greens", 60, 22), ("Aquas", 90, 15), ("Blues", 117, 18),
+            ("Purples", 142, 15), ("Magentas", 162, 15)
+        ]
+        for b_name, center, width in bands:
+            c_cfg = hsl_dict.get(b_name, {})
+            c_sat = float(c_cfg.get("sat", 0.0))
+            c_lum = float(c_cfg.get("lum", 0.0))
+            if c_sat == 0 and c_lum == 0:
+                continue
+            if center == 0:
+                mask = np.maximum(
+                    np.exp(-((h_chan - 0.0) ** 2) / (2.0 * (width ** 2))),
+                    np.exp(-((h_chan - 179.0) ** 2) / (2.0 * (width ** 2)))
+                )
+            else:
+                mask = np.exp(-((h_chan - center) ** 2) / (2.0 * (width ** 2)))
+            if c_sat != 0:
+                s_chan += (c_sat * 0.5) * mask
+            if c_lum != 0:
+                v_chan += (c_lum * 0.5) * mask
+        hsv = cv2.merge([h_chan, np.clip(s_chan, 0, 255), np.clip(v_chan, 0, 255)]).astype(np.uint8)
+        img_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    elif hsl_orange_lum != 0 or hsl_orange_sat != 0 or hsl_red_lum != 0 or hsl_yellow_sat != 0:
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
         h_chan, s_chan, v_chan = cv2.split(hsv)
 
@@ -1452,6 +1483,52 @@ def apply_camera_raw_filter(image_input, raw_params=None):
         hsv = cv2.merge([h_chan, np.clip(s_chan, 0, 255), np.clip(v_chan, 0, 255)]).astype(np.uint8)
         img_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
+    # 7b. Color Noise Reduction (Chroma Denoise)
+    if color_noise_reduction > 0:
+        yuv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
+        y_c, cr_c, cb_c = cv2.split(yuv)
+        k_sz = 5 if color_noise_reduction > 40 else 3
+        cr_c = cv2.medianBlur(cr_c, k_sz)
+        cb_c = cv2.medianBlur(cb_c, k_sz)
+        img_bgr = cv2.cvtColor(cv2.merge([y_c, cr_c, cb_c]), cv2.COLOR_YCrCb2BGR)
+
+    # 7c. 3-Way Color Grading
+    if cg_dict:
+        cg_mid = cg_dict.get("mid", {})
+        cg_sh = cg_dict.get("shadow", {})
+        cg_hl = cg_dict.get("highlight", {})
+        balance = float(cg_dict.get("balance", 0.0))
+        if any(float(w.get("sat", 0)) > 0 or float(w.get("lum", 0)) != 0 for w in [cg_mid, cg_sh, cg_hl]):
+            b_chan, g_chan, r_chan = cv2.split(img_bgr.astype(np.float32))
+            lum = 0.299 * r_chan + 0.587 * g_chan + 0.114 * b_chan
+            mid_pt = 128.0 + balance * 0.5
+            w_sh = np.clip((mid_pt - lum) / max(1.0, mid_pt), 0, 1)
+            w_hl = np.clip((lum - mid_pt) / max(1.0, 255.0 - mid_pt), 0, 1)
+            w_mid = np.clip(1.0 - (w_sh + w_hl), 0, 1)
+
+            def get_wheel_deltas(wheel):
+                sat = float(wheel.get("sat", 0))
+                l_val = float(wheel.get("lum", 0)) * 0.5
+                h_norm = (float(wheel.get("angle", 0)) % 360) / 60.0
+                c = sat
+                x = c * (1 - abs(h_norm % 2 - 1))
+                if h_norm < 1: rgb = (c, x, 0)
+                elif h_norm < 2: rgb = (x, c, 0)
+                elif h_norm < 3: rgb = (0, c, x)
+                elif h_norm < 4: rgb = (0, x, c)
+                elif h_norm < 5: rgb = (x, 0, c)
+                else: rgb = (c, 0, x)
+                return (rgb[2] * 35.0 + l_val, rgb[1] * 35.0 + l_val, rgb[0] * 35.0 + l_val)
+
+            sh_b, sh_g, sh_r = get_wheel_deltas(cg_sh)
+            mid_b, mid_g, mid_r = get_wheel_deltas(cg_mid)
+            hl_b, hl_g, hl_r = get_wheel_deltas(cg_hl)
+
+            b_chan += w_sh * sh_b + w_mid * mid_b + w_hl * hl_b
+            g_chan += w_sh * sh_g + w_mid * mid_g + w_hl * hl_g
+            r_chan += w_sh * sh_r + w_mid * mid_r + w_hl * hl_r
+            img_bgr = np.clip(cv2.merge([b_chan, g_chan, r_chan]), 0, 255).astype(np.uint8)
+
     # 8. Vibrance & Overall Saturation / B&W
     if is_bw:
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
@@ -1471,7 +1548,7 @@ def apply_camera_raw_filter(image_input, raw_params=None):
         hsv = cv2.merge([h_chan, np.clip(s_chan, 0, 255), v_chan]).astype(np.uint8)
         img_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-    # 9. Vignette
+    # 9. Vignette & Grain
     if vignette != 0:
         rows, cols = img_bgr.shape[:2]
         kernel_x = cv2.getGaussianKernel(cols, cols / 2.0)
@@ -1480,6 +1557,10 @@ def apply_camera_raw_filter(image_input, raw_params=None):
         mask = kernel / np.max(kernel)
         vig_factor = 1.0 + (vignette / 100.0) * (1.0 - mask)
         img_bgr = np.clip(img_bgr.astype(np.float32) * vig_factor[:, :, np.newaxis], 0, 255).astype(np.uint8)
+
+    if grain > 0:
+        noise = np.random.normal(0, grain * 0.35, img_bgr.shape).astype(np.float32)
+        img_bgr = np.clip(img_bgr.astype(np.float32) + noise, 0, 255).astype(np.uint8)
 
     enhanced_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     return Image.fromarray(enhanced_rgb)
