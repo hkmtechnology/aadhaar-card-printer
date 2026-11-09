@@ -101,6 +101,12 @@ class MainActivity : ComponentActivity() {
                     webView.evaluateJavascript("if (typeof switchAppMode === 'function') switchAppMode('$mode');", null)
                 }
             }
+            val evalJs = intent?.getStringExtra("eval_js")
+            if (evalJs != null) {
+                runOnUiThread {
+                    webView.evaluateJavascript(evalJs, null)
+                }
+            }
         }
     }
 

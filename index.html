@@ -615,17 +615,20 @@
     }
 
     .conn-gear-btn {
-      background: transparent;
-      border: none;
-      color: #94a3b8;
-      font-size: 0.85rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #e2e8f0;
+      font-size: 1.15rem;
       cursor: pointer;
-      padding: 3px 5px;
-      border-radius: 4px;
+      padding: 4px 8px;
+      border-radius: 8px;
       transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      min-width: 38px;
+      min-height: 32px;
+      touch-action: manipulation;
     }
 
     .conn-gear-btn:hover {
@@ -1515,7 +1518,13 @@
         margin: 0 auto !important;
       }
 
-      /* Mobile Navigation Bottom Bar */
+      /* Hide duplicate bottom buttons in tabs: use only bottom tabs to navigate */
+    .mobile-next-step-wrap,
+    .mobile-sheet-nav-bar {
+      display: none !important;
+    }
+
+    /* Mobile Navigation Bottom Bar */
       .mobile-bottom-nav {
         display: flex !important;
         position: fixed !important;
@@ -1572,42 +1581,22 @@
       }
 
       /* Step Transition Buttons */
-      .mobile-next-step-wrap {
-        display: block !important;
-        margin-top: 14px !important;
-        margin-bottom: 24px !important;
-      }
-
-      .mobile-next-step-btn {
-        width: 100% !important;
-        min-height: 52px !important;
-        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
-        color: #ffffff !important;
-        border: 1px solid #38bdf8 !important;
-        border-radius: 12px !important;
-        font-size: 0.95rem !important;
-        font-weight: 800 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-        box-shadow: 0 4px 18px rgba(14, 165, 233, 0.4) !important;
-        cursor: pointer !important;
-      }
-
+      /* Step Transition Buttons: Completely hidden as user requested navigation only via bottom tabs */
+      .mobile-next-step-wrap,
       .mobile-sheet-nav-bar {
-        display: flex !important;
-        gap: 10px !important;
-        width: 100% !important;
-        margin-top: 14px !important;
-        padding: 0 4px !important;
-        box-sizing: border-box !important;
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        pointer-events: none !important;
       }
 
+      .mobile-next-step-btn,
       .mobile-sheet-nav-bar button {
-        min-height: 46px !important;
-        border-radius: 10px !important;
-        font-weight: 700 !important;
+        display: none !important;
       }
 
       /* Print & Download buttons in Tab 3 */
@@ -1689,6 +1678,18 @@
       justify-content: center;
       padding: 16px;
       animation: fadeInModal 0.25s ease-out;
+    }
+
+    .device-modal-overlay.active {
+      display: flex !important;
+    }
+
+    @media (max-width: 900px) {
+      .device-modal-card {
+        max-width: 100% !important;
+        max-height: 88vh !important;
+        border-radius: 14px !important;
+      }
     }
 
     @keyframes fadeInModal {
@@ -9667,7 +9668,7 @@ function getApiUrl(endpoint) {
 
 
   <!-- DEVICE & PRINTER CONNECTION VERIFICATION MODAL -->
-  <div class="device-modal-overlay" id="deviceDetectionModal">
+  <div class="device-modal-overlay" id="deviceDetectionModal" onclick="if (event.target === this) closeDeviceDetectionModal()">
     <div class="device-modal-card">
       <div class="device-modal-header">
         <div class="device-modal-title-group">
