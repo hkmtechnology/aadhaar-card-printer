@@ -3847,7 +3847,7 @@
       setScannerBridgeHost(ip);
       if (tag) tag.innerText = 'Testing...';
       try {
-        const res = await fetch(`http://${ip}:8765/api/status`, { signal: AbortSignal.timeout(3000) });
+        const res = await fetch(`http://${ip}:8767/api/status`, { signal: AbortSignal.timeout(3000) });
         const data = await res.json();
         if (data.online || res.ok) {
           if (tag) {
@@ -3872,21 +3872,63 @@
       }
     }
 
-    function getApiUrl(endpoint) {
+    
+// =========================================================================
+// UNIFIED SCAN & PRINT ENGINE (NATIVE ANDROID BRIDGE + HTTP FETCH)
+// =========================================================================
+async function performUnifiedScan(payload) {
+  if (window.AndroidBridge && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
+    try {
+      const respStr = window.AndroidBridge.scanDirectOrBridge(
+        payload.side || 'front',
+        payload.autocrop !== false,
+        payload.dpi || 300,
+        payload.doc_type || 'id_card'
+      );
+      if (respStr) {
+        return JSON.parse(respStr);
+      }
+    } catch (e) {
+      console.warn('Native scan error, falling back to fetch:', e);
+    }
+  }
+
+  const res = await fetch(getApiUrl('/api/scan'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: state.abortController ? state.abortController.signal : undefined
+  });
+  return await res.json();
+}
+
+function triggerUnifiedPrint() {
+  if (window.AndroidBridge && typeof window.AndroidBridge.printCurrentPage === 'function') {
+    try {
+      window.AndroidBridge.printCurrentPage();
+      return;
+    } catch (e) {
+      console.warn('Native printCurrentPage error:', e);
+    }
+  }
+  triggerUnifiedPrint();
+}
+
+function getApiUrl(endpoint) {
       if (!endpoint.startsWith('/')) endpoint = '/' + endpoint;
 
       // When running on Android WebView or file://
       if (window.AndroidBridge || location.protocol === 'file:') {
         const host = getScannerBridgeHost();
-        return `http://${host}:8765${endpoint}`;
+        return `http://${host}:8767${endpoint}`;
       }
 
-      // When running in desktop browser on port 8765 or custom IP
+      // When running in desktop browser on port 8767 or custom IP
       if (location.hostname && location.hostname !== '') {
-        return `${location.protocol}//${location.hostname}:${location.port || '8765'}${endpoint}`;
+        return `${location.protocol}//${location.hostname}:${location.port || '8767'}${endpoint}`;
       }
 
-      return `http://127.0.0.1:8765${endpoint}`;
+      return `http://127.0.0.1:8767${endpoint}`;
     }
 
     // 100% Native Desktop App Experience: Globally disable right-click context menu
@@ -4804,7 +4846,7 @@
       autoFitZoom();
       runDeviceDetection();
       checkScannerServer(true);
-      setInterval(() => checkScannerServer(false), 4000);
+      setInterval(() => checkScannerServer(false), 20000);
     });
 
     function detectAndApplyAspect(side, img, serverRatioType, serverAspect) {
@@ -5288,13 +5330,7 @@
       setScanningState(true);
 
       try {
-        const response = await fetch(getApiUrl('/api/scan'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ side: side, autocrop: autoCrop, dpi: state.scanDpi }),
-          signal: state.abortController.signal
-        });
-        const data = await response.json();
+        const data = await performUnifiedScan({ side: side, autocrop: autoCrop, dpi: state.scanDpi });
 
         if (data.aborted) {
           setScanningState(false);
@@ -5377,13 +5413,7 @@
         document.getElementById('scanStepDesc').innerText = 'The scanner is moving and auto-detecting card borders... Click Abort if needed.';
 
         try {
-          const res = await fetch(getApiUrl('/api/scan'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ side: 'front', autocrop: autoCrop, dpi: state.scanDpi }),
-            signal: state.abortController.signal
-          });
-          const data = await res.json();
+          const data = await performUnifiedScan({ side: 'front', autocrop: autoCrop, dpi: state.scanDpi });
 
           if (data.aborted) {
             setScanningState(false);
@@ -5438,13 +5468,7 @@
         document.getElementById('scanStepDesc').innerText = 'The scanner is moving and auto-detecting card borders... Click Abort if needed.';
 
         try {
-          const res = await fetch(getApiUrl('/api/scan'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ side: 'back', autocrop: autoCrop, dpi: state.scanDpi }),
-            signal: state.abortController.signal
-          });
-          const data = await res.json();
+          const data = await performUnifiedScan({ side: 'back', autocrop: autoCrop, dpi: state.scanDpi });
 
           if (data.aborted) {
             setScanningState(false);
@@ -6248,7 +6272,7 @@
         }
       }
 
-      window.print();
+      triggerUnifiedPrint();
 
       // Clean up cloned copies after print dialog finishes
       setTimeout(() => {
@@ -7152,7 +7176,7 @@
       }).catch(() => {});
 
       // 3. Open browser print dialog
-      window.print();
+      triggerUnifiedPrint();
     }
 
     // SAVE MULTI-PAGE DYNAMIC DPI PDF
@@ -8143,7 +8167,7 @@
         }
       }
 
-      window.print();
+      triggerUnifiedPrint();
     }
 
     async function exportPhotoSheetImage() {
@@ -9475,12 +9499,12 @@
       setScannerBridgeHost(targetIp);
 
       if (tag) { tag.innerText = 'Testing...'; tag.style.color = '#cbd5e1'; }
-      showToast(`Testing connection to Epson Scanner at http://${targetIp}:8765...`, 'info');
+      showToast(`Testing connection to Epson Scanner at http://${targetIp}:8767...`, 'info');
 
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2500);
-        const res = await fetch(`http://${targetIp}:8765/api/status`, { signal: controller.signal });
+        const res = await fetch(`http://${targetIp}:8767/api/status`, { signal: controller.signal });
         clearTimeout(timeoutId);
         const data = await res.json();
         if (data) {
@@ -9491,7 +9515,7 @@
         }
       } catch (err) {
         if (tag) { tag.innerText = 'Offline / Refused'; tag.style.color = '#f87171'; }
-        showToast(`Could not connect to http://${targetIp}:8765. Make sure Start_App.bat or server is running on PC.`, 'danger');
+        showToast(`Could not connect to http://${targetIp}:8767. Make sure Start_App.bat or server is running on PC.`, 'danger');
       }
     }
 

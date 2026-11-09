@@ -10,7 +10,11 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.webkit.ConsoleMessage
+import android.webkit.JsResult
 import android.os.Parcelable
 import android.print.PrintAttributes
 import android.print.PrintManager
@@ -146,6 +150,15 @@ class MainActivity : ComponentActivity() {
         settings.allowFileAccess = true
         settings.allowContentAccess = true
 
+        // Crucial for cross-origin file:// access to PC bridge HTTP server
+        settings.allowFileAccessFromFileURLs = true
+        settings.allowUniversalAccessFromFileURLs = true
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
         // Crucial for readable, finger-friendly mobile native UI
         settings.useWideViewPort = false
         settings.loadWithOverviewMode = false
@@ -164,6 +177,31 @@ class MainActivity : ComponentActivity() {
         }
 
         webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                Log.d("HKM_JS", "[${consoleMessage.messageLevel()}] ${consoleMessage.message()} (L${consoleMessage.lineNumber()})")
+                return true
+            }
+
+            override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                android.app.AlertDialog.Builder(this@MainActivity)
+                    .setTitle("HKM Card Printer")
+                    .setMessage(message)
+                    .setPositiveButton("OK") { _, _ -> result?.confirm() }
+                    .setOnCancelListener { result?.cancel() }
+                    .show()
+                return true
+            }
+
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                android.app.AlertDialog.Builder(this@MainActivity)
+                    .setTitle("HKM Card Printer")
+                    .setMessage(message)
+                    .setPositiveButton("OK") { _, _ -> result?.confirm() }
+                    .setNegativeButton("Cancel") { _, _ -> result?.cancel() }
+                    .setOnCancelListener { result?.cancel() }
+                    .show()
+                return true
+            }
             override fun onShowFileChooser(
                 webView: WebView?,
                 callback: ValueCallback<Array<Uri>>?,
@@ -242,6 +280,84 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
+        }
+
+        @JavascriptInterface
+        fun printCurrentPage() {
+            runOnUiThread {
+                try {
+                    val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
+                    val printAdapter = webView.createPrintDocumentAdapter("HKM_Card_Print")
+                    val printAttributes = PrintAttributes.Builder()
+                        .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                        .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                        .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                        .build()
+                    printManager.print("HKM_Card_Print", printAdapter, printAttributes)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Print error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun scanDirectOrBridge(side: String, autoCrop: Boolean, dpi: Int, docType: String = "id_card"): String {
+            val dev = DeviceDetector.detect(context)
+            val bridgeIp = dev.bridgeIp
+
+            // 1. First attempt: PC Scanner Bridge
+            try {
+                val url = java.net.URL("http://$bridgeIp:8767/api/scan")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.connectTimeout = 5000
+                conn.readTimeout = 120000
+                conn.doOutput = true
+                conn.doInput = true
+
+                val payload = JSONObject().apply {
+                    put("side", side)
+                    put("autocrop", autoCrop)
+                    put("dpi", dpi)
+                    put("doc_type", docType)
+                }.toString()
+
+                conn.outputStream.use { os ->
+                    os.write(payload.toByteArray(Charsets.UTF_8))
+                }
+
+                val code = conn.responseCode
+                val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+                val response = stream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+                if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
+                    return response
+                }
+            } catch (e: Exception) {
+                Log.w("HKM_SCAN", "PC bridge scan failed: ${e.message}, trying direct eSCL")
+            }
+
+            // 2. Fallback: Direct eSCL scan to Epson printer IP
+            try {
+                val directB64 = EpsonDirectScanner.scanViaEscl(dev.printerIp, dpi)
+                if (!directB64.isNullOrBlank()) {
+                    val resp = JSONObject().apply {
+                        put("success", true)
+                        put("image", "data:image/png;base64,$directB64")
+                        put("cropped", false)
+                        put("source", "epson_direct")
+                    }
+                    return resp.toString()
+                }
+            } catch (e: Exception) {
+                Log.e("HKM_SCAN", "Direct eSCL scan failed: ${e.message}")
+            }
+
+            return JSONObject().apply {
+                put("success", false)
+                put("error", "Scan failed. Ensure Epson printer (${dev.printerIp}) or PC Bridge ($bridgeIp:8767) is online.")
+            }.toString()
         }
 
         @JavascriptInterface

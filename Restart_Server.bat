@@ -6,8 +6,8 @@ echo   Restarting HKMTECH Scanner Bridge Server...
 echo ========================================================
 echo.
 
-echo Terminating any active server processes on port 8765...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8765 ^| findstr LISTENING') do (
+echo Terminating any active server processes on port 8767...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8767 ^| findstr LISTENING') do (
     taskkill /PID %%a /F >nul 2>&1
 )
 

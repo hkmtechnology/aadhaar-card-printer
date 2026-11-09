@@ -16,7 +16,7 @@ import numpy as np
 import scanner
 import autocrop
 
-PORT = 8765
+PORT = 8767
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(CURRENT_DIR, "settings.json")
 
