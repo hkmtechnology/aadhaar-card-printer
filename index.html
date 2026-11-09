@@ -4021,6 +4021,373 @@
       filter: drop-shadow(0 0 4px currentColor);
     }
     
+
+    /* =========================================================================
+       CREATIVE & BEAUTIFUL APP SPLASH SCREEN (HKMTECH STUDIO & PRINTER)
+       ========================================================================= */
+    .app-splash-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      background: #060913;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s ease;
+      will-change: opacity, transform, filter;
+    }
+
+    .app-splash-screen.splash-fade-out {
+      opacity: 0 !important;
+      transform: scale(1.06) !important;
+      filter: blur(10px) !important;
+      pointer-events: none !important;
+    }
+
+    /* Ambient Radial Glows */
+    .splash-glow-1 {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 440px;
+      height: 440px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.24) 0%, rgba(99, 102, 241, 0.16) 45%, transparent 70%);
+      filter: blur(45px);
+      pointer-events: none;
+      animation: splashPulse 4s ease-in-out infinite alternate;
+    }
+
+    .splash-glow-2 {
+      position: absolute;
+      bottom: 25%;
+      left: 50%;
+      transform: translate(-50%, 50%);
+      width: 390px;
+      height: 390px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(14, 165, 233, 0.12) 50%, transparent 70%);
+      filter: blur(50px);
+      pointer-events: none;
+      animation: splashPulse 5s ease-in-out 1s infinite alternate;
+    }
+
+    .splash-grid-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse 65% 65% at 50% 50%, #000 30%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 65% 65% at 50% 50%, #000 30%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* 3D Holographic Floating Card Stage */
+    .splash-stage {
+      position: relative;
+      width: 230px;
+      height: 150px;
+      margin-bottom: 26px;
+      perspective: 900px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Orbiting Rings */
+    .splash-orbit-ring {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .splash-orbit-1 {
+      width: 220px;
+      height: 220px;
+      border: 1.5px dashed rgba(56, 189, 248, 0.38);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+      animation: splashSpin 12s linear infinite;
+    }
+
+    .splash-orbit-2 {
+      width: 255px;
+      height: 255px;
+      border: 1px dotted rgba(99, 102, 241, 0.35);
+      animation: splashSpinRev 16s linear infinite;
+    }
+
+    /* 3D Hologram Smart Card */
+    .splash-card-3d {
+      position: relative;
+      width: 200px;
+      height: 126px;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(15, 23, 42, 0.96) 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.5);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 28px rgba(56, 189, 248, 0.28);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      overflow: hidden;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transform-style: preserve-3d;
+      animation: splashFloat 3.6s ease-in-out infinite alternate;
+    }
+
+    .splash-card-gloss {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent 40%, rgba(255, 255, 255, 0.14) 50%, transparent 60%);
+      pointer-events: none;
+      animation: splashGloss 3.5s ease-in-out infinite;
+    }
+
+    /* Sweeping Neon Laser Beam */
+    .splash-laser-beam {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #38bdf8;
+      box-shadow: 0 0 12px #38bdf8, 0 0 25px #0284c7;
+      pointer-events: none;
+      animation: splashLaserSweep 2.2s ease-in-out infinite alternate;
+      z-index: 10;
+    }
+    .splash-laser-beam::before {
+      content: '';
+      position: absolute;
+      top: -14px;
+      left: 0;
+      right: 0;
+      height: 14px;
+      background: linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.28));
+    }
+
+    .splash-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .splash-chip {
+      width: 26px;
+      height: 20px;
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      border-radius: 4px;
+      position: relative;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);
+    }
+    .splash-chip::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      border-radius: 2px;
+    }
+
+    .splash-contactless {
+      color: #38bdf8;
+      opacity: 0.85;
+    }
+
+    .splash-card-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .splash-holo-emblem {
+      animation: splashEmblemPulse 2.5s ease-in-out infinite;
+    }
+
+    .splash-card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      letter-spacing: 1.5px;
+    }
+
+    .splash-card-num {
+      color: #94a3b8;
+      font-family: monospace;
+    }
+
+    .splash-card-brand {
+      color: #38bdf8;
+      font-weight: 800;
+      text-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+    }
+
+    /* Branding & Typography */
+    .splash-branding {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 22px;
+    }
+
+    .splash-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .splash-title-bold {
+      font-size: 1.95rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #ffffff 30%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 12px rgba(56, 189, 248, 0.35));
+    }
+
+    .splash-title-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+      text-transform: uppercase;
+    }
+
+    .splash-subtitle {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .splash-pills {
+      display: flex;
+      gap: 6px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 320px;
+    }
+
+    .splash-pill {
+      font-size: 0.64rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+
+    /* Status & Loading Progress */
+    .splash-status-box {
+      width: 290px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .splash-status-text {
+      font-size: 0.75rem;
+      color: #38bdf8;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      min-height: 18px;
+      text-align: center;
+      transition: opacity 0.2s ease;
+    }
+
+    .splash-progress-track {
+      width: 100%;
+      height: 5px;
+      background: rgba(30, 41, 59, 0.85);
+      border-radius: 9999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .splash-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #34d399 100%);
+      border-radius: 9999px;
+      box-shadow: 0 0 12px #38bdf8;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .splash-meta {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.68rem;
+      color: #64748b;
+      padding: 0 2px;
+    }
+
+    .splash-skip-hint {
+      color: #38bdf8;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    /* Keyframe Animations */
+    @keyframes splashFloat {
+      0% { transform: translateY(0px) rotateX(8deg) rotateY(-8deg); }
+      100% { transform: translateY(-10px) rotateX(12deg) rotateY(6deg); }
+    }
+
+    @keyframes splashSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes splashSpinRev {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes splashLaserSweep {
+      0% { top: 0%; }
+      100% { top: 100%; }
+    }
+
+    @keyframes splashGloss {
+      0% { transform: translate(-30%, -30%) rotate(45deg); opacity: 0; }
+      35% { opacity: 0.75; }
+      70% { transform: translate(30%, 30%) rotate(45deg); opacity: 0; }
+      100% { transform: translate(30%, 30%) rotate(45deg); opacity: 0; }
+    }
+
+    @keyframes splashPulse {
+      0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(1.15); opacity: 1.0; }
+    }
+
+    @keyframes splashEmblemPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4)); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.8)); }
+    }
+    
 </style>
 
   <!-- SVG SHARPENING CONVOLUTION FILTERS FOR CRISP AADHAAR TEXT & QR -->
@@ -4035,10 +4402,91 @@
 </head>
 <body>
 
+  <!-- CREATIVE & BEAUTIFUL APP SPLASH SCREEN (HKMTECH STUDIO & PRINTER) -->
+  <div id="appSplashScreen" class="app-splash-screen" onclick="dismissSplashScreen()" title="Click anywhere to open immediately">
+    <!-- Ambient Radial Glows & Grid -->
+    <div class="splash-glow-1"></div>
+    <div class="splash-glow-2"></div>
+    <div class="splash-grid-pattern"></div>
+
+    <!-- 3D Holographic Card & Laser Scanner Stage -->
+    <div class="splash-stage">
+      <div class="splash-orbit-ring splash-orbit-1"></div>
+      <div class="splash-orbit-ring splash-orbit-2"></div>
+
+      <div class="splash-card-3d">
+        <div class="splash-card-gloss"></div>
+        <div class="splash-laser-beam"></div>
+
+        <div class="splash-card-top">
+          <div class="splash-chip"></div>
+          <div class="splash-contactless">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/>
+              <path d="M8 5a10 10 0 0 1 3 7 10 10 0 0 1-3 7"/>
+              <path d="M4 8a5 5 0 0 1 2 4 5 5 0 0 1-2 4"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="splash-card-center">
+          <div class="splash-holo-emblem">
+            <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
+              <circle cx="24" cy="24" r="21" stroke="url(#splashGradA)" stroke-width="2" stroke-dasharray="4 2"/>
+              <rect x="12" y="14" width="24" height="16" rx="3" stroke="#38bdf8" stroke-width="2"/>
+              <path d="M16 14V9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="16" y="24" width="16" height="15" rx="2" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+              <circle cx="24" cy="22" r="4.5" fill="#38bdf8"/>
+              <defs>
+                <linearGradient id="splashGradA" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#38bdf8"/>
+                  <stop offset="0.5" stop-color="#818cf8"/>
+                  <stop offset="1" stop-color="#34d399"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        <div class="splash-card-bottom">
+          <span class="splash-card-num">•••• •••• •••• 2026</span>
+          <span class="splash-card-brand">HKM PVC</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Branding & App Title -->
+    <div class="splash-branding">
+      <div class="splash-title-row">
+        <span class="splash-title-bold">HKMTECH</span>
+        <span class="splash-title-badge">STUDIO & PRINTER</span>
+      </div>
+      <div class="splash-subtitle">Smart ID Cards • Biometric Passport • Multi-Doc Scanner</div>
+      <div class="splash-pills">
+        <span class="splash-pill">💳 2-in-1 Auto-Rotate</span>
+        <span class="splash-pill">📸 Camera Raw 18.3</span>
+        <span class="splash-pill">🖨️ Epson L3250 Ready</span>
+      </div>
+    </div>
+
+    <!-- Loading & System Status Bar -->
+    <div class="splash-status-box">
+      <div class="splash-status-text" id="splashStatusText">⚡ Initializing Ultra-HD Engine...</div>
+      <div class="splash-progress-track">
+        <div class="splash-progress-fill" id="splashProgressFill"></div>
+      </div>
+      <div class="splash-meta">
+        <span>Offline Security Verified</span>
+        <span class="splash-skip-hint">Tap to Open ⏩</span>
+      </div>
+    </div>
+  </div>
+    
+
   <!-- HEADER -->
   <header>
     <div class="header-title">
-      <div class="brand-title">
+      <div class="brand-title" onclick="if(typeof replaySplashScreen==='function')replaySplashScreen()" style="cursor:pointer;" title="Click to replay animated splash screen">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa; flex-shrink: 0;">
           <polyline points="6 9 6 2 18 2 18 9"></polyline>
           <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -15080,5 +15528,72 @@ function getApiUrl(endpoint) {
     </div>
   </div>
 
+<script>
+
+    // =========================================================================
+    // CREATIVE SPLASH SCREEN CONTROLLER
+    // =========================================================================
+    (function initAppSplashScreen() {
+      let isDismissed = false;
+
+      window.dismissSplashScreen = function() {
+        if (isDismissed) return;
+        isDismissed = true;
+        const splash = document.getElementById('appSplashScreen');
+        if (!splash) return;
+        splash.classList.add('splash-fade-out');
+        setTimeout(() => {
+          splash.style.display = 'none';
+        }, 500);
+      };
+
+      window.replaySplashScreen = function() {
+        isDismissed = false;
+        const splash = document.getElementById('appSplashScreen');
+        if (!splash) return;
+        splash.style.display = 'flex';
+        splash.classList.remove('splash-fade-out');
+        runSplashSequence();
+      };
+
+      function runSplashSequence() {
+        const statusText = document.getElementById('splashStatusText');
+        const fill = document.getElementById('splashProgressFill');
+        if (!statusText || !fill) return;
+
+        fill.style.width = '0%';
+        statusText.textContent = '⚡ Initializing Ultra-HD Engine...';
+
+        setTimeout(() => {
+          if (isDismissed) return;
+          fill.style.width = '35%';
+          statusText.textContent = '🔍 Calibrating Epson L3250 Scanner & Printer...';
+        }, 350);
+
+        setTimeout(() => {
+          if (isDismissed) return;
+          fill.style.width = '75%';
+          statusText.textContent = '🎨 Loading Camera Raw & 300 DPI Canvas...';
+        }, 850);
+
+        setTimeout(() => {
+          if (isDismissed) return;
+          fill.style.width = '100%';
+          statusText.textContent = '✨ System Ready • Welcome!';
+        }, 1350);
+
+        setTimeout(() => {
+          window.dismissSplashScreen();
+        }, 1750);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runSplashSequence);
+      } else {
+        runSplashSequence();
+      }
+    })();
+    
+</script>
 </body>
 </html>
