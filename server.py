@@ -59,21 +59,25 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
         url = urllib.parse.urlparse(self.path)
         if url.path == "/api/connection" or url.path == "/api/device_info":
             force = ("force" in (url.query or ""))
+            info = scanner.get_system_device_info(force=force)
+            payload = json.dumps(info).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            info = scanner.get_system_device_info(force=force)
-            self.wfile.write(json.dumps(info).encode("utf-8"))
+            self.wfile.write(payload)
             return
 
         if url.path == "/api/status":
+            status_data = scanner.check_scanner_online()
+            payload = json.dumps(status_data).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            status_data = scanner.check_scanner_online()
-            self.wfile.write(json.dumps(status_data).encode("utf-8"))
+            self.wfile.write(payload)
             return
 
         if url.path == "/api/settings":
@@ -120,6 +124,8 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                     current["wifiPrinterIp"] = str(wifi_ip).strip()
                 with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
                     json.dump(current, f, indent=2)
+
+                scanner.invalidate_device_caches()
 
                 if set_default and sys.platform == "win32":
                     target_name = current.get("usbPrinterName", "EPSON L3250 Series") if mode == "usb" else current.get("wifiPrinterName", "EPSON L3250 Series (Network)")

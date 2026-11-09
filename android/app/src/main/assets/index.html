@@ -3894,19 +3894,28 @@
       if (btnWifi) btnWifi.classList.toggle('active', currentConnectionMode === 'wifi');
     }
 
+    function updateConnModeButtonsUI(mode) {
+      updateConnectionModeUI(mode);
+    }
+
     async function switchConnectionMode(mode) {
       updateConnectionModeUI(mode);
       try {
         const bridgeIp = getScannerBridgeHost();
+        const payload = { mode: mode };
+        if (mode === 'wifi') {
+          const inputIp = document.getElementById('inputScannerBridgeIp');
+          payload.wifi_ip = (inputIp && inputIp.value.trim()) ? inputIp.value.trim() : bridgeIp;
+        }
         await fetch(getApiUrl('/api/connection'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: mode, wifi_ip: '10.237.2.251' })
+          body: JSON.stringify(payload)
         });
       } catch (e) {
         console.warn('Failed to post connection mode:', e);
       }
-      runDeviceDetection();
+      runDeviceDetection(true);
       checkScannerServer(true);
     }
 
@@ -3955,27 +3964,41 @@
           const mode = (info.active_mode || (info.connection_type && info.connection_type.toLowerCase().includes('wi-fi') ? 'wifi' : 'usb'));
           updateConnectionModeUI(mode);
 
-          if (netValue) netValue.innerText = info.wifi_ssid ? `Hotspot: ${info.wifi_ssid}` : (info.connection_type || 'Wi-Fi / Hotspot');
-          if (netSub) netSub.innerText = `IP: ${info.wifi_ip || info.bridge_ip || '10.237.2.251'} • Active`;
+          const isUsb = (mode === 'usb');
+          const isPrinterReady = Boolean(info.printer_status === 'Ready' || (isUsb && info.usb_device && info.usb_device.online) || (!isUsb && info.wifi_device && info.wifi_device.online));
+          const isScannerReady = (info.scanner_online !== false && info.scanner_online !== undefined) ? info.scanner_online : isPrinterReady;
+
+          if (netValue) {
+            if (isUsb) {
+              netValue.innerText = 'USB 2.0 Cable (High Speed)';
+            } else {
+              netValue.innerText = info.wifi_ssid ? `Hotspot/Wi-Fi: ${info.wifi_ssid}` : (info.connection_type || 'Wi-Fi / Hotspot');
+            }
+          }
+          if (netSub) {
+            if (isUsb) {
+              netSub.innerText = `Port: ${info.port || 'USB001'} • Direct High-Speed Physical Link`;
+            } else {
+              netSub.innerText = `IP: ${info.wifi_ip || info.bridge_ip || '192.168.31.223'} • Active Network`;
+            }
+          }
           if (netBadge) {
             netBadge.className = 'device-status-badge ready';
             netBadge.innerText = 'Connected';
           }
 
-          if (printerName) printerName.innerText = info.printer_name || 'EPSON L3250 Series';
-          if (printerModel) printerModel.innerText = `Model: ${info.model_number || 'L3250'} • Port: ${info.port || '10.237.2.251'}`;
+          if (printerName) printerName.innerText = info.printer_name || (isUsb ? 'EPSON L3250 Series' : 'EPSON L3250 Series (Network)');
+          if (printerModel) printerModel.innerText = `Model: ${info.model_number || 'L3250'} • Port: ${info.port || (isUsb ? 'USB001' : 'Network')}`;
           if (printerBadge) {
-            const isReady = (info.printer_status === 'Ready');
-            printerBadge.className = `device-status-badge ${isReady ? 'ready' : 'offline'}`;
-            printerBadge.innerText = isReady ? 'Ready' : 'Offline';
+            printerBadge.className = `device-status-badge ${isPrinterReady ? 'ready' : 'offline'}`;
+            printerBadge.innerText = isPrinterReady ? 'Ready' : 'Offline';
           }
 
-          if (scannerName) scannerName.innerText = info.scanner_name || 'EPSON L3250 (PC Bridge & Flatbed)';
-          if (scannerSub) scannerSub.innerText = info.scanner_message || 'Optical Flatbed Scanner Ready';
+          if (scannerName) scannerName.innerText = info.scanner_name || (isUsb ? 'EPSON L3250 Series' : 'EPSON L3250 (PC Bridge & Flatbed)');
+          if (scannerSub) scannerSub.innerText = info.scanner_message || (isUsb ? 'Direct USB Flatbed Scanner Ready' : 'Optical Flatbed Scanner Ready');
           if (scannerBadge) {
-            const scOnline = info.scanner_online !== false;
-            scannerBadge.className = `device-status-badge ${scOnline ? 'ready' : 'offline'}`;
-            scannerBadge.innerText = scOnline ? 'Ready' : 'Offline';
+            scannerBadge.className = `device-status-badge ${isScannerReady ? 'ready' : 'offline'}`;
+            scannerBadge.innerText = isScannerReady ? 'Ready' : 'Offline';
           }
 
           if (bridgeStatusTag) {
@@ -4008,7 +4031,7 @@
             tag.style.color = '#34d399';
           }
           showToast('Bridge connected successfully!', 'success');
-          runDeviceDetection();
+          runDeviceDetection(true);
       checkScannerServer(true);
         } else {
           if (tag) {
@@ -5223,15 +5246,18 @@ function getApiUrl(endpoint) {
       }
 
       try {
-        const res = await fetch(getApiUrl('/api/connection'));
+        const res = await fetch(getApiUrl(`/api/connection${force ? '?force=1' : ''}`));
         if (res.ok) {
           const data = await res.json();
           const isScanningNow = state.isScanning || (window.docState && docState.isScanning) || (window.photoState && photoState.isScanning) || data.scanning || data.busy;
 
           if (data.active_mode) {
             state.connectionMode = data.active_mode;
-            updateConnModeButtonsUI(data.active_mode);
+            updateConnectionModeUI(data.active_mode);
           }
+
+          const isUsb = (data.active_mode === 'usb');
+          const isReady = Boolean(data.online || data.scanner_online || data.printer_status === 'Ready' || (isUsb && data.usb_device && data.usb_device.online) || (!isUsb && data.wifi_device && data.wifi_device.online));
 
           if (isScanningNow) {
             isScannerOnline = true;
@@ -5245,12 +5271,13 @@ function getApiUrl(endpoint) {
               docBadge.style.color = '#f59e0b';
             }
             if (offlineNotice) offlineNotice.style.display = 'none';
-          } else if (data.online || data.scanner_online || data.printer_status === 'Ready') {
+          } else if (isReady) {
             isScannerOnline = true;
             if (badge) {
               badge.className = 'epson-tag online';
-              badge.innerHTML = '🟢 ' + (data.message || 'Epson L3250 Ready');
-              badge.title = 'Scanner & Printer are online & ready. Click to re-check.';
+              const modeLabel = isUsb ? 'USB' : 'Wi-Fi';
+              badge.innerHTML = '🟢 ' + (data.scanner_message || data.message || `EPSON L3250 Series Ready on ${modeLabel}`);
+              badge.title = `Scanner & Printer are online & ready via ${modeLabel}. Click to re-check.`;
             }
             if (docBadge) {
               docBadge.innerText = '🟢 Ready';
@@ -5261,7 +5288,7 @@ function getApiUrl(endpoint) {
             isScannerOnline = false;
             if (badge) {
               badge.className = 'epson-tag offline';
-              badge.innerHTML = '🔴 ' + (data.message || 'Scanner Offline (Powered Off)');
+              badge.innerHTML = '🔴 ' + (data.message || (isUsb ? 'USB Scanner Offline' : 'Scanner Offline (Powered Off)'));
               badge.title = (data.message || 'Scanner is powered off or disconnected.') + ' Click to refresh.';
             }
             if (docBadge) {
@@ -5274,15 +5301,17 @@ function getApiUrl(endpoint) {
           // Update Desktop Header Printer Connection Badge
           const devConnBadge = document.getElementById('deviceConnectionBadge');
           if (devConnBadge) {
-            const isPrinterReady = (data.printer_status === 'Ready');
+            const isPrinterReady = Boolean(data.printer_status === 'Ready' || (isUsb && data.usb_device && data.usb_device.online) || (!isUsb && data.wifi_device && data.wifi_device.online));
             devConnBadge.className = isPrinterReady ? 'epson-tag online' : 'epson-tag offline';
-            devConnBadge.innerHTML = (isPrinterReady ? '🖨️ ' : '⚠️ ') + (data.printer_name || 'Epson L3250') + (isPrinterReady ? ' (Ready)' : ' (Offline)');
-            devConnBadge.title = `Port: ${data.port || 'USB/Network'} • Status: ${data.printer_status || 'Unknown'}. Click for settings.`;
+            const icon = isUsb ? '🔌 ' : '📶 ';
+            devConnBadge.innerHTML = icon + (data.printer_name || 'EPSON L3250 Series') + (isPrinterReady ? ' (Ready)' : ' (Offline)');
+            devConnBadge.title = `Mode: ${data.active_mode ? data.active_mode.toUpperCase() : 'USB'} • Port: ${data.port || 'USB001'} • Status: ${data.printer_status || 'Ready'}. Click for settings.`;
           }
         } else {
           setScannerOfflineUI();
         }
       } catch (e) {
+        console.warn('checkScannerServer error:', e);
         setScannerOfflineUI();
       } finally {
         isCheckingScanner = false;

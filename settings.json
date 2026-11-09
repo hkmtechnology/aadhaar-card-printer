@@ -1,5 +1,5 @@
 {
-  "connectionMode": "wifi",
+  "connectionMode": "usb",
   "wifiPrinterIp": "10.237.2.251",
   "wifiPrinterName": "EPSON L3250 Series (Network)",
   "usbPrinterName": "EPSON L3250 Series",

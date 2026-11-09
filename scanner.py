@@ -340,7 +340,6 @@ try {
     $devName = $target.Properties.Item("Name").Value
     try {
         $dev = $target.Connect()
-        $dev.ExecuteCommand("{9B26B7B2-ACAD-11D2-A093-00C04F72DC3C}")
         Write-Output "RESULT|1|Ready|$devName"
     } catch {
         Write-Output "RESULT|0|USB Scanner is powered off or busy|$devName"
@@ -382,6 +381,20 @@ try {
         except Exception as e:
             status_dict = {"online": False, "connection_mode": "usb", "port": "USB001", "device_name": "EPSON L3250 Series", "message": f"USB Scanner Error: {e}"}
 
+        # Resilient fallback: Check Win32_Printer if WIA reported offline
+        if not status_dict.get("online"):
+            try:
+                ps_printer_check = "Get-CimInstance Win32_Printer | Where-Object { ($_.Name -like '*3250*' -or $_.DriverName -like '*3250*' -or $_.Name -like '*Epson*') -and ($_.PortName -like '*USB*' -or -not ($_.PortName -like '*.*' -or $_.PortName -like '*WSD*')) -and -not $_.WorkOffline } | Select-Object -ExpandProperty Name"
+                p_check = subprocess.run(["powershell", "-NoProfile", "-Command", ps_printer_check], capture_output=True, text=True, timeout=2.5)
+                p_out = p_check.stdout.strip()
+                if "3250" in p_out or "EPSON" in p_out or "Epson" in p_out:
+                    found_name = p_out.splitlines()[0].strip()
+                    status_dict["online"] = True
+                    status_dict["device_name"] = found_name
+                    status_dict["message"] = f"{found_name} Ready on USB"
+            except Exception:
+                pass
+
     with _STATUS_LOCK:
         _LAST_STATUS_TIME = time.time()
         _CACHED_STATUS = status_dict
@@ -392,6 +405,17 @@ try {
 _DEVICE_INFO_LOCK = threading.Lock()
 _LAST_DEVICE_INFO_TIME = 0
 _CACHED_DEVICE_INFO = None
+
+
+def invalidate_device_caches():
+    """Immediately invalidates any cached scanner status or device info."""
+    global _LAST_STATUS_TIME, _CACHED_STATUS, _LAST_DEVICE_INFO_TIME, _CACHED_DEVICE_INFO
+    with _STATUS_LOCK:
+        _LAST_STATUS_TIME = 0
+        _CACHED_STATUS = {}
+    with _DEVICE_INFO_LOCK:
+        _LAST_DEVICE_INFO_TIME = 0
+        _CACHED_DEVICE_INFO = None
 
 
 def get_system_device_info(force=False):
@@ -461,10 +485,11 @@ def get_system_device_info(force=False):
             printers = [p_data] if isinstance(p_data, dict) else p_data
             for p in printers:
                 pname = p.get("Name", "")
+                dname = p.get("DriverName", "")
                 pport = p.get("PortName", "")
                 offline = p.get("WorkOffline", False)
 
-                if "3250" in pname or "epson" in pname.lower():
+                if "3250" in pname or "epson" in pname.lower() or "3250" in dname or "epson" in dname.lower():
                     is_net = ("network" in pname.lower() or "192." in pport or "10." in pport or "wsd" in pport.lower() or "." in pport)
                     if is_net:
                         info["wifi_device"]["name"] = pname
@@ -492,16 +517,24 @@ def get_system_device_info(force=False):
         info["printer_name"] = info["usb_device"]["name"]
         info["port"] = info["usb_device"]["port"]
         info["printer_connection"] = f"USB ({info['port']})"
-        info["printer_status"] = "Ready" if info["scanner_online"] or info["usb_device"]["online"] else "Offline"
+        is_ready = bool(info["scanner_online"] or info["usb_device"]["online"])
+        info["printer_status"] = "Ready" if is_ready else "Offline"
         info["scanner_name"] = info["usb_device"]["name"]
+        if is_ready:
+            info["online"] = True
+            info["scanner_online"] = True
+            info["scanner_message"] = f"{info['printer_name']} Ready on USB"
     else:
         info["printer_name"] = info["wifi_device"]["name"]
         info["port"] = info["wifi_device"]["port"]
         info["printer_connection"] = f"Wi-Fi / Network ({info['port']})"
-        info["printer_status"] = "Ready" if info["scanner_online"] or info["wifi_device"]["online"] else "Offline"
+        is_ready = bool(info["scanner_online"] or info["wifi_device"]["online"])
+        info["printer_status"] = "Ready" if is_ready else "Offline"
         info["scanner_name"] = info["wifi_device"]["name"]
+        if is_ready:
+            info["online"] = True
 
-    info["online"] = (info["scanner_online"] or info["printer_status"] == "Ready")
+    info["online"] = bool(info["scanner_online"] or info["printer_status"] == "Ready")
     info["message"] = (
         info["scanner_message"] if info["scanner_online"]
         else (f"{info['printer_name']} Ready on {info['connection_type']}" if info["printer_status"] == "Ready" else "Printer Offline")
