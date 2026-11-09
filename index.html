@@ -12383,13 +12383,13 @@ function getApiUrl(endpoint) {
       return canvas;
     }
 
-    async async function printPhotoGridSheet() {
+    async function printPhotoGridSheet() {
       if (!photoState.enhancedImg) {
         alert('Please scan or upload a photo first.');
         return;
       }
 
-      showToast(🖨️ Printing Photo Sheet ( copies) to Epson L3250..., 'info');
+      showToast(`🖨️ Printing Photo Sheet (${photoState.copies} copies) to Epson L3250...`, 'info');
 
       try {
         const res = await fetch(getApiUrl('/api/photo/print_grid'), {
@@ -12414,10 +12414,10 @@ function getApiUrl(endpoint) {
         });
         const data = await res.json();
         if (data.success) {
-          showToast(✅ , 'success');
+          showToast(`✅ ${data.message || 'Photo sheet sent directly to Epson L3250!'}`, 'success');
           return;
         } else {
-          showToast(⚠️ Print Bridge: , 'error');
+          showToast(`⚠️ Print Bridge: ${data.error || 'Failed to print'}`, 'error');
         }
       } catch (e) {
         console.warn('Print photo bridge error:', e);
