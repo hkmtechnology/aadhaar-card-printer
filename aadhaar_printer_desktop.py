@@ -145,6 +145,13 @@ class AadhaarPrinterApp:
     def setup_ui(self):
         style = ttk.Style()
         style.theme_use("clam")
+        style.configure("TNotebook", background="#0f172a", borderwidth=0, tabmargins=[6, 4, 6, 0])
+        style.configure("TNotebook.Tab", background="#1e293b", foreground="#94a3b8",
+                        padding=[18, 9], font=("Segoe UI", 10, "bold"), borderwidth=1, bordercolor="#334155")
+        style.map("TNotebook.Tab",
+                  background=[("selected", "#0284c7"), ("active", "#334155")],
+                  foreground=[("selected", "#ffffff"), ("active", "#f8fafc")],
+                  bordercolor=[("selected", "#38bdf8"), ("active", "#475569")])
 
         # Top Mode Switcher: 🪪 2-in-1 Card Mode | 📑 Multi-Page Document Scanner | 📷 Passport Photo Studio
         self.notebook = ttk.Notebook(self.root)
