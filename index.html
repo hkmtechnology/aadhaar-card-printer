@@ -1427,6 +1427,60 @@
       height: 6px !important;
       border-radius: 3px !important;
     }
+    .raw-slider-track-red {
+      background: linear-gradient(90deg, #0f172a 0%, #7f1d1d 50%, #ef4444 100%) !important;
+      height: 6px !important;
+      border-radius: 3px !important;
+    }
+    .raw-slider-track-green {
+      background: linear-gradient(90deg, #0f172a 0%, #14532d 50%, #22c55e 100%) !important;
+      height: 6px !important;
+      border-radius: 3px !important;
+    }
+    .raw-slider-track-blue {
+      background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 50%, #3b82f6 100%) !important;
+      height: 6px !important;
+      border-radius: 3px !important;
+    }
+    .raw-curve-channel-tabs {
+      display: flex;
+      gap: 3px;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .raw-curve-tab {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .raw-curve-tab:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+    }
+    .raw-curve-tab.active {
+      background: #1e293b;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      outline: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .raw-curve-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
 
     /* Fullscreen Camera Raw Modal Layout */
     .cameraraw-modal-box {
@@ -5577,45 +5631,262 @@
             </div>
           </div>
 
-          <!-- 5. TONE CURVE -->
+          <!-- 5. TONE & RGB CURVES -->
           <div class="raw-panel-accordion" id="accRawCurve">
             <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawCurve')">
-              <span>▼ Parametric Tone Curve</span>
-              <span style="font-size:0.65rem; color:#a855f7;">Spline</span>
+              <span id="rawCurveHeaderTitle">▼ Tone & RGB Curves</span>
+              <span id="rawCurveModeBadge" style="font-size:0.65rem; color:#38bdf8; font-weight:700;">Parametric</span>
             </div>
             <div class="raw-accordion-body">
-              <!-- Live Curve Visualizer SVG -->
-              <svg id="rawCurveSvg" viewBox="0 0 100 100" style="width:100%; height:70px; background:#0b1329; border:1px solid #1e293b; border-radius:6px; margin-bottom:6px;">
-                <line x1="0" y1="100" x2="100" y2="0" stroke="rgba(255,255,255,0.12)" stroke-dasharray="2,2"/>
-                <path id="rawCurvePath" d="M 0 100 C 25 75, 75 25, 100 0" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
-              </svg>
-              <div class="raw-slider-row">
-                <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawCurveHighlights')">Highlights</span>
-                  <span class="raw-slider-val" id="rawCurveHighlightsVal">0</span>
+              <!-- Channel Selector (Adjust: 📈 ⚪ 🔴 🟢 🔵) -->
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 0.68rem; color: #94a3b8; font-weight: 700;">Adjust:</span>
+                <div class="raw-curve-channel-tabs" role="tablist">
+                  <button type="button" class="raw-curve-tab active" id="tabCurveParametric" onclick="setRawCurveChannel('parametric')" title="Parametric Spline Curve">
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M 1 15 C 4 15, 6 10, 8 8 S 12 1, 15 1"/>
+                    </svg>
+                    <span>Parametric</span>
+                  </button>
+                  <button type="button" class="raw-curve-tab" id="tabCurveRgb" onclick="setRawCurveChannel('point_rgb')" title="RGB Master Tone Curve" style="color:#ffffff;">
+                    <span class="raw-curve-dot" style="background:#ffffff; box-shadow:0 0 5px #ffffff;"></span>
+                    <span>RGB</span>
+                  </button>
+                  <button type="button" class="raw-curve-tab" id="tabCurveRed" onclick="setRawCurveChannel('point_r')" title="Red Channel Curve (Red ↔ Cyan)" style="color:#f87171;">
+                    <span class="raw-curve-dot" style="background:#ef4444; box-shadow:0 0 5px #ef4444;"></span>
+                    <span>Red</span>
+                  </button>
+                  <button type="button" class="raw-curve-tab" id="tabCurveGreen" onclick="setRawCurveChannel('point_g')" title="Green Channel Curve (Green ↔ Magenta)" style="color:#4ade80;">
+                    <span class="raw-curve-dot" style="background:#22c55e; box-shadow:0 0 5px #22c55e;"></span>
+                    <span>Green</span>
+                  </button>
+                  <button type="button" class="raw-curve-tab" id="tabCurveBlue" onclick="setRawCurveChannel('point_b')" title="Blue Channel Curve (Blue ↔ Yellow)" style="color:#60a5fa;">
+                    <span class="raw-curve-dot" style="background:#3b82f6; box-shadow:0 0 5px #3b82f6;"></span>
+                    <span>Blue</span>
+                  </button>
                 </div>
-                <input type="range" id="rawCurveHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
               </div>
-              <div class="raw-slider-row">
-                <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawCurveLights')">Lights</span>
-                  <span class="raw-slider-val" id="rawCurveLightsVal">0</span>
-                </div>
-                <input type="range" id="rawCurveLights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+
+              <!-- Interactive Curve Graph Box with Real-Time Histogram Underlay -->
+              <div style="position:relative; width:100%; height:130px; background:#070b14; border:1px solid #1e293b; border-radius:6px; overflow:hidden; margin-bottom:8px; touch-action:none;">
+                <canvas id="rawCurveCanvas" width="280" height="130" style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:crosshair;"></canvas>
               </div>
-              <div class="raw-slider-row">
-                <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawCurveDarks')">Darks</span>
-                  <span class="raw-slider-val" id="rawCurveDarksVal">0</span>
+
+              <!-- 1. Parametric Controls -->
+              <div id="rawParametricControls">
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawCurveHighlights')">Highlights</span>
+                    <span class="raw-slider-val" id="rawCurveHighlightsVal">0</span>
+                  </div>
+                  <input type="range" id="rawCurveHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
                 </div>
-                <input type="range" id="rawCurveDarks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawCurveLights')">Lights</span>
+                    <span class="raw-slider-val" id="rawCurveLightsVal">0</span>
+                  </div>
+                  <input type="range" id="rawCurveLights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawCurveDarks')">Darks</span>
+                    <span class="raw-slider-val" id="rawCurveDarksVal">0</span>
+                  </div>
+                  <input type="range" id="rawCurveDarks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawCurveShadows')">Shadows</span>
+                    <span class="raw-slider-val" id="rawCurveShadowsVal">0</span>
+                  </div>
+                  <input type="range" id="rawCurveShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
               </div>
-              <div class="raw-slider-row">
-                <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawCurveShadows')">Shadows</span>
-                  <span class="raw-slider-val" id="rawCurveShadowsVal">0</span>
+
+              <!-- 2. Point RGB Controls -->
+              <div id="rawRgbPointControls" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <span style="font-size:0.68rem; color:#94a3b8;">Preset:</span>
+                  <select id="rawRgbPresetSelect" onchange="applyRgbCurvePreset(this.value)" style="background:#0f172a; border:1px solid #334155; color:#f8fafc; font-size:0.68rem; padding:2px 6px; border-radius:4px;">
+                    <option value="linear">Linear (Default)</option>
+                    <option value="medium_contrast">Medium Contrast</option>
+                    <option value="high_contrast">High Contrast</option>
+                    <option value="matte">Matte / Lifted Blacks</option>
+                    <option value="punchy">Punchy Highlights</option>
+                  </select>
                 </div>
-                <input type="range" id="rawCurveShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRgbWhites')">Whites (Input 255)</span>
+                    <span class="raw-slider-val" id="rawRgbWhitesVal">0</span>
+                  </div>
+                  <input type="range" id="rawRgbWhites" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRgbHighlights')">Highlights (Input 192)</span>
+                    <span class="raw-slider-val" id="rawRgbHighlightsVal">0</span>
+                  </div>
+                  <input type="range" id="rawRgbHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRgbMidtones')">Midtones (Input 128)</span>
+                    <span class="raw-slider-val" id="rawRgbMidtonesVal">0</span>
+                  </div>
+                  <input type="range" id="rawRgbMidtones" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRgbShadows')">Shadows (Input 64)</span>
+                    <span class="raw-slider-val" id="rawRgbShadowsVal">0</span>
+                  </div>
+                  <input type="range" id="rawRgbShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRgbBlacks')">Blacks (Input 0)</span>
+                    <span class="raw-slider-val" id="rawRgbBlacksVal">0</span>
+                  </div>
+                  <input type="range" id="rawRgbBlacks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+              </div>
+
+              <!-- 3. Red Channel Controls -->
+              <div id="rawRedControls" style="display:none;">
+                <div style="font-size:0.68rem; color:#f87171; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between;">
+                  <span>🔴 Red Curve (Red ↔ Cyan)</span>
+                  <span onclick="resetCurveChannel('red')" style="cursor:pointer; color:#94a3b8; text-decoration:underline;">↺ Reset</span>
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRedWhites')">Red Whites</span>
+                    <span class="raw-slider-val" id="rawRedWhitesVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-red" id="rawRedWhites" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRedHighlights')">Red Highlights</span>
+                    <span class="raw-slider-val" id="rawRedHighlightsVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-red" id="rawRedHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRedMidtones')">Red Midtones</span>
+                    <span class="raw-slider-val" id="rawRedMidtonesVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-red" id="rawRedMidtones" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRedShadows')">Red Shadows</span>
+                    <span class="raw-slider-val" id="rawRedShadowsVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-red" id="rawRedShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawRedBlacks')">Red Blacks</span>
+                    <span class="raw-slider-val" id="rawRedBlacksVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-red" id="rawRedBlacks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+              </div>
+
+              <!-- 4. Green Channel Controls -->
+              <div id="rawGreenControls" style="display:none;">
+                <div style="font-size:0.68rem; color:#4ade80; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between;">
+                  <span>🟢 Green Curve (Green ↔ Magenta)</span>
+                  <span onclick="resetCurveChannel('green')" style="cursor:pointer; color:#94a3b8; text-decoration:underline;">↺ Reset</span>
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawGreenWhites')">Green Whites</span>
+                    <span class="raw-slider-val" id="rawGreenWhitesVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-green" id="rawGreenWhites" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawGreenHighlights')">Green Highlights</span>
+                    <span class="raw-slider-val" id="rawGreenHighlightsVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-green" id="rawGreenHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawGreenMidtones')">Green Midtones</span>
+                    <span class="raw-slider-val" id="rawGreenMidtonesVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-green" id="rawGreenMidtones" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawGreenShadows')">Green Shadows</span>
+                    <span class="raw-slider-val" id="rawGreenShadowsVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-green" id="rawGreenShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawGreenBlacks')">Green Blacks</span>
+                    <span class="raw-slider-val" id="rawGreenBlacksVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-green" id="rawGreenBlacks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+              </div>
+
+              <!-- 5. Blue Channel Controls -->
+              <div id="rawBlueControls" style="display:none;">
+                <div style="font-size:0.68rem; color:#60a5fa; font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between;">
+                  <span>🔵 Blue Curve (Blue ↔ Yellow)</span>
+                  <span onclick="resetCurveChannel('blue')" style="cursor:pointer; color:#94a3b8; text-decoration:underline;">↺ Reset</span>
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawBlueWhites')">Blue Whites</span>
+                    <span class="raw-slider-val" id="rawBlueWhitesVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-blue" id="rawBlueWhites" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawBlueHighlights')">Blue Highlights</span>
+                    <span class="raw-slider-val" id="rawBlueHighlightsVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-blue" id="rawBlueHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawBlueMidtones')">Blue Midtones</span>
+                    <span class="raw-slider-val" id="rawBlueMidtonesVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-blue" id="rawBlueMidtones" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawBlueShadows')">Blue Shadows</span>
+                    <span class="raw-slider-val" id="rawBlueShadowsVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-blue" id="rawBlueShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+                <div class="raw-slider-row">
+                  <div class="raw-slider-label">
+                    <span onclick="resetRawSlider('rawBlueBlacks')">Blue Blacks</span>
+                    <span class="raw-slider-val" id="rawBlueBlacksVal">0</span>
+                  </div>
+                  <input type="range" class="raw-slider-track-blue" id="rawBlueBlacks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                </div>
+              </div>
+
+              <!-- Quick Reset All Curves -->
+              <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+                <button type="button" class="mini-btn" onclick="resetAllCurves()" style="font-size:0.65rem; padding:2px 8px;">
+                  ↺ Reset All Curves
+                </button>
               </div>
             </div>
           </div>
@@ -11203,10 +11474,40 @@ function getApiUrl(endpoint) {
       sharpening: 0,
       noiseReduction: 0,
 
+      // Curves
+      curveMode: 'parametric', // 'parametric' | 'point_rgb' | 'point_r' | 'point_g' | 'point_b'
       curveHighlights: 0,
       curveLights: 0,
       curveDarks: 0,
       curveShadows: 0,
+
+      // RGB Master Point Curve
+      curveRgbWhites: 0,
+      curveRgbHighlights: 0,
+      curveRgbMidtones: 0,
+      curveRgbShadows: 0,
+      curveRgbBlacks: 0,
+
+      // Red Channel Curve
+      curveRedWhites: 0,
+      curveRedHighlights: 0,
+      curveRedMidtones: 0,
+      curveRedShadows: 0,
+      curveRedBlacks: 0,
+
+      // Green Channel Curve
+      curveGreenWhites: 0,
+      curveGreenHighlights: 0,
+      curveGreenMidtones: 0,
+      curveGreenShadows: 0,
+      curveGreenBlacks: 0,
+
+      // Blue Channel Curve
+      curveBlueWhites: 0,
+      curveBlueHighlights: 0,
+      curveBlueMidtones: 0,
+      curveBlueShadows: 0,
+      curveBlueBlacks: 0,
 
       hslOrangeLum: 0,
       hslOrangeSat: 0,
@@ -11220,6 +11521,7 @@ function getApiUrl(endpoint) {
     };
 
     let _cameraRawServerDebounce = null;
+    let _cachedRawHist = null;
 
     function toggleRawAccordion(accId) {
       const el = document.getElementById(accId);
@@ -11238,25 +11540,24 @@ function getApiUrl(endpoint) {
       cameraRawState.wb = val;
       const tempSlider = document.getElementById('rawTemp');
       const tintSlider = document.getElementById('rawTint');
-
-      if (val === 'daylight') {
+      if (val === 'as_shot') {
+        if (tempSlider) tempSlider.value = 0;
+        if (tintSlider) tintSlider.value = 0;
+      } else if (val === 'auto') {
         if (tempSlider) tempSlider.value = 5;
+        if (tintSlider) tintSlider.value = 2;
+      } else if (val === 'daylight') {
+        if (tempSlider) tempSlider.value = 10;
         if (tintSlider) tintSlider.value = 0;
       } else if (val === 'cloudy') {
-        if (tempSlider) tempSlider.value = 18;
+        if (tempSlider) tempSlider.value = 22;
         if (tintSlider) tintSlider.value = 4;
       } else if (val === 'tungsten') {
         if (tempSlider) tempSlider.value = -35;
-        if (tintSlider) tintSlider.value = -8;
+        if (tintSlider) tintSlider.value = -6;
       } else if (val === 'fluorescent') {
         if (tempSlider) tempSlider.value = -12;
-        if (tintSlider) tintSlider.value = 14;
-      } else if (val === 'auto') {
-        if (tempSlider) tempSlider.value = 0;
-        if (tintSlider) tintSlider.value = 0;
-      } else {
-        if (tempSlider) tempSlider.value = 0;
-        if (tintSlider) tintSlider.value = 0;
+        if (tintSlider) tintSlider.value = 18;
       }
       onCameraRawSliderInput();
     }
@@ -11272,14 +11573,14 @@ function getApiUrl(endpoint) {
 
     function applyCameraRawAutoTone() {
       setSliderVal('rawExposure', 5);
-      setSliderVal('rawContrast', 8);
-      setSliderVal('rawHighlights', -18);
-      setSliderVal('rawShadows', 45);
-      setSliderVal('rawWhites', 20);
-      setSliderVal('rawBlacks', 15);
-      setSliderVal('rawVibrance', 12);
+      setSliderVal('rawContrast', 12);
+      setSliderVal('rawHighlights', -15);
+      setSliderVal('rawShadows', 25);
+      setSliderVal('rawWhites', 10);
+      setSliderVal('rawBlacks', -8);
+      setSliderVal('rawVibrance', 10);
       onCameraRawSliderInput();
-      showToast('✨ Camera Raw Auto Tone Applied', 'info');
+      showToast('Camera Raw Auto Tone Applied', 'info');
     }
 
     function setSliderVal(id, val) {
@@ -11294,6 +11595,10 @@ function getApiUrl(endpoint) {
         'rawTexture', 'rawClarity', 'rawDehaze', 'rawVignette',
         'rawSharpening', 'rawNoiseReduction',
         'rawCurveHighlights', 'rawCurveLights', 'rawCurveDarks', 'rawCurveShadows',
+        'rawRgbWhites', 'rawRgbHighlights', 'rawRgbMidtones', 'rawRgbShadows', 'rawRgbBlacks',
+        'rawRedWhites', 'rawRedHighlights', 'rawRedMidtones', 'rawRedShadows', 'rawRedBlacks',
+        'rawGreenWhites', 'rawGreenHighlights', 'rawGreenMidtones', 'rawGreenShadows', 'rawGreenBlacks',
+        'rawBlueWhites', 'rawBlueHighlights', 'rawBlueMidtones', 'rawBlueShadows', 'rawBlueBlacks',
         'rawOrangeLum', 'rawOrangeSat', 'rawRedLum', 'rawYellowSat'
       ];
       sliders.forEach(s => setSliderVal(s, 0));
@@ -11307,6 +11612,100 @@ function getApiUrl(endpoint) {
       cameraRawState.wb = 'as_shot';
       onCameraRawSliderInput();
       showToast('Camera Raw filters reset', 'info');
+    }
+
+    function setRawCurveChannel(mode) {
+      cameraRawState.curveMode = mode;
+      const tabs = [
+        { id: 'tabCurveParametric', mode: 'parametric' },
+        { id: 'tabCurveRgb', mode: 'point_rgb' },
+        { id: 'tabCurveRed', mode: 'point_r' },
+        { id: 'tabCurveGreen', mode: 'point_g' },
+        { id: 'tabCurveBlue', mode: 'point_b' }
+      ];
+      tabs.forEach(t => {
+        const b = document.getElementById(t.id);
+        if (b) b.classList.toggle('active', t.mode === mode);
+      });
+
+      // Show/hide subpanels
+      const show = (id, visible) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = visible ? 'block' : 'none';
+      };
+      show('rawParametricControls', mode === 'parametric');
+      show('rawRgbPointControls', mode === 'point_rgb');
+      show('rawRedControls', mode === 'point_r');
+      show('rawGreenControls', mode === 'point_g');
+      show('rawBlueControls', mode === 'point_b');
+
+      const badge = document.getElementById('rawCurveModeBadge');
+      if (badge) {
+        if (mode === 'parametric') { badge.innerText = 'Parametric'; badge.style.color = '#38bdf8'; }
+        else if (mode === 'point_rgb') { badge.innerText = 'RGB Master'; badge.style.color = '#ffffff'; }
+        else if (mode === 'point_r') { badge.innerText = 'Red (R/C)'; badge.style.color = '#f87171'; }
+        else if (mode === 'point_g') { badge.innerText = 'Green (G/M)'; badge.style.color = '#4ade80'; }
+        else if (mode === 'point_b') { badge.innerText = 'Blue (B/Y)'; badge.style.color = '#60a5fa'; }
+      }
+
+      drawRawCurveCanvas();
+    }
+
+    function applyRgbCurvePreset(preset) {
+      if (preset === 'linear') {
+        ['rawRgbWhites', 'rawRgbHighlights', 'rawRgbMidtones', 'rawRgbShadows', 'rawRgbBlacks'].forEach(s => setSliderVal(s, 0));
+      } else if (preset === 'medium_contrast') {
+        setSliderVal('rawRgbBlacks', -5);
+        setSliderVal('rawRgbShadows', -15);
+        setSliderVal('rawRgbMidtones', 0);
+        setSliderVal('rawRgbHighlights', 18);
+        setSliderVal('rawRgbWhites', 5);
+      } else if (preset === 'high_contrast') {
+        setSliderVal('rawRgbBlacks', -12);
+        setSliderVal('rawRgbShadows', -30);
+        setSliderVal('rawRgbMidtones', 0);
+        setSliderVal('rawRgbHighlights', 32);
+        setSliderVal('rawRgbWhites', 10);
+      } else if (preset === 'matte') {
+        setSliderVal('rawRgbBlacks', 25);
+        setSliderVal('rawRgbShadows', 15);
+        setSliderVal('rawRgbMidtones', -5);
+        setSliderVal('rawRgbHighlights', -8);
+        setSliderVal('rawRgbWhites', -10);
+      } else if (preset === 'punchy') {
+        setSliderVal('rawRgbBlacks', -8);
+        setSliderVal('rawRgbShadows', -10);
+        setSliderVal('rawRgbMidtones', 6);
+        setSliderVal('rawRgbHighlights', 24);
+        setSliderVal('rawRgbWhites', 8);
+      }
+      onCameraRawSliderInput();
+    }
+
+    function resetCurveChannel(chan) {
+      if (chan === 'red') {
+        ['rawRedWhites', 'rawRedHighlights', 'rawRedMidtones', 'rawRedShadows', 'rawRedBlacks'].forEach(s => setSliderVal(s, 0));
+      } else if (chan === 'green') {
+        ['rawGreenWhites', 'rawGreenHighlights', 'rawGreenMidtones', 'rawGreenShadows', 'rawGreenBlacks'].forEach(s => setSliderVal(s, 0));
+      } else if (chan === 'blue') {
+        ['rawBlueWhites', 'rawBlueHighlights', 'rawBlueMidtones', 'rawBlueShadows', 'rawBlueBlacks'].forEach(s => setSliderVal(s, 0));
+      }
+      onCameraRawSliderInput();
+    }
+
+    function resetAllCurves() {
+      const sliders = [
+        'rawCurveHighlights', 'rawCurveLights', 'rawCurveDarks', 'rawCurveShadows',
+        'rawRgbWhites', 'rawRgbHighlights', 'rawRgbMidtones', 'rawRgbShadows', 'rawRgbBlacks',
+        'rawRedWhites', 'rawRedHighlights', 'rawRedMidtones', 'rawRedShadows', 'rawRedBlacks',
+        'rawGreenWhites', 'rawGreenHighlights', 'rawGreenMidtones', 'rawGreenShadows', 'rawGreenBlacks',
+        'rawBlueWhites', 'rawBlueHighlights', 'rawBlueMidtones', 'rawBlueShadows', 'rawBlueBlacks'
+      ];
+      sliders.forEach(s => setSliderVal(s, 0));
+      const sel = document.getElementById('rawRgbPresetSelect');
+      if (sel) sel.value = 'linear';
+      onCameraRawSliderInput();
+      showToast('All curves reset', 'info');
     }
 
     function setCameraRawPreset(preset) {
@@ -11341,6 +11740,7 @@ function getApiUrl(endpoint) {
         setSliderVal('rawCurveShadows', 65);
         setSliderVal('rawOrangeLum', 15);
         setSliderVal('rawOrangeSat', 5);
+        setSliderVal('rawYellowSat', -29);
         cameraRawState.isBw = false;
         showToast('👶 Applied Camera Raw 18.3 Soft Baby Skin Preset', 'success');
       } else if (preset === 'epson_print') {
@@ -11348,66 +11748,75 @@ function getApiUrl(endpoint) {
         if (b) b.classList.add('active');
         setSliderVal('rawExposure', 12);
         setSliderVal('rawContrast', 8);
-        setSliderVal('rawHighlights', -10);
-        setSliderVal('rawShadows', 30);
-        setSliderVal('rawWhites', 20);
-        setSliderVal('rawBlacks', 10);
-        setSliderVal('rawTexture', -10);
-        setSliderVal('rawSharpening', 35);
-        setSliderVal('rawVibrance', 15);
+        setSliderVal('rawHighlights', 10);
+        setSliderVal('rawShadows', 35);
+        setSliderVal('rawWhites', 18);
+        setSliderVal('rawBlacks', 12);
+        setSliderVal('rawVibrance', 14);
+        setSliderVal('rawSaturation', 10);
+        setSliderVal('rawTexture', -15);
+        setSliderVal('rawClarity', 10);
+        setSliderVal('rawSharpening', 40);
+        setSliderVal('rawNoiseReduction', 12);
         cameraRawState.isBw = false;
-        showToast('🖨️ Epson L3250 Print Boost Applied', 'info');
+        showToast('🖨️ Epson L3250 Print Boost Applied', 'success');
       } else if (preset === 'punchy') {
         const b = document.getElementById('btnRawPresetPunchy');
         if (b) b.classList.add('active');
         setSliderVal('rawExposure', 4);
-        setSliderVal('rawContrast', 22);
-        setSliderVal('rawHighlights', -8);
-        setSliderVal('rawShadows', 25);
-        setSliderVal('rawWhites', 15);
-        setSliderVal('rawBlacks', -5);
-        setSliderVal('rawClarity', 15);
-        setSliderVal('rawSharpening', 25);
-        setSliderVal('rawSaturation', 18);
-        setSliderVal('rawVibrance', 15);
+        setSliderVal('rawContrast', 18);
+        setSliderVal('rawHighlights', -10);
+        setSliderVal('rawShadows', 20);
+        setSliderVal('rawWhites', 14);
+        setSliderVal('rawBlacks', -10);
+        setSliderVal('rawVibrance', 22);
+        setSliderVal('rawSaturation', 16);
+        setSliderVal('rawClarity', 18);
+        setSliderVal('rawSharpening', 45);
         cameraRawState.isBw = false;
-        showToast('📸 Applied Punchy Glossy Preset', 'info');
-      } else if (preset === 'warm') {
+        showToast('📸 Vibrant Punchy Preset Applied', 'success');
+      } else if (preset === 'warm_portrait') {
         const b = document.getElementById('btnRawPresetWarm');
         if (b) b.classList.add('active');
-        setSliderVal('rawTemp', 18);
+        setSliderVal('rawExposure', 2);
+        setSliderVal('rawContrast', 6);
+        setSliderVal('rawTemp', 14);
         setSliderVal('rawTint', 4);
-        setSliderVal('rawHighlights', -5);
+        setSliderVal('rawHighlights', 10);
         setSliderVal('rawShadows', 30);
-        setSliderVal('rawTexture', -15);
-        setSliderVal('rawOrangeLum', 12);
+        setSliderVal('rawWhites', 10);
         setSliderVal('rawVibrance', 12);
+        setSliderVal('rawSaturation', 8);
+        setSliderVal('rawTexture', -20);
+        setSliderVal('rawOrangeLum', 20);
+        setSliderVal('rawOrangeSat', 8);
         cameraRawState.isBw = false;
-        showToast('☀️ Applied Warm Portrait Preset', 'info');
-      } else {
-        // studio default
+        showToast('☀️ Warm Golden Portrait Applied', 'success');
+      } else if (preset === 'studio') {
         const b = document.getElementById('btnRawPresetStudio');
         if (b) b.classList.add('active');
-        setSliderVal('rawExposure', 3);
-        setSliderVal('rawContrast', 10);
-        setSliderVal('rawHighlights', -10);
-        setSliderVal('rawShadows', 30);
-        setSliderVal('rawWhites', 15);
-        setSliderVal('rawBlacks', 10);
-        setSliderVal('rawTexture', -15);
-        setSliderVal('rawSharpening', 25);
-        setSliderVal('rawNoiseReduction', 10);
-        setSliderVal('rawVibrance', 10);
+        setSliderVal('rawExposure', 2);
+        setSliderVal('rawContrast', 12);
+        setSliderVal('rawHighlights', 15);
+        setSliderVal('rawShadows', 40);
+        setSliderVal('rawWhites', 20);
+        setSliderVal('rawBlacks', 15);
+        setSliderVal('rawVibrance', 8);
+        setSliderVal('rawSaturation', 10);
+        setSliderVal('rawTexture', -18);
+        setSliderVal('rawClarity', 6);
+        setSliderVal('rawSharpening', 35);
+        setSliderVal('rawNoiseReduction', 14);
         cameraRawState.isBw = false;
+        showToast('✨ Studio Portrait Enhancement Applied', 'success');
       }
-
       onCameraRawSliderInput();
     }
 
     function onCameraRawSliderInput() {
-      const getVal = (id) => {
+      const getVal = id => {
         const el = document.getElementById(id);
-        return el ? parseFloat(el.value) : 0;
+        return el ? parseFloat(el.value) || 0 : 0;
       };
 
       cameraRawState.exposure = getVal('rawExposure');
@@ -11430,10 +11839,35 @@ function getApiUrl(endpoint) {
       cameraRawState.sharpening = getVal('rawSharpening');
       cameraRawState.noiseReduction = getVal('rawNoiseReduction');
 
+      // Curves
       cameraRawState.curveHighlights = getVal('rawCurveHighlights');
       cameraRawState.curveLights = getVal('rawCurveLights');
       cameraRawState.curveDarks = getVal('rawCurveDarks');
       cameraRawState.curveShadows = getVal('rawCurveShadows');
+
+      cameraRawState.curveRgbWhites = getVal('rawRgbWhites');
+      cameraRawState.curveRgbHighlights = getVal('rawRgbHighlights');
+      cameraRawState.curveRgbMidtones = getVal('rawRgbMidtones');
+      cameraRawState.curveRgbShadows = getVal('rawRgbShadows');
+      cameraRawState.curveRgbBlacks = getVal('rawRgbBlacks');
+
+      cameraRawState.curveRedWhites = getVal('rawRedWhites');
+      cameraRawState.curveRedHighlights = getVal('rawRedHighlights');
+      cameraRawState.curveRedMidtones = getVal('rawRedMidtones');
+      cameraRawState.curveRedShadows = getVal('rawRedShadows');
+      cameraRawState.curveRedBlacks = getVal('rawRedBlacks');
+
+      cameraRawState.curveGreenWhites = getVal('rawGreenWhites');
+      cameraRawState.curveGreenHighlights = getVal('rawGreenHighlights');
+      cameraRawState.curveGreenMidtones = getVal('rawGreenMidtones');
+      cameraRawState.curveGreenShadows = getVal('rawGreenShadows');
+      cameraRawState.curveGreenBlacks = getVal('rawGreenBlacks');
+
+      cameraRawState.curveBlueWhites = getVal('rawBlueWhites');
+      cameraRawState.curveBlueHighlights = getVal('rawBlueHighlights');
+      cameraRawState.curveBlueMidtones = getVal('rawBlueMidtones');
+      cameraRawState.curveBlueShadows = getVal('rawBlueShadows');
+      cameraRawState.curveBlueBlacks = getVal('rawBlueBlacks');
 
       cameraRawState.hslOrangeLum = getVal('rawOrangeLum');
       cameraRawState.hslOrangeSat = getVal('rawOrangeSat');
@@ -11470,30 +11904,356 @@ function getApiUrl(endpoint) {
       setTxt('rawCurveDarksVal', (cameraRawState.curveDarks > 0 ? '+' : '') + cameraRawState.curveDarks);
       setTxt('rawCurveShadowsVal', (cameraRawState.curveShadows > 0 ? '+' : '') + cameraRawState.curveShadows);
 
+      setTxt('rawRgbWhitesVal', (cameraRawState.curveRgbWhites > 0 ? '+' : '') + cameraRawState.curveRgbWhites);
+      setTxt('rawRgbHighlightsVal', (cameraRawState.curveRgbHighlights > 0 ? '+' : '') + cameraRawState.curveRgbHighlights);
+      setTxt('rawRgbMidtonesVal', (cameraRawState.curveRgbMidtones > 0 ? '+' : '') + cameraRawState.curveRgbMidtones);
+      setTxt('rawRgbShadowsVal', (cameraRawState.curveRgbShadows > 0 ? '+' : '') + cameraRawState.curveRgbShadows);
+      setTxt('rawRgbBlacksVal', (cameraRawState.curveRgbBlacks > 0 ? '+' : '') + cameraRawState.curveRgbBlacks);
+
+      setTxt('rawRedWhitesVal', (cameraRawState.curveRedWhites > 0 ? '+' : '') + cameraRawState.curveRedWhites);
+      setTxt('rawRedHighlightsVal', (cameraRawState.curveRedHighlights > 0 ? '+' : '') + cameraRawState.curveRedHighlights);
+      setTxt('rawRedMidtonesVal', (cameraRawState.curveRedMidtones > 0 ? '+' : '') + cameraRawState.curveRedMidtones);
+      setTxt('rawRedShadowsVal', (cameraRawState.curveRedShadows > 0 ? '+' : '') + cameraRawState.curveRedShadows);
+      setTxt('rawRedBlacksVal', (cameraRawState.curveRedBlacks > 0 ? '+' : '') + cameraRawState.curveRedBlacks);
+
+      setTxt('rawGreenWhitesVal', (cameraRawState.curveGreenWhites > 0 ? '+' : '') + cameraRawState.curveGreenWhites);
+      setTxt('rawGreenHighlightsVal', (cameraRawState.curveGreenHighlights > 0 ? '+' : '') + cameraRawState.curveGreenHighlights);
+      setTxt('rawGreenMidtonesVal', (cameraRawState.curveGreenMidtones > 0 ? '+' : '') + cameraRawState.curveGreenMidtones);
+      setTxt('rawGreenShadowsVal', (cameraRawState.curveGreenShadows > 0 ? '+' : '') + cameraRawState.curveGreenShadows);
+      setTxt('rawGreenBlacksVal', (cameraRawState.curveGreenBlacks > 0 ? '+' : '') + cameraRawState.curveGreenBlacks);
+
+      setTxt('rawBlueWhitesVal', (cameraRawState.curveBlueWhites > 0 ? '+' : '') + cameraRawState.curveBlueWhites);
+      setTxt('rawBlueHighlightsVal', (cameraRawState.curveBlueHighlights > 0 ? '+' : '') + cameraRawState.curveBlueHighlights);
+      setTxt('rawBlueMidtonesVal', (cameraRawState.curveBlueMidtones > 0 ? '+' : '') + cameraRawState.curveBlueMidtones);
+      setTxt('rawBlueShadowsVal', (cameraRawState.curveBlueShadows > 0 ? '+' : '') + cameraRawState.curveBlueShadows);
+      setTxt('rawBlueBlacksVal', (cameraRawState.curveBlueBlacks > 0 ? '+' : '') + cameraRawState.curveBlueBlacks);
+
       setTxt('rawOrangeLumVal', (cameraRawState.hslOrangeLum > 0 ? '+' : '') + cameraRawState.hslOrangeLum);
       setTxt('rawOrangeSatVal', (cameraRawState.hslOrangeSat > 0 ? '+' : '') + cameraRawState.hslOrangeSat);
       setTxt('rawRedLumVal', (cameraRawState.hslRedLum > 0 ? '+' : '') + cameraRawState.hslRedLum);
       setTxt('rawYellowSatVal', (cameraRawState.hslYellowSat > 0 ? '+' : '') + cameraRawState.hslYellowSat);
 
-      // Update Tone Curve SVG path
-      updateRawCurveSvg();
+      // Redraw curve canvas
+      drawRawCurveCanvas();
 
       // Apply client-side filters
       applyCameraRawFilters();
     }
 
-    function updateRawCurveSvg() {
-      const path = document.getElementById('rawCurvePath');
-      if (!path) return;
-      const sh = cameraRawState.curveShadows * 0.15;
-      const dk = cameraRawState.curveDarks * 0.15;
-      const lt = cameraRawState.curveLights * 0.15;
-      const hl = cameraRawState.curveHighlights * 0.15;
+    // =========================================================================
+    // MATHEMATICAL SPLINE & CURVE EVALUATORS
+    // =========================================================================
 
-      const y1 = Math.max(5, Math.min(95, 75 - sh - dk));
-      const y2 = Math.max(5, Math.min(95, 25 - lt - hl));
-      path.setAttribute('d', `M 0 100 C 30 ${y1}, 70 ${y2}, 100 0`);
+    function evaluateParametricCurveLut(sh, dk, lt, hl) {
+      const lut = new Float32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let delta = 0;
+        if (sh !== 0) {
+          const w = Math.pow(Math.max(0, (90 - i) / 90), 1.5);
+          delta += sh * 0.45 * w;
+        }
+        if (dk !== 0) {
+          const w = Math.exp(-Math.pow((i - 75) / 42, 2));
+          delta += dk * 0.45 * w;
+        }
+        if (lt !== 0) {
+          const w = Math.exp(-Math.pow((i - 180) / 42, 2));
+          delta += lt * 0.45 * w;
+        }
+        if (hl !== 0) {
+          const w = Math.pow(Math.max(0, (i - 165) / 90), 1.5);
+          delta += hl * 0.45 * w;
+        }
+        lut[i] = Math.max(0, Math.min(255, i + delta));
+      }
+      return lut;
     }
+
+    function evaluateCatmullRomSplineLut(bl, sh, mid, hl, wh) {
+      const lut = new Float32Array(256);
+      if (bl === 0 && sh === 0 && mid === 0 && hl === 0 && wh === 0) {
+        for (let i = 0; i < 256; i++) lut[i] = i;
+        return lut;
+      }
+      const xs = [0.0, 64.0, 128.0, 192.0, 255.0];
+      const ys = [
+        Math.max(0, Math.min(255, 0.0 + bl * 0.45)),
+        Math.max(0, Math.min(255, 64.0 + sh * 0.45)),
+        Math.max(0, Math.min(255, 128.0 + mid * 0.45)),
+        Math.max(0, Math.min(255, 192.0 + hl * 0.45)),
+        Math.max(0, Math.min(255, 255.0 + wh * 0.45))
+      ];
+
+      for (let i = 0; i < 256; i++) {
+        const x = i;
+        if (x <= xs[0]) {
+          lut[i] = ys[0];
+        } else if (x >= xs[4]) {
+          lut[i] = ys[4];
+        } else {
+          let idx = 0;
+          while (idx < 3 && xs[idx + 1] < x) idx++;
+          const x0 = xs[idx];
+          const x1 = xs[idx + 1];
+          const t = (x - x0) / (x1 - x0);
+          const p0 = ys[Math.max(0, idx - 1)];
+          const p1 = ys[idx];
+          const p2 = ys[idx + 1];
+          const p3 = ys[Math.min(4, idx + 2)];
+          const val = 0.5 * ((2.0 * p1) +
+                             (-p0 + p2) * t +
+                             (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * (t * t) +
+                             (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * (t * t * t));
+          lut[i] = Math.max(0, Math.min(255, val));
+        }
+      }
+      return lut;
+    }
+
+    // =========================================================================
+    // INTERACTIVE CURVE CANVAS GRAPH
+    // =========================================================================
+
+    function drawRawCurveCanvas() {
+      const cvs = document.getElementById('rawCurveCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width;
+      const h = cvs.height;
+
+      // 1. Clear background
+      ctx.fillStyle = '#070b14';
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Draw subtle 4x4 grid (at 25%, 50%, 75%)
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+      ctx.lineWidth = 1;
+      for (let step = 1; step <= 3; step++) {
+        const gx = Math.round((w * step) / 4);
+        const gy = Math.round((h * step) / 4);
+        ctx.beginPath();
+        ctx.moveTo(gx, 0); ctx.lineTo(gx, h);
+        ctx.moveTo(0, gy); ctx.lineTo(w, gy);
+        ctx.stroke();
+      }
+
+      // 3. Draw real-time histogram underlay if available
+      if (_cachedRawHist) {
+        ctx.save();
+        ctx.globalAlpha = 0.32;
+        const bins = _cachedRawHist;
+        const maxVal = Math.max(1, ...bins.r, ...bins.g, ...bins.b);
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        for (let i = 0; i < 256; i++) {
+          const x = (i / 255) * w;
+          const lum = Math.max(bins.r[i], bins.g[i], bins.b[i]);
+          const barH = (lum / maxVal) * (h * 0.85);
+          ctx.lineTo(x, h - barH);
+        }
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 4. Draw diagonal dashed baseline (0..255)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(w, 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const mode = cameraRawState.curveMode || 'parametric';
+
+      // 5. Compute curves for all channels
+      const paramLut = evaluateParametricCurveLut(
+        cameraRawState.curveShadows,
+        cameraRawState.curveDarks,
+        cameraRawState.curveLights,
+        cameraRawState.curveHighlights
+      );
+
+      const rgbLut = evaluateCatmullRomSplineLut(
+        cameraRawState.curveRgbBlacks,
+        cameraRawState.curveRgbShadows,
+        cameraRawState.curveRgbMidtones,
+        cameraRawState.curveRgbHighlights,
+        cameraRawState.curveRgbWhites
+      );
+
+      const rLut = evaluateCatmullRomSplineLut(
+        cameraRawState.curveRedBlacks,
+        cameraRawState.curveRedShadows,
+        cameraRawState.curveRedMidtones,
+        cameraRawState.curveRedHighlights,
+        cameraRawState.curveRedWhites
+      );
+
+      const gLut = evaluateCatmullRomSplineLut(
+        cameraRawState.curveGreenBlacks,
+        cameraRawState.curveGreenShadows,
+        cameraRawState.curveGreenMidtones,
+        cameraRawState.curveGreenHighlights,
+        cameraRawState.curveGreenWhites
+      );
+
+      const bLut = evaluateCatmullRomSplineLut(
+        cameraRawState.curveBlueBlacks,
+        cameraRawState.curveBlueShadows,
+        cameraRawState.curveBlueMidtones,
+        cameraRawState.curveBlueHighlights,
+        cameraRawState.curveBlueWhites
+      );
+
+      // Helper to stroke a curve
+      const renderCurvePath = (lut, strokeStyle, lineWidth, isGlow) => {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+        if (isGlow) {
+          ctx.shadowColor = strokeStyle;
+          ctx.shadowBlur = 8;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+        ctx.beginPath();
+        for (let i = 0; i < 256; i++) {
+          const cx = (i / 255) * w;
+          const cy = h - (lut[i] / 255) * h;
+          if (i === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      };
+
+      // Draw non-active channel ghost curves faintly
+      if (mode !== 'point_r') renderCurvePath(rLut, 'rgba(239, 68, 68, 0.22)', 1.2, false);
+      if (mode !== 'point_g') renderCurvePath(gLut, 'rgba(34, 197, 94, 0.22)', 1.2, false);
+      if (mode !== 'point_b') renderCurvePath(bLut, 'rgba(59, 130, 246, 0.22)', 1.2, false);
+      if (mode !== 'point_rgb') renderCurvePath(rgbLut, 'rgba(255, 255, 255, 0.22)', 1.2, false);
+
+      // Draw active channel curve prominently
+      let activeLut = paramLut;
+      let activeColor = '#38bdf8';
+      let pts = [];
+
+      if (mode === 'parametric') {
+        activeLut = paramLut;
+        activeColor = '#38bdf8';
+      } else if (mode === 'point_rgb') {
+        activeLut = rgbLut;
+        activeColor = '#ffffff';
+        pts = [0, 64, 128, 192, 255];
+      } else if (mode === 'point_r') {
+        activeLut = rLut;
+        activeColor = '#ef4444';
+        pts = [0, 64, 128, 192, 255];
+      } else if (mode === 'point_g') {
+        activeLut = gLut;
+        activeColor = '#22c55e';
+        pts = [0, 64, 128, 192, 255];
+      } else if (mode === 'point_b') {
+        activeLut = bLut;
+        activeColor = '#3b82f6';
+        pts = [0, 64, 128, 192, 255];
+      }
+
+      renderCurvePath(activeLut, activeColor, 2.6, true);
+
+      // Draw control handles / points
+      if (mode === 'parametric') {
+        // Draw 3 region split dividers at bottom
+        ctx.fillStyle = '#94a3b8';
+        [64, 128, 192].forEach(val => {
+          const cx = (val / 255) * w;
+          ctx.beginPath();
+          ctx.arc(cx, h - 5, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else {
+        // Draw 5 point handles on active curve
+        pts.forEach(p => {
+          const cx = (p / 255) * w;
+          const cy = h - (activeLut[p] / 255) * h;
+          ctx.fillStyle = activeColor;
+          ctx.strokeStyle = '#070b14';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
+      }
+    }
+
+    // Setup interactive mouse / touch listeners on curve canvas
+    let _curveCanvasDragging = false;
+
+    function initCurveCanvasInteractivity() {
+      const cvs = document.getElementById('rawCurveCanvas');
+      if (!cvs || cvs._hasCurveEvents) return;
+      cvs._hasCurveEvents = true;
+
+      const handlePointerDown = e => {
+        _curveCanvasDragging = true;
+        handlePointerMove(e);
+      };
+
+      const handlePointerMove = e => {
+        if (!_curveCanvasDragging) return;
+        const rect = cvs.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const normY = Math.max(0, Math.min(1, 1.0 - (clientY - rect.top) / rect.height));
+
+        const inLevel = Math.round(normX * 255);
+        const outLevel = Math.round(normY * 255);
+        const delta = Math.round(((outLevel - inLevel) / 0.45));
+        const clampedDelta = Math.max(-100, Math.min(100, delta));
+
+        const mode = cameraRawState.curveMode || 'parametric';
+        if (mode === 'parametric') {
+          if (inLevel < 64) setSliderVal('rawCurveShadows', clampedDelta);
+          else if (inLevel < 128) setSliderVal('rawCurveDarks', clampedDelta);
+          else if (inLevel < 192) setSliderVal('rawCurveLights', clampedDelta);
+          else setSliderVal('rawCurveHighlights', clampedDelta);
+        } else {
+          let prefix = 'rawRgb';
+          if (mode === 'point_r') prefix = 'rawRed';
+          else if (mode === 'point_g') prefix = 'rawGreen';
+          else if (mode === 'point_b') prefix = 'rawBlue';
+
+          if (inLevel < 32) setSliderVal(prefix + 'Blacks', clampedDelta);
+          else if (inLevel < 96) setSliderVal(prefix + 'Shadows', clampedDelta);
+          else if (inLevel < 160) setSliderVal(prefix + 'Midtones', clampedDelta);
+          else if (inLevel < 224) setSliderVal(prefix + 'Highlights', clampedDelta);
+          else setSliderVal(prefix + 'Whites', clampedDelta);
+        }
+        onCameraRawSliderInput();
+      };
+
+      const handlePointerUp = () => {
+        _curveCanvasDragging = false;
+      };
+
+      cvs.addEventListener('mousedown', handlePointerDown);
+      window.addEventListener('mousemove', handlePointerMove);
+      window.addEventListener('mouseup', handlePointerUp);
+
+      cvs.addEventListener('touchstart', handlePointerDown, { passive: false });
+      window.addEventListener('touchmove', handlePointerMove, { passive: false });
+      window.addEventListener('touchend', handlePointerUp);
+    }
+
+    // =========================================================================
+    // CLIENT-SIDE HIGH PERFORMANCE FILTER ENGINE
+    // =========================================================================
 
     function applyCameraRawFilters() {
       if (!photoState.framedImg) return;
@@ -11566,12 +12326,25 @@ function getApiUrl(endpoint) {
       const sh = (params.shadows || 0) * 0.65;
       const wh = (params.whites || 0) * 0.5;
       const bl = (params.blacks || 0) * 0.5;
-      const curHl = (params.curveHighlights || 0) * 0.4;
-      const curLt = (params.curveLights || 0) * 0.4;
-      const curDk = (params.curveDarks || 0) * 0.4;
-      const curSh = (params.curveShadows || 0) * 0.4;
 
-      const lut = new Float32Array(256);
+      // 1. Build Parametric & RGB Master Tone Curves
+      const paramLut = evaluateParametricCurveLut(
+        params.curveShadows || 0,
+        params.curveDarks || 0,
+        params.curveLights || 0,
+        params.curveHighlights || 0
+      );
+
+      const rgbPointLut = evaluateCatmullRomSplineLut(
+        params.curveRgbBlacks || 0,
+        params.curveRgbShadows || 0,
+        params.curveRgbMidtones || 0,
+        params.curveRgbHighlights || 0,
+        params.curveRgbWhites || 0
+      );
+
+      // Build Master composite LUT
+      const masterLut = new Uint8ClampedArray(256);
       for (let i = 0; i < 256; i++) {
         let v = i;
         if (sh !== 0) v += sh * Math.pow(Math.max(0, (128 - i) / 128), 1.8);
@@ -11579,11 +12352,48 @@ function getApiUrl(endpoint) {
         if (wh !== 0) v += wh * Math.pow(Math.max(0, (i - 190) / 65), 2.0);
         if (bl !== 0) v += bl * Math.pow(Math.max(0, (64 - i) / 64), 2.0);
         if (contrast !== 0) v = cFactor * (v - 128) + 128;
-        if (curSh !== 0) v += curSh * Math.pow(Math.max(0, (64 - i) / 64), 1.5);
-        if (curDk !== 0) v += curDk * Math.max(0, (128 - i) / 128) * Math.max(0, i / 128);
-        if (curLt !== 0) v += curLt * Math.max(0, (i - 128) / 128) * Math.max(0, (255 - i) / 127);
-        if (curHl !== 0) v += curHl * Math.pow(Math.max(0, (i - 192) / 63), 1.5);
-        lut[i] = Math.max(0, Math.min(255, v));
+        v = Math.max(0, Math.min(255, v));
+
+        // Parametric curve lookup
+        const pVal = paramLut[Math.round(v)];
+        // RGB Point curve lookup
+        masterLut[i] = rgbPointLut[Math.round(pVal)];
+      }
+
+      // 2. Build Per-Channel Spline Curves
+      const rPointLut = evaluateCatmullRomSplineLut(
+        params.curveRedBlacks || 0,
+        params.curveRedShadows || 0,
+        params.curveRedMidtones || 0,
+        params.curveRedHighlights || 0,
+        params.curveRedWhites || 0
+      );
+
+      const gPointLut = evaluateCatmullRomSplineLut(
+        params.curveGreenBlacks || 0,
+        params.curveGreenShadows || 0,
+        params.curveGreenMidtones || 0,
+        params.curveGreenHighlights || 0,
+        params.curveGreenWhites || 0
+      );
+
+      const bPointLut = evaluateCatmullRomSplineLut(
+        params.curveBlueBlacks || 0,
+        params.curveBlueShadows || 0,
+        params.curveBlueMidtones || 0,
+        params.curveBlueHighlights || 0,
+        params.curveBlueWhites || 0
+      );
+
+      const finalLutR = new Uint8ClampedArray(256);
+      const finalLutG = new Uint8ClampedArray(256);
+      const finalLutB = new Uint8ClampedArray(256);
+
+      for (let i = 0; i < 256; i++) {
+        const mv = masterLut[i];
+        finalLutR[i] = rPointLut[mv];
+        finalLutG[i] = gPointLut[mv];
+        finalLutB[i] = bPointLut[mv];
       }
 
       const isBw = !!params.isBw;
@@ -11599,24 +12409,24 @@ function getApiUrl(endpoint) {
         let g = data[i + 1];
         let b = data[i + 2];
 
+        // White Balance
         r = Math.min(255, r * rMult);
         g = Math.min(255, g * gMult);
         b = Math.min(255, b * bMult);
 
+        // Exposure
         if (expFactor !== 1.0) {
           r = Math.min(255, r * expFactor);
           g = Math.min(255, g * expFactor);
           b = Math.min(255, b * expFactor);
         }
 
-        const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-        const newLum = lut[lum];
-        const lumRatio = lum > 0 ? (newLum / lum) : 1.0;
+        // Tone Curve & RGB Channels lookup
+        r = finalLutR[Math.round(r)];
+        g = finalLutG[Math.round(g)];
+        b = finalLutB[Math.round(b)];
 
-        r = Math.min(255, Math.max(0, r * lumRatio));
-        g = Math.min(255, Math.max(0, g * lumRatio));
-        b = Math.min(255, Math.max(0, b * lumRatio));
-
+        // Color Mixer: Skin Tone Tuning (Orange, Red, Yellow)
         if (orangeLum !== 0 || orangeSat !== 0 || redLum !== 0 || yellowSat !== 0) {
           const maxC = Math.max(r, g, b);
           const minC = Math.min(r, g, b);
@@ -11641,156 +12451,147 @@ function getApiUrl(endpoint) {
                 g = Math.min(255, Math.max(0, mean + (g - mean) * (1 + orangeSat * wgt * 0.01)));
               }
             }
-            if (hue >= 345 || hue <= 15) {
-              if (redLum !== 0) r = Math.min(255, r + redLum * 0.5);
+            if (hue >= 45 && hue <= 75 && yellowSat !== 0) {
+              const mean = (r + g + b) / 3;
+              r = Math.min(255, Math.max(0, mean + (r - mean) * (1 + yellowSat * 0.01)));
+              g = Math.min(255, Math.max(0, mean + (g - mean) * (1 + yellowSat * 0.01)));
+            }
+            if ((hue >= 345 || hue <= 15) && redLum !== 0) {
+              r = Math.min(255, r + redLum * 0.5);
             }
           }
         }
 
+        // B&W Conversion
         if (isBw) {
-          const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-          data[i] = gray;
-          data[i + 1] = gray;
-          data[i + 2] = gray;
-        } else {
-          if (vibrance !== 0 || satFactor !== 1.0) {
-            const maxC = Math.max(r, g, b);
-            const minC = Math.min(r, g, b);
-            const currentSat = maxC > 0 ? (maxC - minC) / maxC : 0;
-            const vibFactor = 1.0 + vibrance * (1.0 - currentSat);
-            const totalSatFactor = satFactor * vibFactor;
+          const mono = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+          data[i] = mono;
+          data[i + 1] = mono;
+          data[i + 2] = mono;
+          continue;
+        }
 
-            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-            data[i] = Math.min(255, Math.max(0, gray + (r - gray) * totalSatFactor));
-            data[i + 1] = Math.min(255, Math.max(0, gray + (g - gray) * totalSatFactor));
-            data[i + 2] = Math.min(255, Math.max(0, gray + (b - gray) * totalSatFactor));
-          } else {
-            data[i] = r;
-            data[i + 1] = g;
-            data[i + 2] = b;
+        // Vibrance & Saturation
+        if (satFactor !== 1.0 || vibrance !== 0) {
+          const maxC = Math.max(r, g, b);
+          const minC = Math.min(r, g, b);
+          const curSat = maxC > 0 ? (maxC - minC) / maxC : 0;
+          let effSat = satFactor;
+          if (vibrance !== 0) {
+            effSat += vibrance * (1.0 - curSat);
+          }
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          r = Math.min(255, Math.max(0, gray + (r - gray) * effSat));
+          g = Math.min(255, Math.max(0, gray + (g - gray) * effSat));
+          b = Math.min(255, Math.max(0, gray + (b - gray) * effSat));
+        }
+
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+      }
+
+      // Vignette
+      if (params.vignette && params.vignette !== 0) {
+        const vig = params.vignette * 0.01;
+        const cx = w / 2;
+        const cy = h / 2;
+        const maxDist = Math.sqrt(cx * cx + cy * cy);
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = (y * w + x) * 4;
+            const dist = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / maxDist;
+            const factor = Math.max(0, Math.min(1.5, 1.0 - vig * Math.pow(dist, 2)));
+            data[idx] = Math.min(255, data[idx] * factor);
+            data[idx + 1] = Math.min(255, data[idx + 1] * factor);
+            data[idx + 2] = Math.min(255, data[idx + 2] * factor);
           }
         }
       }
 
       ctx.putImageData(imgData, 0, 0);
-
-      const texture = params.texture || 0;
-      const nr = params.noiseReduction || 0;
-      if (texture < 0 || nr > 0) {
-        const blurRadius = Math.min(4, Math.max(1, Math.round((Math.abs(texture) + nr) / 30)));
-        const blendAmt = Math.min(0.65, (Math.abs(texture) * 0.006) + (nr * 0.005));
-        const blurCanvas = document.createElement('canvas');
-        blurCanvas.width = w;
-        blurCanvas.height = h;
-        const bCtx = blurCanvas.getContext('2d');
-        bCtx.filter = `blur(${blurRadius}px)`;
-        bCtx.drawImage(srcCanvas, 0, 0);
-
-        ctx.save();
-        ctx.globalAlpha = blendAmt;
-        ctx.drawImage(blurCanvas, 0, 0);
-        ctx.restore();
-      }
-
       return imgData;
     }
 
     function drawCameraRawHistogram(canvasId, imgData) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas || !imgData) return;
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
+      const cvs = document.getElementById(canvasId);
+      if (!cvs || !imgData) return;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width;
+      const h = cvs.height;
 
       ctx.fillStyle = '#090e18';
       ctx.fillRect(0, 0, w, h);
 
-      const histR = new Uint32Array(256);
-      const histG = new Uint32Array(256);
-      const histB = new Uint32Array(256);
-      const data = imgData.data;
-      const step = Math.max(1, Math.floor((data.length / 4) / 30000));
+      const rBins = new Uint32Array(256);
+      const gBins = new Uint32Array(256);
+      const bBins = new Uint32Array(256);
 
-      for (let i = 0; i < data.length; i += 4 * step) {
-        histR[data[i]]++;
-        histG[data[i + 1]]++;
-        histB[data[i + 2]]++;
+      const d = imgData.data;
+      const step = Math.max(1, Math.floor(d.length / (4 * 25000)));
+      for (let i = 0; i < d.length; i += 4 * step) {
+        rBins[d[i]]++;
+        gBins[d[i + 1]]++;
+        bBins[d[i + 2]]++;
       }
 
-      let maxCount = 1;
-      for (let i = 2; i < 254; i++) {
-        if (histR[i] > maxCount) maxCount = histR[i];
-        if (histG[i] > maxCount) maxCount = histG[i];
-        if (histB[i] > maxCount) maxCount = histB[i];
+      // Cache for curve underlay
+      _cachedRawHist = { r: rBins, g: gBins, b: bBins };
+
+      let maxBin = 1;
+      for (let i = 0; i < 256; i++) {
+        if (rBins[i] > maxBin) maxBin = rBins[i];
+        if (gBins[i] > maxBin) maxBin = gBins[i];
+        if (bBins[i] > maxBin) maxBin = bBins[i];
       }
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.lineWidth = 1;
-      for (let x = w / 4; x < w; x += w / 4) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
 
-      function drawChannel(hist, color) {
+      const drawChannel = (bins, color) => {
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.moveTo(0, h);
         for (let i = 0; i < 256; i++) {
-          const x = (i / 255) * w;
-          const y = h - (hist[i] / maxCount) * (h - 4);
-          ctx.lineTo(x, y);
+          const bx = (i / 255) * w;
+          const bh = (bins[i] / maxBin) * (h * 0.95);
+          ctx.lineTo(bx, h - bh);
         }
         ctx.lineTo(w, h);
         ctx.closePath();
-        ctx.fillStyle = color;
         ctx.fill();
-      }
+      };
 
-      ctx.globalCompositeOperation = 'screen';
-      drawChannel(histR, 'rgba(239, 68, 68, 0.55)');
-      drawChannel(histG, 'rgba(34, 197, 94, 0.55)');
-      drawChannel(histB, 'rgba(59, 130, 246, 0.55)');
-      ctx.globalCompositeOperation = 'source-over';
+      drawChannel(rBins, 'rgba(239, 68, 68, 0.65)');
+      drawChannel(gBins, 'rgba(34, 197, 94, 0.65)');
+      drawChannel(bBins, 'rgba(59, 130, 246, 0.65)');
+
+      ctx.restore();
     }
 
-    // =========================================================================
-    // CAMERA RAW FULLSCREEN MODAL CONTROLLERS
-    // =========================================================================
-
     function openCameraRawModal() {
-      if (!photoState.framedImg && !photoState.rawImg) {
-        showToast('Please scan or upload a photo first!', 'warning');
-        return;
-      }
       const modal = document.getElementById('cameraRawModal');
       if (!modal) return;
       modal.style.display = 'flex';
-
-      // Clone accordions to modal container if empty
-      const container = document.getElementById('rawModalAccordionsContainer');
-      const srcCard = document.getElementById('cameraRawSidebarCard');
-      if (container && srcCard && container.children.length === 0) {
-        const accordions = srcCard.querySelectorAll('.raw-panel-accordion');
-        accordions.forEach(acc => {
-          const clone = acc.cloneNode(true);
-          // Sync inputs in clone
-          clone.querySelectorAll('input').forEach(inp => {
-            inp.id = 'modal_' + inp.id;
-            inp.oninput = (e) => {
-              const origId = e.target.id.replace('modal_', '');
-              const origEl = document.getElementById(origId);
-              if (origEl) origEl.value = e.target.value;
-              onCameraRawSliderInput();
-            };
-          });
-          container.appendChild(clone);
-        });
-      }
-
       setCameraRawViewMode(cameraRawState.viewMode || 'single');
-      applyCameraRawFilters();
+
+      // Initialize interactive curve canvas
+      initCurveCanvasInteractivity();
+      drawRawCurveCanvas();
+
+      if (photoState.framedImg) {
+        const img = new Image();
+        img.onload = () => {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = img.width;
+          tempCanvas.height = img.height;
+          const tCtx = tempCanvas.getContext('2d');
+          tCtx.drawImage(img, 0, 0);
+          renderCameraRawCanvas(tempCanvas, cameraRawState);
+          updateCameraRawModalCanvas(img, tempCanvas);
+        };
+        img.src = photoState.framedImg;
+      }
     }
 
     function closeCameraRawModal() {
@@ -11798,24 +12599,30 @@ function getApiUrl(endpoint) {
       if (modal) modal.style.display = 'none';
     }
 
+    function applyCameraRawModalSettings() {
+      closeCameraRawModal();
+      showToast('Camera Raw settings applied to Passport Photo Sheet', 'success');
+      renderPhotoGridSheet();
+    }
+
     function setCameraRawViewMode(mode) {
       cameraRawState.viewMode = mode;
-      const btnSingle = document.getElementById('btnRawViewSingle');
-      const btnSplit = document.getElementById('btnRawViewSplit');
-      const divider = document.getElementById('rawModalSplitDivider');
+      const btn1 = document.getElementById('btnRawViewSingle');
+      const btn2 = document.getElementById('btnRawViewSplit');
+      if (btn1) btn1.classList.toggle('active', mode === 'single');
+      if (btn2) btn2.classList.toggle('active', mode === 'split');
 
-      if (btnSingle) btnSingle.classList.toggle('active', mode === 'single');
-      if (btnSplit) btnSplit.classList.toggle('active', mode === 'split');
-      if (divider) divider.style.display = (mode === 'split') ? 'block' : 'none';
+      const divider = document.getElementById('rawModalSplitDivider');
+      if (divider) divider.style.display = mode === 'split' ? 'block' : 'none';
 
       applyCameraRawFilters();
     }
 
-    function updateCameraRawModalCanvas(origImg, filteredCanvas) {
+    function updateCameraRawModalCanvas(origImg, enhancedCanvas) {
       const mCanvas = document.getElementById('rawModalCanvas');
       if (!mCanvas) return;
-      mCanvas.width = filteredCanvas.width;
-      mCanvas.height = filteredCanvas.height;
+      mCanvas.width = origImg.width;
+      mCanvas.height = origImg.height;
       const mCtx = mCanvas.getContext('2d');
 
       if (cameraRawState.viewMode === 'split') {
@@ -11828,31 +12635,30 @@ function getApiUrl(endpoint) {
         mCtx.drawImage(origImg, 0, 0);
         mCtx.restore();
 
-        // Draw Filtered on right
+        // Draw Enhanced on right
         mCtx.save();
         mCtx.beginPath();
         mCtx.rect(splitX, 0, mCanvas.width - splitX, mCanvas.height);
         mCtx.clip();
-        mCtx.drawImage(filteredCanvas, 0, 0);
+        mCtx.drawImage(enhancedCanvas, 0, 0);
         mCtx.restore();
 
-        // Position divider
         const divider = document.getElementById('rawModalSplitDivider');
         if (divider) {
-          divider.style.left = `${(cameraRawState.splitRatio || 0.5) * 100}%`;
+          divider.style.left = (Math.round((cameraRawState.splitRatio || 0.5) * 100)) + '%';
         }
       } else {
-        mCtx.drawImage(filteredCanvas, 0, 0);
+        mCtx.drawImage(enhancedCanvas, 0, 0);
       }
 
       const dim = document.getElementById('rawModalDimLabel');
-      if (dim) dim.innerText = `${mCanvas.width} × ${mCanvas.height} px`;
+      if (dim) dim.innerText = origImg.width + ' × ' + origImg.height + ' px';
     }
 
-    function applyCameraRawModalSettings() {
-      closeCameraRawModal();
-      showToast('Camera Raw settings applied to Passport Photo Sheet!', 'success');
-    }
+    // Attach curve canvas event listeners on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      initCurveCanvasInteractivity();
+    });
 
     // =========================================================================
     // PASSPORT PHOTO BIOMETRIC CROPPER & AI BACKGROUND STUDIO CONTROLLERS

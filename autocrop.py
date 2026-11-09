@@ -1203,6 +1203,57 @@ def enhance_passport_photo(image_input, preset="studio", brightness=0, contrast=
     enhanced_rgb = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2RGB)
     return Image.fromarray(enhanced_rgb)
 
+def _evaluate_parametric_lut(cur_sh=0.0, cur_dk=0.0, cur_lt=0.0, cur_hl=0.0):
+    lut = np.arange(256, dtype=np.float32)
+    if cur_sh != 0:
+        w_sh = np.clip((90.0 - lut) / 90.0, 0, 1) ** 1.5
+        lut += cur_sh * 0.45 * w_sh
+    if cur_dk != 0:
+        w_dk = np.exp(-((lut - 75.0) / 42.0) ** 2)
+        lut += cur_dk * 0.45 * w_dk
+    if cur_lt != 0:
+        w_lt = np.exp(-((lut - 180.0) / 42.0) ** 2)
+        lut += cur_lt * 0.45 * w_lt
+    if cur_hl != 0:
+        w_hl = np.clip((lut - 165.0) / 90.0, 0, 1) ** 1.5
+        lut += cur_hl * 0.45 * w_hl
+    return np.clip(lut, 0, 255).astype(np.uint8)
+
+def _evaluate_catmull_rom_lut(bl=0.0, sh=0.0, mid=0.0, hl=0.0, wh=0.0):
+    if bl == 0 and sh == 0 and mid == 0 and hl == 0 and wh == 0:
+        return np.arange(256, dtype=np.uint8)
+    xs = [0.0, 64.0, 128.0, 192.0, 255.0]
+    ys = [
+        max(0.0, min(255.0, 0.0 + bl * 0.45)),
+        max(0.0, min(255.0, 64.0 + sh * 0.45)),
+        max(0.0, min(255.0, 128.0 + mid * 0.45)),
+        max(0.0, min(255.0, 192.0 + hl * 0.45)),
+        max(0.0, min(255.0, 255.0 + wh * 0.45))
+    ]
+    lut = np.zeros(256, dtype=np.float32)
+    for i in range(256):
+        x = float(i)
+        if x <= xs[0]:
+            lut[i] = ys[0]
+        elif x >= xs[-1]:
+            lut[i] = ys[-1]
+        else:
+            idx = 0
+            while idx < len(xs) - 2 and xs[idx + 1] < x:
+                idx += 1
+            x0, x1 = xs[idx], xs[idx + 1]
+            t = (x - x0) / (x1 - x0)
+            p0 = ys[max(0, idx - 1)]
+            p1 = ys[idx]
+            p2 = ys[idx + 1]
+            p3 = ys[min(len(ys) - 1, idx + 2)]
+            val = 0.5 * ((2.0 * p1) +
+                         (-p0 + p2) * t +
+                         (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * (t ** 2) +
+                         (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * (t ** 3))
+            lut[i] = val
+    return np.clip(lut, 0, 255).astype(np.uint8)
+
 def apply_camera_raw_filter(image_input, raw_params=None):
     """
     Adobe Photoshop Camera Raw 18.3-style professional portrait processor:
@@ -1249,10 +1300,35 @@ def apply_camera_raw_filter(image_input, raw_params=None):
     sharpening = float(raw_params.get("sharpening", 0.0))
     noise_reduction = float(raw_params.get("noise_reduction", 0.0))
 
-    curve_highlights = float(raw_params.get("curve_highlights", 0.0))
-    curve_lights = float(raw_params.get("curve_lights", 0.0))
-    curve_darks = float(raw_params.get("curve_darks", 0.0))
-    curve_shadows = float(raw_params.get("curve_shadows", 0.0))
+    curve_highlights = float(raw_params.get("curve_highlights", raw_params.get("curveHighlights", 0.0)))
+    curve_lights = float(raw_params.get("curve_lights", raw_params.get("curveLights", 0.0)))
+    curve_darks = float(raw_params.get("curve_darks", raw_params.get("curveDarks", 0.0)))
+    curve_shadows = float(raw_params.get("curve_shadows", raw_params.get("curveShadows", 0.0)))
+
+    # Point Curves: RGB Master + Red, Green, Blue Channels
+    curve_rgb_whites = float(raw_params.get("curve_rgb_whites", raw_params.get("curveRgbWhites", 0.0)))
+    curve_rgb_highlights = float(raw_params.get("curve_rgb_highlights", raw_params.get("curveRgbHighlights", 0.0)))
+    curve_rgb_midtones = float(raw_params.get("curve_rgb_midtones", raw_params.get("curveRgbMidtones", 0.0)))
+    curve_rgb_shadows = float(raw_params.get("curve_rgb_shadows", raw_params.get("curveRgbShadows", 0.0)))
+    curve_rgb_blacks = float(raw_params.get("curve_rgb_blacks", raw_params.get("curveRgbBlacks", 0.0)))
+
+    curve_red_whites = float(raw_params.get("curve_red_whites", raw_params.get("curveRedWhites", 0.0)))
+    curve_red_highlights = float(raw_params.get("curve_red_highlights", raw_params.get("curveRedHighlights", 0.0)))
+    curve_red_midtones = float(raw_params.get("curve_red_midtones", raw_params.get("curveRedMidtones", 0.0)))
+    curve_red_shadows = float(raw_params.get("curve_red_shadows", raw_params.get("curveRedShadows", 0.0)))
+    curve_red_blacks = float(raw_params.get("curve_red_blacks", raw_params.get("curveRedBlacks", 0.0)))
+
+    curve_green_whites = float(raw_params.get("curve_green_whites", raw_params.get("curveGreenWhites", 0.0)))
+    curve_green_highlights = float(raw_params.get("curve_green_highlights", raw_params.get("curveGreenHighlights", 0.0)))
+    curve_green_midtones = float(raw_params.get("curve_green_midtones", raw_params.get("curveGreenMidtones", 0.0)))
+    curve_green_shadows = float(raw_params.get("curve_green_shadows", raw_params.get("curveGreenShadows", 0.0)))
+    curve_green_blacks = float(raw_params.get("curve_green_blacks", raw_params.get("curveGreenBlacks", 0.0)))
+
+    curve_blue_whites = float(raw_params.get("curve_blue_whites", raw_params.get("curveBlueWhites", 0.0)))
+    curve_blue_highlights = float(raw_params.get("curve_blue_highlights", raw_params.get("curveBlueHighlights", 0.0)))
+    curve_blue_midtones = float(raw_params.get("curve_blue_midtones", raw_params.get("curveBlueMidtones", 0.0)))
+    curve_blue_shadows = float(raw_params.get("curve_blue_shadows", raw_params.get("curveBlueShadows", 0.0)))
+    curve_blue_blacks = float(raw_params.get("curve_blue_blacks", raw_params.get("curveBlueBlacks", 0.0)))
 
     hsl_orange_lum = float(raw_params.get("hsl_orange_lum", 0.0))
     hsl_orange_sat = float(raw_params.get("hsl_orange_sat", 0.0))
@@ -1321,16 +1397,7 @@ def apply_camera_raw_filter(image_input, raw_params=None):
         c_factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast))
         l_float = c_factor * (l_float - 128.0) + 128.0
 
-    if curve_highlights != 0 or curve_lights != 0 or curve_darks != 0 or curve_shadows != 0:
-        lut = np.arange(256, dtype=np.float32)
-        lut += curve_shadows * 0.4 * (np.clip((64.0 - lut) / 64.0, 0, 1) ** 1.5)
-        lut += curve_darks * 0.4 * (np.clip((128.0 - lut) / 128.0, 0, 1) * np.clip(lut / 128.0, 0, 1))
-        lut += curve_lights * 0.4 * (np.clip((lut - 128.0) / 128.0, 0, 1) * np.clip((255.0 - lut) / 127.0, 0, 1))
-        lut += curve_highlights * 0.4 * (np.clip((lut - 192.0) / 63.0, 0, 1) ** 1.5)
-        lut_uint8 = np.clip(lut, 0, 255).astype(np.uint8)
-        l_chan = cv2.LUT(np.clip(l_float, 0, 255).astype(np.uint8), lut_uint8)
-    else:
-        l_chan = np.clip(l_float, 0, 255).astype(np.uint8)
+    l_chan = np.clip(l_float, 0, 255).astype(np.uint8)
 
     # 6. Sharpening
     if sharpening > 0:
@@ -1340,6 +1407,26 @@ def apply_camera_raw_filter(image_input, raw_params=None):
 
     lab = cv2.merge([l_chan, a_chan, b_chan])
     img_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+    # 6b. Adobe Camera Raw Tone Curve & Per-Channel RGB Curves
+    lut_param = _evaluate_parametric_lut(curve_shadows, curve_darks, curve_lights, curve_highlights)
+    lut_rgb_point = _evaluate_catmull_rom_lut(curve_rgb_blacks, curve_rgb_shadows, curve_rgb_midtones, curve_rgb_highlights, curve_rgb_whites)
+    lut_master = lut_rgb_point[lut_param]
+
+    lut_r_point = _evaluate_catmull_rom_lut(curve_red_blacks, curve_red_shadows, curve_red_midtones, curve_red_highlights, curve_red_whites)
+    lut_g_point = _evaluate_catmull_rom_lut(curve_green_blacks, curve_green_shadows, curve_green_midtones, curve_green_highlights, curve_green_whites)
+    lut_b_point = _evaluate_catmull_rom_lut(curve_blue_blacks, curve_blue_shadows, curve_blue_midtones, curve_blue_highlights, curve_blue_whites)
+
+    final_lut_r = lut_r_point[lut_master]
+    final_lut_g = lut_g_point[lut_master]
+    final_lut_b = lut_b_point[lut_master]
+
+    # Apply per-channel RGB LUTs directly
+    b_chan, g_chan, r_chan = cv2.split(img_bgr)
+    b_chan = cv2.LUT(b_chan, final_lut_b)
+    g_chan = cv2.LUT(g_chan, final_lut_g)
+    r_chan = cv2.LUT(r_chan, final_lut_r)
+    img_bgr = cv2.merge([b_chan, g_chan, r_chan])
 
     # 7. Color Mixer & Skin Tone Tuning (Orange / Red Hue Bands)
     if hsl_orange_lum != 0 or hsl_orange_sat != 0 or hsl_red_lum != 0 or hsl_yellow_sat != 0:
