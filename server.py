@@ -563,7 +563,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
-        if url.path == "/api/photo/enhance":
+        if url.path == "/api/photo/enhance" or url.path == "/api/photo/camera_raw":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
             try:
@@ -572,29 +572,35 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 if "," in img_data:
                     img_data = img_data.split(",", 1)[1]
                 raw_bytes = base64.b64decode(img_data)
-                preset = params.get("preset", "studio")
-                brightness = float(params.get("brightness", 0))
-                contrast = float(params.get("contrast", 10))
-                sharpness = float(params.get("sharpness", 35))
-                saturation = float(params.get("saturation", 115))
-                bg_mode = params.get("bg_mode", "white")
 
                 from io import BytesIO
                 from PIL import Image
                 input_pil = Image.open(BytesIO(raw_bytes))
-                enh_pil = autocrop.enhance_passport_photo(
-                    input_pil,
-                    preset=preset,
-                    brightness=brightness,
-                    contrast=contrast,
-                    sharpness=sharpness,
-                    saturation=saturation,
-                    bg_mode=bg_mode
-                )
+
+                raw_params = params.get("raw_params")
+                if raw_params:
+                    enh_pil = autocrop.apply_camera_raw_filter(input_pil, raw_params)
+                else:
+                    preset = params.get("preset", "studio")
+                    brightness = float(params.get("brightness", 0))
+                    contrast = float(params.get("contrast", 10))
+                    sharpness = float(params.get("sharpness", 35))
+                    saturation = float(params.get("saturation", 115))
+                    bg_mode = params.get("bg_mode", "white")
+                    enh_pil = autocrop.enhance_passport_photo(
+                        input_pil,
+                        preset=preset,
+                        brightness=brightness,
+                        contrast=contrast,
+                        sharpness=sharpness,
+                        saturation=saturation,
+                        bg_mode=bg_mode
+                    )
+
                 out_io = BytesIO()
-                enh_pil.save(out_io, format="PNG")
+                enh_pil.save(out_io, format="JPEG", quality=96)
                 out_b64 = base64.b64encode(out_io.getvalue()).decode("utf-8")
-                resp = {"success": True, "image": f"data:image/png;base64,{out_b64}"}
+                resp = {"success": True, "image": f"data:image/jpeg;base64,{out_b64}"}
             except Exception as e:
                 resp = {"success": False, "error": str(e)}
 

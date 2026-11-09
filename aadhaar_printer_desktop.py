@@ -1526,8 +1526,9 @@ class AadhaarPrinterApp:
 
         p1 = ttk.Frame(sec_enh)
         p1.pack(fill=tk.X, pady=2)
-        ttk.Button(p1, text="✨ Studio Portrait", command=lambda: self.set_photo_enhancement_preset("studio")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
-        ttk.Button(p1, text="🔷 Light Blue BG", command=lambda: self.set_photo_enhancement_preset("lightblue")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
+        ttk.Button(p1, text="✨ Studio", command=lambda: self.set_photo_enhancement_preset("studio")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
+        ttk.Button(p1, text="👶 Skin Soften", command=lambda: self.set_photo_enhancement_preset("skin_soften")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
+        ttk.Button(p1, text="🔷 Blue BG", command=lambda: self.set_photo_enhancement_preset("lightblue")).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
 
         p2 = ttk.Frame(sec_enh)
         p2.pack(fill=tk.X, pady=2)
@@ -1822,6 +1823,13 @@ class AadhaarPrinterApp:
             self.photo_contrast.set(20.0)
             self.photo_brightness.set(5.0)
             self.photo_saturation.set(135.0)
+        elif preset == "skin_soften":
+            # Camera Raw Baby / Skin Softening (Texture -28, Shadows +68, Noise Reduction 16)
+            self.photo_bg_whiten.set(30.0)
+            self.photo_sharpness.set(0.0)
+            self.photo_contrast.set(5.0)
+            self.photo_brightness.set(0.0)
+            self.photo_saturation.set(115.0)
         elif preset == "original":
             self.photo_bg_whiten.set(0.0)
             self.photo_sharpness.set(0.0)
@@ -1836,16 +1844,35 @@ class AadhaarPrinterApp:
             return
 
         try:
-            bg_mode = "lightblue" if self.photo_preset.get() == "lightblue" else "white"
-            self.photo_enhanced_img = autocrop.enhance_passport_photo(
-                self.photo_raw_img,
-                preset=self.photo_preset.get(),
-                brightness=float(self.photo_brightness.get()),
-                contrast=float(self.photo_contrast.get()),
-                sharpness=float(self.photo_sharpness.get()),
-                saturation=float(self.photo_saturation.get()),
-                bg_mode=bg_mode
-            )
+            if self.photo_preset.get() == "skin_soften":
+                raw_params = {
+                    "exposure": float(self.photo_brightness.get()),
+                    "contrast": float(self.photo_contrast.get()),
+                    "highlights": 25.0,
+                    "shadows": 68.0,
+                    "whites": 30.0,
+                    "blacks": 66.0,
+                    "texture": -28.0,
+                    "noise_reduction": 16.0,
+                    "saturation": 15.0,
+                    "curve_highlights": 18.0,
+                    "curve_lights": 14.0,
+                    "curve_darks": 15.0,
+                    "curve_shadows": 65.0,
+                    "hsl_yellow_sat": -29.0
+                }
+                self.photo_enhanced_img = autocrop.apply_camera_raw_filter(self.photo_raw_img, raw_params)
+            else:
+                bg_mode = "lightblue" if self.photo_preset.get() == "lightblue" else "white"
+                self.photo_enhanced_img = autocrop.enhance_passport_photo(
+                    self.photo_raw_img,
+                    preset=self.photo_preset.get(),
+                    brightness=float(self.photo_brightness.get()),
+                    contrast=float(self.photo_contrast.get()),
+                    sharpness=float(self.photo_sharpness.get()),
+                    saturation=float(self.photo_saturation.get()),
+                    bg_mode=bg_mode
+                )
             thumb = self.photo_enhanced_img.copy()
             thumb.thumbnail((180, 180), Image.Resampling.LANCZOS)
             self.photo_thumb_tk = ImageTk.PhotoImage(thumb)

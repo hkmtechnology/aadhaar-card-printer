@@ -1203,6 +1203,201 @@ def enhance_passport_photo(image_input, preset="studio", brightness=0, contrast=
     enhanced_rgb = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2RGB)
     return Image.fromarray(enhanced_rgb)
 
+def apply_camera_raw_filter(image_input, raw_params=None):
+    """
+    Adobe Photoshop Camera Raw 18.3-style professional portrait processor:
+    - Light: Exposure, Contrast, Highlights, Shadows, Whites, Blacks
+    - Color: Temperature (Cool/Warm), Tint (Green/Magenta), Vibrance, Saturation
+    - Effects: Texture (-100 skin softening / +100 structure), Clarity, Dehaze, Vignette
+    - Detail: Unsharp Sharpening, Bilateral Noise Reduction
+    - Tone Curve: Parametric tone curve adjustments (Highlights, Lights, Darks, Shadows)
+    - Color Mixer: Targeted Orange/Red skin tone luminance & saturation
+    - B&W portrait conversion
+    """
+    if raw_params is None:
+        raw_params = {}
+
+    if isinstance(image_input, np.ndarray):
+        img_bgr = image_input.copy()
+    elif isinstance(image_input, str):
+        img_bgr = cv2.imread(image_input)
+    else:
+        img_rgb = np.array(image_input.convert("RGB"))
+        img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+
+    if img_bgr is None:
+        return image_input
+
+    # Parse parameters
+    exposure = float(raw_params.get("exposure", 0.0))
+    contrast = float(raw_params.get("contrast", 0.0))
+    highlights = float(raw_params.get("highlights", 0.0))
+    shadows = float(raw_params.get("shadows", 0.0))
+    whites = float(raw_params.get("whites", 0.0))
+    blacks = float(raw_params.get("blacks", 0.0))
+
+    temp = float(raw_params.get("temperature", 0.0))
+    tint = float(raw_params.get("tint", 0.0))
+    vibrance = float(raw_params.get("vibrance", 0.0))
+    saturation = float(raw_params.get("saturation", 0.0))
+
+    texture = float(raw_params.get("texture", 0.0))
+    clarity = float(raw_params.get("clarity", 0.0))
+    dehaze = float(raw_params.get("dehaze", 0.0))
+    vignette = float(raw_params.get("vignette", 0.0))
+
+    sharpening = float(raw_params.get("sharpening", 0.0))
+    noise_reduction = float(raw_params.get("noise_reduction", 0.0))
+
+    curve_highlights = float(raw_params.get("curve_highlights", 0.0))
+    curve_lights = float(raw_params.get("curve_lights", 0.0))
+    curve_darks = float(raw_params.get("curve_darks", 0.0))
+    curve_shadows = float(raw_params.get("curve_shadows", 0.0))
+
+    hsl_orange_lum = float(raw_params.get("hsl_orange_lum", 0.0))
+    hsl_orange_sat = float(raw_params.get("hsl_orange_sat", 0.0))
+    hsl_red_lum = float(raw_params.get("hsl_red_lum", 0.0))
+    hsl_yellow_sat = float(raw_params.get("hsl_yellow_sat", 0.0))
+    is_bw = bool(raw_params.get("is_bw", False))
+
+    h, w = img_bgr.shape[:2]
+
+    # 1. White Balance: Temperature & Tint
+    if temp != 0 or tint != 0:
+        b, g, r = cv2.split(img_bgr.astype(np.float32))
+        r = r * (1.0 + temp * 0.003 + tint * 0.002)
+        g = g * (1.0 - tint * 0.003)
+        b = b * (1.0 - temp * 0.003 + tint * 0.002)
+        img_bgr = np.clip(cv2.merge([b, g, r]), 0, 255).astype(np.uint8)
+
+    # 2. Exposure & Dehaze
+    if exposure != 0:
+        exp_factor = 2.0 ** (exposure / 40.0)
+        img_bgr = np.clip(img_bgr.astype(np.float32) * exp_factor, 0, 255).astype(np.uint8)
+
+    if dehaze != 0:
+        factor = 1.0 + dehaze * 0.004
+        img_bgr = np.clip((img_bgr.astype(np.float32) - 10.0 * (dehaze / 100.0)) * factor, 0, 255).astype(np.uint8)
+
+    # 3. Texture & Noise Reduction (Camera Raw Skin Retouching)
+    if texture < 0 or noise_reduction > 0:
+        nr_amt = max(abs(texture) * 0.7, noise_reduction)
+        d_val = 5 if nr_amt < 30 else 7
+        smoothed = cv2.bilateralFilter(img_bgr, d=d_val, sigmaColor=int(nr_amt * 0.8) + 10, sigmaSpace=int(nr_amt * 0.8) + 10)
+        blend_factor = min(0.85, (abs(texture) * 0.008) + (noise_reduction * 0.006))
+        img_bgr = cv2.addWeighted(smoothed, blend_factor, img_bgr, 1.0 - blend_factor, 0)
+    elif texture > 0:
+        blur = cv2.GaussianBlur(img_bgr, (0, 0), 1.0)
+        img_bgr = cv2.addWeighted(img_bgr, 1.0 + (texture * 0.008), blur, -(texture * 0.008), 0)
+
+    # 4. Clarity (Local Midtone Contrast)
+    if clarity != 0:
+        large_blur = cv2.GaussianBlur(img_bgr, (0, 0), 12.0)
+        c_amt = clarity * 0.006
+        img_bgr = np.clip(cv2.addWeighted(img_bgr, 1.0 + c_amt, large_blur, -c_amt, 0), 0, 255).astype(np.uint8)
+
+    # 5. Light Tone Adjustments: Highlights, Shadows, Whites, Blacks, Contrast
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    l_chan, a_chan, b_chan = cv2.split(lab)
+    l_float = l_chan.astype(np.float32)
+
+    if shadows != 0:
+        shadow_weight = np.clip((128.0 - l_float) / 128.0, 0, 1) ** 1.8
+        l_float += shadows * 0.65 * shadow_weight
+
+    if highlights != 0:
+        highlight_weight = np.clip((l_float - 128.0) / 127.0, 0, 1) ** 1.8
+        l_float += highlights * 0.65 * highlight_weight
+
+    if whites != 0:
+        white_weight = np.clip((l_float - 190.0) / 65.0, 0, 1) ** 2.0
+        l_float += whites * 0.5 * white_weight
+
+    if blacks != 0:
+        black_weight = np.clip((64.0 - l_float) / 64.0, 0, 1) ** 2.0
+        l_float += blacks * 0.5 * black_weight
+
+    if contrast != 0:
+        c_factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast))
+        l_float = c_factor * (l_float - 128.0) + 128.0
+
+    if curve_highlights != 0 or curve_lights != 0 or curve_darks != 0 or curve_shadows != 0:
+        lut = np.arange(256, dtype=np.float32)
+        lut += curve_shadows * 0.4 * (np.clip((64.0 - lut) / 64.0, 0, 1) ** 1.5)
+        lut += curve_darks * 0.4 * (np.clip((128.0 - lut) / 128.0, 0, 1) * np.clip(lut / 128.0, 0, 1))
+        lut += curve_lights * 0.4 * (np.clip((lut - 128.0) / 128.0, 0, 1) * np.clip((255.0 - lut) / 127.0, 0, 1))
+        lut += curve_highlights * 0.4 * (np.clip((lut - 192.0) / 63.0, 0, 1) ** 1.5)
+        lut_uint8 = np.clip(lut, 0, 255).astype(np.uint8)
+        l_chan = cv2.LUT(np.clip(l_float, 0, 255).astype(np.uint8), lut_uint8)
+    else:
+        l_chan = np.clip(l_float, 0, 255).astype(np.uint8)
+
+    # 6. Sharpening
+    if sharpening > 0:
+        sh_blur = cv2.GaussianBlur(l_chan, (0, 0), 1.2)
+        sh_amt = 1.0 + (sharpening / 40.0)
+        l_chan = np.clip(cv2.addWeighted(l_chan, sh_amt, sh_blur, 1.0 - sh_amt, 0), 0, 255).astype(np.uint8)
+
+    lab = cv2.merge([l_chan, a_chan, b_chan])
+    img_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+    # 7. Color Mixer & Skin Tone Tuning (Orange / Red Hue Bands)
+    if hsl_orange_lum != 0 or hsl_orange_sat != 0 or hsl_red_lum != 0 or hsl_yellow_sat != 0:
+        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
+        h_chan, s_chan, v_chan = cv2.split(hsv)
+
+        orange_mask = np.exp(-((h_chan - 15.0) ** 2) / (2.0 * (8.0 ** 2)))
+        red_mask = np.maximum(
+            np.exp(-((h_chan - 0.0) ** 2) / (2.0 * (6.0 ** 2))),
+            np.exp(-((h_chan - 179.0) ** 2) / (2.0 * (6.0 ** 2)))
+        )
+
+        if hsl_orange_lum != 0:
+            v_chan += (hsl_orange_lum * 0.5) * orange_mask
+        if hsl_orange_sat != 0:
+            s_chan += (hsl_orange_sat * 0.5) * orange_mask
+        if hsl_red_lum != 0:
+            v_chan += (hsl_red_lum * 0.5) * red_mask
+        if hsl_yellow_sat != 0:
+            yellow_mask = np.exp(-((h_chan - 30.0) ** 2) / (2.0 * (8.0 ** 2)))
+            s_chan += (hsl_yellow_sat * 0.5) * yellow_mask
+
+        hsv = cv2.merge([h_chan, np.clip(s_chan, 0, 255), np.clip(v_chan, 0, 255)]).astype(np.uint8)
+        img_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+    # 8. Vibrance & Overall Saturation / B&W
+    if is_bw:
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        return Image.fromarray(gray).convert("RGB")
+
+    if vibrance != 0 or saturation != 0:
+        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
+        h_chan, s_chan, v_chan = cv2.split(hsv)
+
+        if vibrance != 0:
+            vibrance_weight = 1.0 - (s_chan / 255.0)
+            s_chan += (vibrance * 0.7) * vibrance_weight
+
+        if saturation != 0:
+            s_chan *= (1.0 + saturation * 0.01)
+
+        hsv = cv2.merge([h_chan, np.clip(s_chan, 0, 255), v_chan]).astype(np.uint8)
+        img_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+    # 9. Vignette
+    if vignette != 0:
+        rows, cols = img_bgr.shape[:2]
+        kernel_x = cv2.getGaussianKernel(cols, cols / 2.0)
+        kernel_y = cv2.getGaussianKernel(rows, rows / 2.0)
+        kernel = kernel_y * kernel_x.T
+        mask = kernel / np.max(kernel)
+        vig_factor = 1.0 + (vignette / 100.0) * (1.0 - mask)
+        img_bgr = np.clip(img_bgr.astype(np.float32) * vig_factor[:, :, np.newaxis], 0, 255).astype(np.uint8)
+
+    enhanced_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(enhanced_rgb)
+
+
 def render_passport_grid_a4(
     photo_input,
     rows=2,

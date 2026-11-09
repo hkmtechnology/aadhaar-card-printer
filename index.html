@@ -1334,6 +1334,144 @@
     }
 
     /* =========================================================================
+       PHOTOSHOP CAMERA RAW 18.3 STUDIO FILTERS UI
+       ========================================================================= */
+    .raw-histogram-box {
+      background: #090e18;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 6px;
+      margin-bottom: 8px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+    .raw-histogram-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 0.68rem;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+    .raw-panel-accordion {
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: rgba(15, 23, 42, 0.55);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .raw-accordion-header {
+      padding: 8px 12px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(30, 41, 59, 0.5);
+      transition: background 0.18s ease;
+    }
+    .raw-accordion-header:hover {
+      background: rgba(51, 65, 85, 0.7);
+      color: #ffffff;
+    }
+    .raw-accordion-body {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    .raw-accordion-collapsed .raw-accordion-body {
+      display: none !important;
+    }
+    .raw-slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 2px;
+    }
+    .raw-slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.70rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .raw-slider-label span:first-child {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .raw-slider-label span:first-child:hover {
+      color: #38bdf8;
+    }
+    .raw-slider-val {
+      font-weight: 800;
+      color: #f1f5f9;
+      min-width: 36px;
+      text-align: right;
+    }
+    .raw-slider-track-temp {
+      background: linear-gradient(90deg, #38bdf8 0%, #475569 50%, #f59e0b 100%) !important;
+      height: 6px !important;
+      border-radius: 3px !important;
+    }
+    .raw-slider-track-tint {
+      background: linear-gradient(90deg, #22c55e 0%, #475569 50%, #ec4899 100%) !important;
+      height: 6px !important;
+      border-radius: 3px !important;
+    }
+
+    /* Fullscreen Camera Raw Modal Layout */
+    .cameraraw-modal-box {
+      width: 96vw !important;
+      max-width: 1300px !important;
+      height: 92vh !important;
+      max-height: 960px !important;
+      background: linear-gradient(180deg, #182235 0%, #0c1424 100%) !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 25px 65px rgba(0, 0, 0, 0.85), 0 0 40px rgba(56, 189, 248, 0.15) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      position: relative !important;
+    }
+    .cameraraw-modal-layout {
+      display: flex !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+    }
+    .cameraraw-preview-pane {
+      flex: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: #090e18 !important;
+      position: relative !important;
+      padding: 16px !important;
+      overflow: hidden !important;
+    }
+    .cameraraw-controls-pane {
+      width: 380px !important;
+      border-left: 1px solid rgba(148, 163, 184, 0.18) !important;
+      background: rgba(15, 23, 42, 0.95) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow-y: auto !important;
+      padding: 14px 16px !important;
+      box-sizing: border-box !important;
+      gap: 10px !important;
+    }
+    /* =========================================================================
        MULTI-PAGE DOCUMENT SCANNER UI OVERHAUL
        ========================================================================= */
 
@@ -5243,54 +5381,283 @@
           </label>
         </div>
 
-        <!-- SECTION 4: ENHANCEMENTS & BACKDROP -->
-        <div class="section-card">
-          <div class="section-title">
-            <span>4. Studio Enhancement</span>
-            <span id="photoPresetBadge" style="font-size:0.68rem; color:#60a5fa;">Studio Portrait</span>
+        <!-- SECTION 4: PHOTOSHOP CAMERA RAW 18.3 STUDIO FILTERS -->
+        <div class="section-card" id="cameraRawSidebarCard">
+          <div class="section-title" style="margin-bottom: 6px;">
+            <span>🎛️ Camera Raw Studio</span>
+            <button type="button" class="mini-btn" style="font-size:0.68rem; padding:2px 8px; background:linear-gradient(135deg,#0284c7,#2563eb); color:#fff; font-weight:700;" onclick="openCameraRawModal()" title="Open Fullscreen Photoshop Camera Raw Studio Dialog">⛶ Full Camera Raw</button>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px;">
-            <button class="mini-btn active" id="btnPhotoStudio" onclick="setPhotoPreset('studio')">✨ Studio Portrait</button>
-            <button class="mini-btn" id="btnPhotoBlue" onclick="setPhotoPreset('blue_bg')">🔵 Light Blue Backdrop</button>
-            <button class="mini-btn" id="btnPhotoWhite" onclick="setPhotoPreset('white_bg')">⚪ White Backdrop</button>
-            <button class="mini-btn" id="btnPhotoVibrant" onclick="setPhotoPreset('vibrant')">📸 Vibrant Glossy</button>
-            <button class="mini-btn" id="btnPhotoGray" onclick="setPhotoPreset('grayscale')">🌫️ Grayscale</button>
-            <button class="mini-btn" id="btnPhotoOrig" onclick="setPhotoPreset('original')">🔄 Original</button>
-          </div>
-
-          <!-- Enhancement Sliders -->
-          <div class="form-group" style="margin-bottom: 4px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.72rem;">
-              <span style="color:#94a3b8;">Background Whitening:</span>
-              <strong id="photoWhitenVal" style="color:#6ee7b7;">+40%</strong>
+          <!-- Real-Time RGB Waveform Histogram (Camera Raw 18.3) -->
+          <div class="raw-histogram-box" title="Real-Time Tri-Color Waveform Histogram">
+            <div class="raw-histogram-header">
+              <span>RGB HISTOGRAM</span>
+              <span style="color:#38bdf8;">Camera Raw 18.3</span>
             </div>
-            <input type="range" id="photoWhitenSlider" min="0" max="100" value="40" oninput="onPhotoEnhanceSliderChange()">
+            <canvas id="rawHistogramCanvas" width="280" height="55" style="width: 100%; height: 55px; display: block; border-radius: 4px;"></canvas>
           </div>
 
-          <div class="form-group" style="margin-bottom: 4px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.72rem;">
-              <span style="color:#94a3b8;">Facial Sharpness:</span>
-              <strong id="photoSharpVal" style="color:#60a5fa;">+35%</strong>
-            </div>
-            <input type="range" id="photoSharpSlider" min="0" max="100" value="35" oninput="onPhotoEnhanceSliderChange()">
+          <!-- Quick Action Buttons Matching Photoshop Header -->
+          <div style="display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
+            <button type="button" class="mini-btn" onclick="applyCameraRawAutoTone()" style="flex:1; font-weight:700; background:rgba(56,189,248,0.18); border-color:#38bdf8; color:#38bdf8;" title="1-Click Auto Tone: Balanced Exposure, Highlights, Shadows">Auto Tone</button>
+            <button type="button" class="mini-btn" id="btnRawBw" onclick="toggleCameraRawBw()" style="flex:1; font-weight:600;" title="Convert to Black & White portrait">B&W</button>
+            <button type="button" class="mini-btn" onclick="setCameraRawPreset('baby_skin')" style="flex:1.2; font-weight:700; background:linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.25)); border-color:#ec4899; color:#f472b6;" title="Camera Raw 18.3 Preset: Texture -28, Noise Red 16, Shadows +68, Whites +30 (Soft Baby Skin)">👶 Skin Soften</button>
+            <button type="button" class="mini-btn" onclick="resetCameraRawSliders()" style="padding:1px 6px;" title="Reset all sliders to zero">↺</button>
           </div>
 
-          <div class="form-group" style="margin-bottom: 4px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.72rem;">
-              <span style="color:#94a3b8;">Contrast:</span>
-              <strong id="photoContVal" style="color:#cbd5e1;">+12%</strong>
-            </div>
-            <input type="range" id="photoContSlider" min="-50" max="50" value="12" oninput="onPhotoEnhanceSliderChange()">
+          <!-- Studio Preset Chips -->
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 10px;">
+            <button type="button" class="mini-btn active" id="btnRawPresetStudio" onclick="setCameraRawPreset('studio')">✨ Studio Portrait</button>
+            <button type="button" class="mini-btn" id="btnRawPresetPrint" onclick="setCameraRawPreset('epson_print')" title="Optimized for Epson Inkjet photo paper">+ Print Boost</button>
+            <button type="button" class="mini-btn" id="btnRawPresetPunchy" onclick="setCameraRawPreset('punchy')">📸 Punchy Glossy</button>
+            <button type="button" class="mini-btn" id="btnRawPresetWarm" onclick="setCameraRawPreset('warm')">☀️ Warm Portrait</button>
           </div>
 
-          <div class="form-group" style="margin-bottom: 4px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.72rem;">
-              <span style="color:#94a3b8;">Brightness:</span>
-              <strong id="photoBrightVal" style="color:#cbd5e1;">+2%</strong>
+          <!-- COLLAPSIBLE ACCORDION PANELS MATCHING PHOTOSHOP CAMERA RAW -->
+          <!-- 1. LIGHT PANEL -->
+          <div class="raw-panel-accordion" id="accRawLight">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawLight')">
+              <span>▼ Light (Exposure & Dynamic Range)</span>
+              <span style="font-size:0.65rem; color:#38bdf8;">● Active</span>
             </div>
-            <input type="range" id="photoBrightSlider" min="-50" max="50" value="2" oninput="onPhotoEnhanceSliderChange()">
+            <div class="raw-accordion-body">
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawExposure')">Exposure</span>
+                  <span class="raw-slider-val" id="rawExposureVal">0.00 EV</span>
+                </div>
+                <input type="range" id="rawExposure" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawContrast')">Contrast</span>
+                  <span class="raw-slider-val" id="rawContrastVal">0</span>
+                </div>
+                <input type="range" id="rawContrast" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawHighlights')">Highlights</span>
+                  <span class="raw-slider-val" id="rawHighlightsVal">0</span>
+                </div>
+                <input type="range" id="rawHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawShadows')">Shadows</span>
+                  <span class="raw-slider-val" id="rawShadowsVal">0</span>
+                </div>
+                <input type="range" id="rawShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawWhites')">Whites</span>
+                  <span class="raw-slider-val" id="rawWhitesVal">0</span>
+                </div>
+                <input type="range" id="rawWhites" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawBlacks')">Blacks</span>
+                  <span class="raw-slider-val" id="rawBlacksVal">0</span>
+                </div>
+                <input type="range" id="rawBlacks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+            </div>
           </div>
+
+          <!-- 2. COLOR PANEL (WHITE BALANCE, TEMP, TINT, VIBRANCE) -->
+          <div class="raw-panel-accordion" id="accRawColor">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawColor')">
+              <span>▼ Color & White Balance</span>
+              <span style="font-size:0.65rem; color:#94a3b8;">As Shot</span>
+            </div>
+            <div class="raw-accordion-body">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="font-size:0.70rem; color:#94a3b8; margin:0;">White Balance:</label>
+                <select id="rawWbSelect" style="background:#0f172a; color:#cbd5e1; border:1px solid #334155; border-radius:4px; font-size:0.72rem; padding:2px 6px;" onchange="onCameraRawWbChange(this.value)">
+                  <option value="as_shot" selected>As Shot</option>
+                  <option value="auto">Auto</option>
+                  <option value="daylight">Daylight (5500K)</option>
+                  <option value="cloudy">Cloudy (6500K)</option>
+                  <option value="tungsten">Tungsten (3200K)</option>
+                  <option value="fluorescent">Fluorescent (4000K)</option>
+                </select>
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawTemp')">Temperature (Cool / Warm)</span>
+                  <span class="raw-slider-val" id="rawTempVal">0</span>
+                </div>
+                <input type="range" class="raw-slider-track-temp" id="rawTemp" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawTint')">Tint (Green / Magenta)</span>
+                  <span class="raw-slider-val" id="rawTintVal">0</span>
+                </div>
+                <input type="range" class="raw-slider-track-tint" id="rawTint" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawVibrance')">Vibrance (Skin Safe)</span>
+                  <span class="raw-slider-val" id="rawVibranceVal">0</span>
+                </div>
+                <input type="range" id="rawVibrance" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawSaturation')">Saturation</span>
+                  <span class="raw-slider-val" id="rawSaturationVal">0</span>
+                </div>
+                <input type="range" id="rawSaturation" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. EFFECTS & SKIN RETOUCHING (TEXTURE, CLARITY, DEHAZE) -->
+          <div class="raw-panel-accordion" id="accRawEffects">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawEffects')">
+              <span>▼ Effects & Skin Smoothing</span>
+              <span style="font-size:0.65rem; color:#ec4899;">Texture & Clarity</span>
+            </div>
+            <div class="raw-accordion-body">
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawTexture')">Texture (← Soften Pores / Detail →)</span>
+                  <span class="raw-slider-val" id="rawTextureVal">0</span>
+                </div>
+                <input type="range" id="rawTexture" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawClarity')">Clarity (Midtone Contrast)</span>
+                  <span class="raw-slider-val" id="rawClarityVal">0</span>
+                </div>
+                <input type="range" id="rawClarity" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawDehaze')">Dehaze</span>
+                  <span class="raw-slider-val" id="rawDehazeVal">0</span>
+                </div>
+                <input type="range" id="rawDehaze" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawVignette')">Vignette</span>
+                  <span class="raw-slider-val" id="rawVignetteVal">0</span>
+                </div>
+                <input type="range" id="rawVignette" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. DETAIL (SHARPENING & NOISE REDUCTION) -->
+          <div class="raw-panel-accordion" id="accRawDetail">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawDetail')">
+              <span>▼ Detail (Sharpen & Noise Reduction)</span>
+              <span style="font-size:0.65rem; color:#60a5fa;">Sharpen</span>
+            </div>
+            <div class="raw-accordion-body">
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawSharpening')">Sharpening (Facial Features)</span>
+                  <span class="raw-slider-val" id="rawSharpeningVal">0</span>
+                </div>
+                <input type="range" id="rawSharpening" min="0" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawNoiseReduction')">Noise Reduction (Smooth Skin)</span>
+                  <span class="raw-slider-val" id="rawNoiseReductionVal">0</span>
+                </div>
+                <input type="range" id="rawNoiseReduction" min="0" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. TONE CURVE -->
+          <div class="raw-panel-accordion" id="accRawCurve">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawCurve')">
+              <span>▼ Parametric Tone Curve</span>
+              <span style="font-size:0.65rem; color:#a855f7;">Spline</span>
+            </div>
+            <div class="raw-accordion-body">
+              <!-- Live Curve Visualizer SVG -->
+              <svg id="rawCurveSvg" viewBox="0 0 100 100" style="width:100%; height:70px; background:#0b1329; border:1px solid #1e293b; border-radius:6px; margin-bottom:6px;">
+                <line x1="0" y1="100" x2="100" y2="0" stroke="rgba(255,255,255,0.12)" stroke-dasharray="2,2"/>
+                <path id="rawCurvePath" d="M 0 100 C 25 75, 75 25, 100 0" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+              </svg>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawCurveHighlights')">Highlights</span>
+                  <span class="raw-slider-val" id="rawCurveHighlightsVal">0</span>
+                </div>
+                <input type="range" id="rawCurveHighlights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawCurveLights')">Lights</span>
+                  <span class="raw-slider-val" id="rawCurveLightsVal">0</span>
+                </div>
+                <input type="range" id="rawCurveLights" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawCurveDarks')">Darks</span>
+                  <span class="raw-slider-val" id="rawCurveDarksVal">0</span>
+                </div>
+                <input type="range" id="rawCurveDarks" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawCurveShadows')">Shadows</span>
+                  <span class="raw-slider-val" id="rawCurveShadowsVal">0</span>
+                </div>
+                <input type="range" id="rawCurveShadows" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. COLOR MIXER (SKIN TONE HSL) -->
+          <div class="raw-panel-accordion" id="accRawHsl">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawHsl')">
+              <span>▼ Color Mixer (Skin Tone Tuning)</span>
+              <span style="font-size:0.65rem; color:#f59e0b;">Orange / Red</span>
+            </div>
+            <div class="raw-accordion-body">
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawOrangeLum')">Orange Luminance (Face Brightness)</span>
+                  <span class="raw-slider-val" id="rawOrangeLumVal">0</span>
+                </div>
+                <input type="range" id="rawOrangeLum" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawOrangeSat')">Orange Saturation (Skin Warmth)</span>
+                  <span class="raw-slider-val" id="rawOrangeSatVal">0</span>
+                </div>
+                <input type="range" id="rawOrangeSat" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawRedLum')">Red Luminance (Lips & Cheeks)</span>
+                  <span class="raw-slider-val" id="rawRedLumVal">0</span>
+                </div>
+                <input type="range" id="rawRedLum" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawYellowSat')">Yellow Saturation</span>
+                  <span class="raw-slider-val" id="rawYellowSatVal">0</span>
+                </div>
+                <input type="range" id="rawYellowSat" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- SECTION 5: PRINT & EXPORT -->
@@ -5568,6 +5935,96 @@
           </button>
           <button class="btn btn-primary" onclick="applyManualCrop()" style="padding: 7px 22px; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none;">
             ✓ Apply Crop
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHOTOSHOP CAMERA RAW 18.3 STUDIO FULLSCREEN DIALOG -->
+  <div class="modal-overlay" id="cameraRawModal" style="display: none; z-index: 10002;">
+    <div class="cameraraw-modal-box">
+      <!-- HEADER -->
+      <div class="crop-modal-header" style="background: rgba(15, 23, 42, 0.95);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.35rem;">🎛️</span>
+          <div>
+            <div class="modal-title" style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">
+              Adobe Photoshop Camera Raw 18.3 Studio
+            </div>
+            <div style="font-size: 0.75rem; color: #94a3b8;">
+              Professional exposure, highlights, skin texture softening, tone curve & HSL color grading
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="crop-ratio-btn-group" id="rawModalViewModes">
+            <button class="crop-ratio-btn active" id="btnRawViewSingle" onclick="setCameraRawViewMode('single')">🖼️ Single</button>
+            <button class="crop-ratio-btn" id="btnRawViewSplit" onclick="setCameraRawViewMode('split')">🌓 Split Before/After</button>
+          </div>
+          <button class="mini-btn btn-danger" onclick="closeCameraRawModal()" title="Close without saving">✕</button>
+        </div>
+      </div>
+
+      <!-- MAIN LAYOUT: PREVIEW WORKSPACE + CONTROLS PANEL -->
+      <div class="cameraraw-modal-layout">
+        <!-- LEFT: LARGE INTERACTIVE PREVIEW -->
+        <div class="cameraraw-preview-pane" id="rawModalPreviewPane">
+          <div style="position: relative; max-width: 100%; max-height: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+            <canvas id="rawModalCanvas" style="max-width: 100%; max-height: calc(92vh - 160px); object-fit: contain; display: block; border-radius: 6px;"></canvas>
+            <div id="rawModalSplitDivider" style="display: none; position: absolute; top: 0; bottom: 0; width: 3px; background: #38bdf8; cursor: ew-resize; z-index: 10; box-shadow: 0 0 10px rgba(56,189,248,0.8);">
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; background: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #0f172a; font-weight: 900;">↔</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 8px; font-size: 0.72rem; color: #94a3b8;">
+            <span id="rawModalZoomLabel">Fit View (100%)</span>
+            <span>•</span>
+            <span id="rawModalDimLabel">Portrait Master</span>
+          </div>
+        </div>
+
+        <!-- RIGHT: CAMERA RAW CONTROLS & HISTOGRAM -->
+        <div class="cameraraw-controls-pane" id="rawModalControlsPane">
+          <!-- Live Histogram -->
+          <div class="raw-histogram-box" style="margin-bottom: 4px;">
+            <div class="raw-histogram-header">
+              <span>RGB HISTOGRAM</span>
+              <span style="color:#38bdf8;">Camera Raw 18.3</span>
+            </div>
+            <canvas id="rawModalHistogramCanvas" width="340" height="65" style="width: 100%; height: 65px; display: block; border-radius: 4px;"></canvas>
+          </div>
+
+          <!-- Quick Action Bar -->
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            <button type="button" class="mini-btn" onclick="applyCameraRawAutoTone()" style="flex:1; font-weight:700; background:rgba(56,189,248,0.2); border-color:#38bdf8; color:#38bdf8;">Auto Tone</button>
+            <button type="button" class="mini-btn" id="btnRawModalBw" onclick="toggleCameraRawBw()" style="flex:1; font-weight:600;">B&W</button>
+            <button type="button" class="mini-btn" onclick="setCameraRawPreset('baby_skin')" style="flex:1.3; font-weight:700; background:linear-gradient(135deg, rgba(236,72,153,0.25), rgba(168,85,247,0.3)); border-color:#ec4899; color:#f472b6;">👶 Skin Soften</button>
+            <button type="button" class="mini-btn" onclick="resetCameraRawSliders()" style="padding:2px 8px;">↺ Reset</button>
+          </div>
+
+          <div style="font-size:0.72rem; color:#64748b; text-align:center;">
+            Adjust sliders below to fine-tune portrait in real time
+          </div>
+
+          <div style="font-size:0.75rem; color:#38bdf8; font-weight:700; border-bottom:1px solid #334155; padding-bottom:4px; margin-top:4px;">
+            Adjustments Panel
+          </div>
+
+          <div id="rawModalAccordionsContainer" style="display: flex; flex-direction: column; gap: 6px;">
+            <!-- Accordions are dynamically synced with main panel -->
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="crop-modal-footer" style="background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(148, 163, 184, 0.18);">
+        <div style="font-size: 0.78rem; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+          <span>💡 <em>Tip: Texture -28 softens infant and portrait skin pores while keeping eyes razor-sharp</em></span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="closeCameraRawModal()" style="padding: 7px 16px;">Cancel</button>
+          <button class="btn btn-primary" onclick="applyCameraRawModalSettings()" style="padding: 7px 22px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); border: none;">
+            ✓ Apply to Photo & Grid
           </button>
         </div>
       </div>
@@ -10720,6 +11177,683 @@ function getApiUrl(endpoint) {
     }
 
   
+    // =========================================================================
+    // ADOBE PHOTOSHOP CAMERA RAW 18.3 STUDIO FILTERS ENGINE
+    // =========================================================================
+
+    const cameraRawState = {
+      exposure: 0,
+      contrast: 0,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+
+      wb: 'as_shot',
+      temperature: 0,
+      tint: 0,
+      vibrance: 0,
+      saturation: 0,
+
+      texture: 0,
+      clarity: 0,
+      dehaze: 0,
+      vignette: 0,
+
+      sharpening: 0,
+      noiseReduction: 0,
+
+      curveHighlights: 0,
+      curveLights: 0,
+      curveDarks: 0,
+      curveShadows: 0,
+
+      hslOrangeLum: 0,
+      hslOrangeSat: 0,
+      hslRedLum: 0,
+      hslYellowSat: 0,
+
+      isBw: false,
+      preset: 'studio',
+      viewMode: 'single',
+      splitRatio: 0.5
+    };
+
+    let _cameraRawServerDebounce = null;
+
+    function toggleRawAccordion(accId) {
+      const el = document.getElementById(accId);
+      if (el) el.classList.toggle('raw-accordion-collapsed');
+    }
+
+    function resetRawSlider(sliderId) {
+      const slider = document.getElementById(sliderId);
+      if (slider) {
+        slider.value = 0;
+        onCameraRawSliderInput();
+      }
+    }
+
+    function onCameraRawWbChange(val) {
+      cameraRawState.wb = val;
+      const tempSlider = document.getElementById('rawTemp');
+      const tintSlider = document.getElementById('rawTint');
+
+      if (val === 'daylight') {
+        if (tempSlider) tempSlider.value = 5;
+        if (tintSlider) tintSlider.value = 0;
+      } else if (val === 'cloudy') {
+        if (tempSlider) tempSlider.value = 18;
+        if (tintSlider) tintSlider.value = 4;
+      } else if (val === 'tungsten') {
+        if (tempSlider) tempSlider.value = -35;
+        if (tintSlider) tintSlider.value = -8;
+      } else if (val === 'fluorescent') {
+        if (tempSlider) tempSlider.value = -12;
+        if (tintSlider) tintSlider.value = 14;
+      } else if (val === 'auto') {
+        if (tempSlider) tempSlider.value = 0;
+        if (tintSlider) tintSlider.value = 0;
+      } else {
+        if (tempSlider) tempSlider.value = 0;
+        if (tintSlider) tintSlider.value = 0;
+      }
+      onCameraRawSliderInput();
+    }
+
+    function toggleCameraRawBw() {
+      cameraRawState.isBw = !cameraRawState.isBw;
+      const btn1 = document.getElementById('btnRawBw');
+      const btn2 = document.getElementById('btnRawModalBw');
+      if (btn1) btn1.classList.toggle('active', cameraRawState.isBw);
+      if (btn2) btn2.classList.toggle('active', cameraRawState.isBw);
+      onCameraRawSliderInput();
+    }
+
+    function applyCameraRawAutoTone() {
+      setSliderVal('rawExposure', 5);
+      setSliderVal('rawContrast', 8);
+      setSliderVal('rawHighlights', -18);
+      setSliderVal('rawShadows', 45);
+      setSliderVal('rawWhites', 20);
+      setSliderVal('rawBlacks', 15);
+      setSliderVal('rawVibrance', 12);
+      onCameraRawSliderInput();
+      showToast('✨ Camera Raw Auto Tone Applied', 'info');
+    }
+
+    function setSliderVal(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+
+    function resetCameraRawSliders() {
+      const sliders = [
+        'rawExposure', 'rawContrast', 'rawHighlights', 'rawShadows', 'rawWhites', 'rawBlacks',
+        'rawTemp', 'rawTint', 'rawVibrance', 'rawSaturation',
+        'rawTexture', 'rawClarity', 'rawDehaze', 'rawVignette',
+        'rawSharpening', 'rawNoiseReduction',
+        'rawCurveHighlights', 'rawCurveLights', 'rawCurveDarks', 'rawCurveShadows',
+        'rawOrangeLum', 'rawOrangeSat', 'rawRedLum', 'rawYellowSat'
+      ];
+      sliders.forEach(s => setSliderVal(s, 0));
+      cameraRawState.isBw = false;
+      const btn1 = document.getElementById('btnRawBw');
+      const btn2 = document.getElementById('btnRawModalBw');
+      if (btn1) btn1.classList.remove('active');
+      if (btn2) btn2.classList.remove('active');
+      const wb = document.getElementById('rawWbSelect');
+      if (wb) wb.value = 'as_shot';
+      cameraRawState.wb = 'as_shot';
+      onCameraRawSliderInput();
+      showToast('Camera Raw filters reset', 'info');
+    }
+
+    function setCameraRawPreset(preset) {
+      cameraRawState.preset = preset;
+      const presets = ['btnRawPresetStudio', 'btnRawPresetPrint', 'btnRawPresetPunchy', 'btnRawPresetWarm'];
+      presets.forEach(p => {
+        const b = document.getElementById(p);
+        if (b) b.classList.remove('active');
+      });
+
+      if (preset === 'baby_skin') {
+        // Exact numbers matching user's uploaded Photoshop Camera Raw 18.3 screenshots:
+        // Texture -28, Noise Reduction 16, Shadows +68, Whites +30, Highlights +25, Saturation +15
+        setSliderVal('rawExposure', 0);
+        setSliderVal('rawContrast', 5);
+        setSliderVal('rawHighlights', 25);
+        setSliderVal('rawShadows', 68);
+        setSliderVal('rawWhites', 30);
+        setSliderVal('rawBlacks', 66);
+        setSliderVal('rawTemp', 0);
+        setSliderVal('rawTint', 0);
+        setSliderVal('rawVibrance', 0);
+        setSliderVal('rawSaturation', 15);
+        setSliderVal('rawTexture', -28);
+        setSliderVal('rawClarity', 0);
+        setSliderVal('rawDehaze', 0);
+        setSliderVal('rawSharpening', 0);
+        setSliderVal('rawNoiseReduction', 16);
+        setSliderVal('rawCurveHighlights', 18);
+        setSliderVal('rawCurveLights', 14);
+        setSliderVal('rawCurveDarks', 15);
+        setSliderVal('rawCurveShadows', 65);
+        setSliderVal('rawOrangeLum', 15);
+        setSliderVal('rawOrangeSat', 5);
+        cameraRawState.isBw = false;
+        showToast('👶 Applied Camera Raw 18.3 Soft Baby Skin Preset', 'success');
+      } else if (preset === 'epson_print') {
+        const b = document.getElementById('btnRawPresetPrint');
+        if (b) b.classList.add('active');
+        setSliderVal('rawExposure', 12);
+        setSliderVal('rawContrast', 8);
+        setSliderVal('rawHighlights', -10);
+        setSliderVal('rawShadows', 30);
+        setSliderVal('rawWhites', 20);
+        setSliderVal('rawBlacks', 10);
+        setSliderVal('rawTexture', -10);
+        setSliderVal('rawSharpening', 35);
+        setSliderVal('rawVibrance', 15);
+        cameraRawState.isBw = false;
+        showToast('🖨️ Epson L3250 Print Boost Applied', 'info');
+      } else if (preset === 'punchy') {
+        const b = document.getElementById('btnRawPresetPunchy');
+        if (b) b.classList.add('active');
+        setSliderVal('rawExposure', 4);
+        setSliderVal('rawContrast', 22);
+        setSliderVal('rawHighlights', -8);
+        setSliderVal('rawShadows', 25);
+        setSliderVal('rawWhites', 15);
+        setSliderVal('rawBlacks', -5);
+        setSliderVal('rawClarity', 15);
+        setSliderVal('rawSharpening', 25);
+        setSliderVal('rawSaturation', 18);
+        setSliderVal('rawVibrance', 15);
+        cameraRawState.isBw = false;
+        showToast('📸 Applied Punchy Glossy Preset', 'info');
+      } else if (preset === 'warm') {
+        const b = document.getElementById('btnRawPresetWarm');
+        if (b) b.classList.add('active');
+        setSliderVal('rawTemp', 18);
+        setSliderVal('rawTint', 4);
+        setSliderVal('rawHighlights', -5);
+        setSliderVal('rawShadows', 30);
+        setSliderVal('rawTexture', -15);
+        setSliderVal('rawOrangeLum', 12);
+        setSliderVal('rawVibrance', 12);
+        cameraRawState.isBw = false;
+        showToast('☀️ Applied Warm Portrait Preset', 'info');
+      } else {
+        // studio default
+        const b = document.getElementById('btnRawPresetStudio');
+        if (b) b.classList.add('active');
+        setSliderVal('rawExposure', 3);
+        setSliderVal('rawContrast', 10);
+        setSliderVal('rawHighlights', -10);
+        setSliderVal('rawShadows', 30);
+        setSliderVal('rawWhites', 15);
+        setSliderVal('rawBlacks', 10);
+        setSliderVal('rawTexture', -15);
+        setSliderVal('rawSharpening', 25);
+        setSliderVal('rawNoiseReduction', 10);
+        setSliderVal('rawVibrance', 10);
+        cameraRawState.isBw = false;
+      }
+
+      onCameraRawSliderInput();
+    }
+
+    function onCameraRawSliderInput() {
+      const getVal = (id) => {
+        const el = document.getElementById(id);
+        return el ? parseFloat(el.value) : 0;
+      };
+
+      cameraRawState.exposure = getVal('rawExposure');
+      cameraRawState.contrast = getVal('rawContrast');
+      cameraRawState.highlights = getVal('rawHighlights');
+      cameraRawState.shadows = getVal('rawShadows');
+      cameraRawState.whites = getVal('rawWhites');
+      cameraRawState.blacks = getVal('rawBlacks');
+
+      cameraRawState.temperature = getVal('rawTemp');
+      cameraRawState.tint = getVal('rawTint');
+      cameraRawState.vibrance = getVal('rawVibrance');
+      cameraRawState.saturation = getVal('rawSaturation');
+
+      cameraRawState.texture = getVal('rawTexture');
+      cameraRawState.clarity = getVal('rawClarity');
+      cameraRawState.dehaze = getVal('rawDehaze');
+      cameraRawState.vignette = getVal('rawVignette');
+
+      cameraRawState.sharpening = getVal('rawSharpening');
+      cameraRawState.noiseReduction = getVal('rawNoiseReduction');
+
+      cameraRawState.curveHighlights = getVal('rawCurveHighlights');
+      cameraRawState.curveLights = getVal('rawCurveLights');
+      cameraRawState.curveDarks = getVal('rawCurveDarks');
+      cameraRawState.curveShadows = getVal('rawCurveShadows');
+
+      cameraRawState.hslOrangeLum = getVal('rawOrangeLum');
+      cameraRawState.hslOrangeSat = getVal('rawOrangeSat');
+      cameraRawState.hslRedLum = getVal('rawRedLum');
+      cameraRawState.hslYellowSat = getVal('rawYellowSat');
+
+      // Update text badges
+      const setTxt = (id, str) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = str;
+      };
+      setTxt('rawExposureVal', (cameraRawState.exposure / 20.0).toFixed(2) + ' EV');
+      setTxt('rawContrastVal', (cameraRawState.contrast > 0 ? '+' : '') + cameraRawState.contrast);
+      setTxt('rawHighlightsVal', (cameraRawState.highlights > 0 ? '+' : '') + cameraRawState.highlights);
+      setTxt('rawShadowsVal', (cameraRawState.shadows > 0 ? '+' : '') + cameraRawState.shadows);
+      setTxt('rawWhitesVal', (cameraRawState.whites > 0 ? '+' : '') + cameraRawState.whites);
+      setTxt('rawBlacksVal', (cameraRawState.blacks > 0 ? '+' : '') + cameraRawState.blacks);
+
+      setTxt('rawTempVal', (cameraRawState.temperature > 0 ? '+' : '') + cameraRawState.temperature);
+      setTxt('rawTintVal', (cameraRawState.tint > 0 ? '+' : '') + cameraRawState.tint);
+      setTxt('rawVibranceVal', (cameraRawState.vibrance > 0 ? '+' : '') + cameraRawState.vibrance);
+      setTxt('rawSaturationVal', (cameraRawState.saturation > 0 ? '+' : '') + cameraRawState.saturation);
+
+      setTxt('rawTextureVal', (cameraRawState.texture > 0 ? '+' : '') + cameraRawState.texture);
+      setTxt('rawClarityVal', (cameraRawState.clarity > 0 ? '+' : '') + cameraRawState.clarity);
+      setTxt('rawDehazeVal', (cameraRawState.dehaze > 0 ? '+' : '') + cameraRawState.dehaze);
+      setTxt('rawVignetteVal', (cameraRawState.vignette > 0 ? '+' : '') + cameraRawState.vignette);
+
+      setTxt('rawSharpeningVal', '+' + cameraRawState.sharpening);
+      setTxt('rawNoiseReductionVal', '+' + cameraRawState.noiseReduction);
+
+      setTxt('rawCurveHighlightsVal', (cameraRawState.curveHighlights > 0 ? '+' : '') + cameraRawState.curveHighlights);
+      setTxt('rawCurveLightsVal', (cameraRawState.curveLights > 0 ? '+' : '') + cameraRawState.curveLights);
+      setTxt('rawCurveDarksVal', (cameraRawState.curveDarks > 0 ? '+' : '') + cameraRawState.curveDarks);
+      setTxt('rawCurveShadowsVal', (cameraRawState.curveShadows > 0 ? '+' : '') + cameraRawState.curveShadows);
+
+      setTxt('rawOrangeLumVal', (cameraRawState.hslOrangeLum > 0 ? '+' : '') + cameraRawState.hslOrangeLum);
+      setTxt('rawOrangeSatVal', (cameraRawState.hslOrangeSat > 0 ? '+' : '') + cameraRawState.hslOrangeSat);
+      setTxt('rawRedLumVal', (cameraRawState.hslRedLum > 0 ? '+' : '') + cameraRawState.hslRedLum);
+      setTxt('rawYellowSatVal', (cameraRawState.hslYellowSat > 0 ? '+' : '') + cameraRawState.hslYellowSat);
+
+      // Update Tone Curve SVG path
+      updateRawCurveSvg();
+
+      // Apply client-side filters
+      applyCameraRawFilters();
+    }
+
+    function updateRawCurveSvg() {
+      const path = document.getElementById('rawCurvePath');
+      if (!path) return;
+      const sh = cameraRawState.curveShadows * 0.15;
+      const dk = cameraRawState.curveDarks * 0.15;
+      const lt = cameraRawState.curveLights * 0.15;
+      const hl = cameraRawState.curveHighlights * 0.15;
+
+      const y1 = Math.max(5, Math.min(95, 75 - sh - dk));
+      const y2 = Math.max(5, Math.min(95, 25 - lt - hl));
+      path.setAttribute('d', `M 0 100 C 30 ${y1}, 70 ${y2}, 100 0`);
+    }
+
+    function applyCameraRawFilters() {
+      if (!photoState.framedImg) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const imgData = renderCameraRawCanvas(canvas, cameraRawState);
+
+        photoState.enhancedImg = canvas.toDataURL('image/jpeg', 0.95);
+        renderPhotoGridSheet();
+
+        // Draw live histograms
+        drawCameraRawHistogram('rawHistogramCanvas', imgData);
+        drawCameraRawHistogram('rawModalHistogramCanvas', imgData);
+
+        // Update modal canvas if open
+        updateCameraRawModalCanvas(img, canvas);
+
+        // Debounce sync with server /api/photo/camera_raw
+        if (_cameraRawServerDebounce) clearTimeout(_cameraRawServerDebounce);
+        _cameraRawServerDebounce = setTimeout(() => {
+          syncCameraRawWithServer();
+        }, 600);
+      };
+      img.src = photoState.framedImg;
+    }
+
+    async function syncCameraRawWithServer() {
+      if (!photoState.framedImg) return;
+      try {
+        const res = await fetch(getApiUrl('/api/photo/camera_raw'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: photoState.framedImg,
+            raw_params: cameraRawState
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.image) {
+          photoState.enhancedImg = data.image;
+        }
+      } catch (e) {}
+    }
+
+    function renderCameraRawCanvas(srcCanvas, params) {
+      const w = srcCanvas.width;
+      const h = srcCanvas.height;
+      const ctx = srcCanvas.getContext('2d', { willReadFrequently: true });
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      const expFactor = Math.pow(2.0, (params.exposure || 0) / 40.0);
+      const contrast = params.contrast || 0;
+      const cFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+      const temp = (params.temperature || 0) * 0.003;
+      const tint = (params.tint || 0) * 0.002;
+      const rMult = 1.0 + temp + tint;
+      const gMult = 1.0 - (params.tint || 0) * 0.003;
+      const bMult = 1.0 - temp + tint;
+
+      const hl = (params.highlights || 0) * 0.65;
+      const sh = (params.shadows || 0) * 0.65;
+      const wh = (params.whites || 0) * 0.5;
+      const bl = (params.blacks || 0) * 0.5;
+      const curHl = (params.curveHighlights || 0) * 0.4;
+      const curLt = (params.curveLights || 0) * 0.4;
+      const curDk = (params.curveDarks || 0) * 0.4;
+      const curSh = (params.curveShadows || 0) * 0.4;
+
+      const lut = new Float32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let v = i;
+        if (sh !== 0) v += sh * Math.pow(Math.max(0, (128 - i) / 128), 1.8);
+        if (hl !== 0) v += hl * Math.pow(Math.max(0, (i - 128) / 127), 1.8);
+        if (wh !== 0) v += wh * Math.pow(Math.max(0, (i - 190) / 65), 2.0);
+        if (bl !== 0) v += bl * Math.pow(Math.max(0, (64 - i) / 64), 2.0);
+        if (contrast !== 0) v = cFactor * (v - 128) + 128;
+        if (curSh !== 0) v += curSh * Math.pow(Math.max(0, (64 - i) / 64), 1.5);
+        if (curDk !== 0) v += curDk * Math.max(0, (128 - i) / 128) * Math.max(0, i / 128);
+        if (curLt !== 0) v += curLt * Math.max(0, (i - 128) / 128) * Math.max(0, (255 - i) / 127);
+        if (curHl !== 0) v += curHl * Math.pow(Math.max(0, (i - 192) / 63), 1.5);
+        lut[i] = Math.max(0, Math.min(255, v));
+      }
+
+      const isBw = !!params.isBw;
+      const satFactor = 1.0 + (params.saturation || 0) * 0.01;
+      const vibrance = (params.vibrance || 0) * 0.01;
+      const orangeLum = (params.hslOrangeLum || 0) * 0.5;
+      const orangeSat = (params.hslOrangeSat || 0) * 0.5;
+      const redLum = (params.hslRedLum || 0) * 0.5;
+      const yellowSat = (params.hslYellowSat || 0) * 0.5;
+
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];
+        let g = data[i + 1];
+        let b = data[i + 2];
+
+        r = Math.min(255, r * rMult);
+        g = Math.min(255, g * gMult);
+        b = Math.min(255, b * bMult);
+
+        if (expFactor !== 1.0) {
+          r = Math.min(255, r * expFactor);
+          g = Math.min(255, g * expFactor);
+          b = Math.min(255, b * expFactor);
+        }
+
+        const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        const newLum = lut[lum];
+        const lumRatio = lum > 0 ? (newLum / lum) : 1.0;
+
+        r = Math.min(255, Math.max(0, r * lumRatio));
+        g = Math.min(255, Math.max(0, g * lumRatio));
+        b = Math.min(255, Math.max(0, b * lumRatio));
+
+        if (orangeLum !== 0 || orangeSat !== 0 || redLum !== 0 || yellowSat !== 0) {
+          const maxC = Math.max(r, g, b);
+          const minC = Math.min(r, g, b);
+          const delta = maxC - minC;
+          if (delta > 10) {
+            let hue = 0;
+            if (maxC === r) hue = ((g - b) / delta) % 6;
+            else if (maxC === g) hue = (b - r) / delta + 2;
+            else hue = (r - g) / delta + 4;
+            hue *= 60;
+            if (hue < 0) hue += 360;
+
+            if (hue >= 15 && hue <= 45) {
+              const wgt = 1.0 - Math.abs(hue - 30) / 15.0;
+              if (orangeLum !== 0) {
+                r = Math.min(255, r + orangeLum * wgt);
+                g = Math.min(255, g + orangeLum * wgt * 0.8);
+              }
+              if (orangeSat !== 0) {
+                const mean = (r + g + b) / 3;
+                r = Math.min(255, Math.max(0, mean + (r - mean) * (1 + orangeSat * wgt * 0.01)));
+                g = Math.min(255, Math.max(0, mean + (g - mean) * (1 + orangeSat * wgt * 0.01)));
+              }
+            }
+            if (hue >= 345 || hue <= 15) {
+              if (redLum !== 0) r = Math.min(255, r + redLum * 0.5);
+            }
+          }
+        }
+
+        if (isBw) {
+          const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+          data[i] = gray;
+          data[i + 1] = gray;
+          data[i + 2] = gray;
+        } else {
+          if (vibrance !== 0 || satFactor !== 1.0) {
+            const maxC = Math.max(r, g, b);
+            const minC = Math.min(r, g, b);
+            const currentSat = maxC > 0 ? (maxC - minC) / maxC : 0;
+            const vibFactor = 1.0 + vibrance * (1.0 - currentSat);
+            const totalSatFactor = satFactor * vibFactor;
+
+            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            data[i] = Math.min(255, Math.max(0, gray + (r - gray) * totalSatFactor));
+            data[i + 1] = Math.min(255, Math.max(0, gray + (g - gray) * totalSatFactor));
+            data[i + 2] = Math.min(255, Math.max(0, gray + (b - gray) * totalSatFactor));
+          } else {
+            data[i] = r;
+            data[i + 1] = g;
+            data[i + 2] = b;
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      const texture = params.texture || 0;
+      const nr = params.noiseReduction || 0;
+      if (texture < 0 || nr > 0) {
+        const blurRadius = Math.min(4, Math.max(1, Math.round((Math.abs(texture) + nr) / 30)));
+        const blendAmt = Math.min(0.65, (Math.abs(texture) * 0.006) + (nr * 0.005));
+        const blurCanvas = document.createElement('canvas');
+        blurCanvas.width = w;
+        blurCanvas.height = h;
+        const bCtx = blurCanvas.getContext('2d');
+        bCtx.filter = `blur(${blurRadius}px)`;
+        bCtx.drawImage(srcCanvas, 0, 0);
+
+        ctx.save();
+        ctx.globalAlpha = blendAmt;
+        ctx.drawImage(blurCanvas, 0, 0);
+        ctx.restore();
+      }
+
+      return imgData;
+    }
+
+    function drawCameraRawHistogram(canvasId, imgData) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !imgData) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.fillStyle = '#090e18';
+      ctx.fillRect(0, 0, w, h);
+
+      const histR = new Uint32Array(256);
+      const histG = new Uint32Array(256);
+      const histB = new Uint32Array(256);
+      const data = imgData.data;
+      const step = Math.max(1, Math.floor((data.length / 4) / 30000));
+
+      for (let i = 0; i < data.length; i += 4 * step) {
+        histR[data[i]]++;
+        histG[data[i + 1]]++;
+        histB[data[i + 2]]++;
+      }
+
+      let maxCount = 1;
+      for (let i = 2; i < 254; i++) {
+        if (histR[i] > maxCount) maxCount = histR[i];
+        if (histG[i] > maxCount) maxCount = histG[i];
+        if (histB[i] > maxCount) maxCount = histB[i];
+      }
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+      for (let x = w / 4; x < w; x += w / 4) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+
+      function drawChannel(hist, color) {
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        for (let i = 0; i < 256; i++) {
+          const x = (i / 255) * w;
+          const y = h - (hist[i] / maxCount) * (h - 4);
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+      ctx.globalCompositeOperation = 'screen';
+      drawChannel(histR, 'rgba(239, 68, 68, 0.55)');
+      drawChannel(histG, 'rgba(34, 197, 94, 0.55)');
+      drawChannel(histB, 'rgba(59, 130, 246, 0.55)');
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // =========================================================================
+    // CAMERA RAW FULLSCREEN MODAL CONTROLLERS
+    // =========================================================================
+
+    function openCameraRawModal() {
+      if (!photoState.framedImg && !photoState.rawImg) {
+        showToast('Please scan or upload a photo first!', 'warning');
+        return;
+      }
+      const modal = document.getElementById('cameraRawModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+
+      // Clone accordions to modal container if empty
+      const container = document.getElementById('rawModalAccordionsContainer');
+      const srcCard = document.getElementById('cameraRawSidebarCard');
+      if (container && srcCard && container.children.length === 0) {
+        const accordions = srcCard.querySelectorAll('.raw-panel-accordion');
+        accordions.forEach(acc => {
+          const clone = acc.cloneNode(true);
+          // Sync inputs in clone
+          clone.querySelectorAll('input').forEach(inp => {
+            inp.id = 'modal_' + inp.id;
+            inp.oninput = (e) => {
+              const origId = e.target.id.replace('modal_', '');
+              const origEl = document.getElementById(origId);
+              if (origEl) origEl.value = e.target.value;
+              onCameraRawSliderInput();
+            };
+          });
+          container.appendChild(clone);
+        });
+      }
+
+      setCameraRawViewMode(cameraRawState.viewMode || 'single');
+      applyCameraRawFilters();
+    }
+
+    function closeCameraRawModal() {
+      const modal = document.getElementById('cameraRawModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function setCameraRawViewMode(mode) {
+      cameraRawState.viewMode = mode;
+      const btnSingle = document.getElementById('btnRawViewSingle');
+      const btnSplit = document.getElementById('btnRawViewSplit');
+      const divider = document.getElementById('rawModalSplitDivider');
+
+      if (btnSingle) btnSingle.classList.toggle('active', mode === 'single');
+      if (btnSplit) btnSplit.classList.toggle('active', mode === 'split');
+      if (divider) divider.style.display = (mode === 'split') ? 'block' : 'none';
+
+      applyCameraRawFilters();
+    }
+
+    function updateCameraRawModalCanvas(origImg, filteredCanvas) {
+      const mCanvas = document.getElementById('rawModalCanvas');
+      if (!mCanvas) return;
+      mCanvas.width = filteredCanvas.width;
+      mCanvas.height = filteredCanvas.height;
+      const mCtx = mCanvas.getContext('2d');
+
+      if (cameraRawState.viewMode === 'split') {
+        const splitX = Math.round(mCanvas.width * (cameraRawState.splitRatio || 0.5));
+        // Draw Original on left
+        mCtx.save();
+        mCtx.beginPath();
+        mCtx.rect(0, 0, splitX, mCanvas.height);
+        mCtx.clip();
+        mCtx.drawImage(origImg, 0, 0);
+        mCtx.restore();
+
+        // Draw Filtered on right
+        mCtx.save();
+        mCtx.beginPath();
+        mCtx.rect(splitX, 0, mCanvas.width - splitX, mCanvas.height);
+        mCtx.clip();
+        mCtx.drawImage(filteredCanvas, 0, 0);
+        mCtx.restore();
+
+        // Position divider
+        const divider = document.getElementById('rawModalSplitDivider');
+        if (divider) {
+          divider.style.left = `${(cameraRawState.splitRatio || 0.5) * 100}%`;
+        }
+      } else {
+        mCtx.drawImage(filteredCanvas, 0, 0);
+      }
+
+      const dim = document.getElementById('rawModalDimLabel');
+      if (dim) dim.innerText = `${mCanvas.width} × ${mCanvas.height} px`;
+    }
+
+    function applyCameraRawModalSettings() {
+      closeCameraRawModal();
+      showToast('Camera Raw settings applied to Passport Photo Sheet!', 'success');
+    }
+
     // =========================================================================
     // PASSPORT PHOTO BIOMETRIC CROPPER & AI BACKGROUND STUDIO CONTROLLERS
     // =========================================================================
