@@ -3093,6 +3093,8 @@ class AadhaarPrinterApp:
 
             if "scanDpi" in data:
                 self.scan_dpi_var.set(str(data["scanDpi"]))
+                if hasattr(self, 'doc_scan_dpi'):
+                    self.doc_scan_dpi.set(str(data["scanDpi"]))
             if "autoCrop" in data:
                 self.auto_crop_var.set(bool(data["autoCrop"]))
             if "aspectMode" in data:
