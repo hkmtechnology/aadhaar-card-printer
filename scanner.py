@@ -5,6 +5,9 @@ import time
 import threading
 import tempfile
 import uuid
+import socket
+import urllib.request
+import urllib.error
 from PIL import Image
 import autocrop
 import json
@@ -12,6 +15,7 @@ import re
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SCAN_SCRIPT = os.path.join(CURRENT_DIR, "run_scan.ps1")
+SETTINGS_FILE = os.path.join(CURRENT_DIR, "settings.json")
 
 # Track active scanning process and abort state
 CURRENT_SCAN_PROC = None
@@ -23,7 +27,8 @@ POWERSHELL_SCANNER_CODE = """
 param(
     [string]$OutputFile = "temp_scan.bmp",
     [int]$Dpi = 200,
-    [int]$ColorMode = 1
+    [int]$ColorMode = 1,
+    [string]$ConnectionMode = "usb"
 )
 
 try {
@@ -34,11 +39,53 @@ try {
     }
 
     $targetDevice = $null
+
+    # 1. Match based on requested ConnectionMode (USB vs Wi-Fi)
     for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
         $info = $dm.DeviceInfos.Item($i)
         if ($info.Type -eq 1) { # Scanner
-            $targetDevice = $info
-            if ($info.Properties.Item("Name").Value -like "*L3250*") {
+            $devName = ""
+            $portVal = ""
+            try { $devName = $info.Properties.Item("Name").Value } catch {}
+            try { $portVal = $info.Properties.Item("Port").Value } catch {}
+
+            $isNetwork = ($devName -like "*Network*" -or $devName -like "*Wi-Fi*" -or $devName -like "*WiFi*" -or $portVal -like "*192.*" -or $portVal -like "*WSD*")
+
+            if ($ConnectionMode -eq "wifi") {
+                if ($isNetwork) {
+                    $targetDevice = $info
+                    break
+                }
+            } else { # USB mode
+                if (-not $isNetwork -and ($devName -like "*L3250*" -or $devName -like "*Epson*" -or $portVal -like "*USB*")) {
+                    $targetDevice = $info
+                    break
+                }
+            }
+        }
+    }
+
+    # 2. Fallback to any Epson scanner if exact mode driver isn't distinct
+    if (-not $targetDevice) {
+        for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
+            $info = $dm.DeviceInfos.Item($i)
+            if ($info.Type -eq 1) {
+                $devName = ""
+                try { $devName = $info.Properties.Item("Name").Value } catch {}
+                if ($devName -like "*L3250*" -or $devName -like "*Epson*") {
+                    $targetDevice = $info
+                    break
+                }
+            }
+        }
+    }
+
+    # 3. Fallback to first available scanner
+    if (-not $targetDevice) {
+        for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
+            $info = $dm.DeviceInfos.Item($i)
+            if ($info.Type -eq 1) {
+                $targetDevice = $info
                 break
             }
         }
@@ -77,8 +124,54 @@ try {
 }
 """
 
-with open(SCAN_SCRIPT, "w", encoding="utf-8") as f:
-    f.write(POWERSHELL_SCANNER_CODE.strip())
+try:
+    with open(SCAN_SCRIPT, "w", encoding="utf-8") as f:
+        f.write(POWERSHELL_SCANNER_CODE.strip())
+except Exception:
+    pass
+
+
+def get_current_connection_mode():
+    """Reads saved connection mode ('usb' or 'wifi') and Wi-Fi IP from settings.json."""
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("connectionMode", "usb"), data.get("wifiPrinterIp", "192.168.31.223")
+    except Exception:
+        pass
+    return "usb", "192.168.31.223"
+
+
+def set_windows_default_printer(printer_name):
+    """Sets Windows default printer using PrintUIEntry."""
+    if sys.platform != "win32" or not printer_name:
+        return False
+    try:
+        subprocess.run(["rundll32", "printui.dll,PrintUIEntry", "/y", "/n", printer_name], capture_output=True, timeout=5)
+        return True
+    except Exception as e:
+        print(f"Error setting default printer to {printer_name}: {e}")
+        return False
+
+
+def test_ip_reachable(ip, timeout=1.0):
+    """Tests if a given IP address has open printer/scanner ports (80, 8080, 9100, 631)."""
+    if not ip or not ip.strip():
+        return False
+    clean_ip = ip.strip()
+    for port in [80, 8080, 9100, 631]:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(timeout)
+            r = s.connect_ex((clean_ip, port))
+            s.close()
+            if r == 0:
+                return True
+        except Exception:
+            pass
+    return False
+
 
 def abort_current_scan():
     """
@@ -92,37 +185,37 @@ def abort_current_scan():
         if CURRENT_SCAN_PROC and CURRENT_SCAN_PROC.poll() is None:
             pid = CURRENT_SCAN_PROC.pid
             try:
-                # Forcefully kill process tree in Windows
                 subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
-            except Exception as e:
+            except Exception:
                 try:
                     CURRENT_SCAN_PROC.kill()
-                except:
+                except Exception:
                     pass
             CURRENT_SCAN_PROC = None
 
-    # Terminate any orphan powershell instances executing run_scan.ps1
+    # Terminate orphan powershell instances
     try:
         subprocess.run(
             ["powershell", "-NoProfile", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*run_scan.ps1*' } | Stop-Process -Force"],
             capture_output=True,
             timeout=5
         )
-    except:
+    except Exception:
         pass
 
-    # Clean up any leftover temporary BMP files
+    # Clean up temporary BMP files
     try:
         for f in os.listdir(CURRENT_DIR):
             if f.startswith("raw_scan_") and f.endswith(".bmp"):
                 try:
                     os.remove(os.path.join(CURRENT_DIR, f))
-                except:
+                except Exception:
                     pass
-    except:
+    except Exception:
         pass
 
     return True
+
 
 _LAST_STATUS_TIME = 0
 _CACHED_STATUS = {"online": False, "device_name": None, "message": "Checking..."}
@@ -131,26 +224,33 @@ _STATUS_LOCK = threading.Lock()
 IS_SCANNING_ACTIVE = False
 SCAN_ACTIVE_LOCK = threading.Lock()
 
+
 def is_scan_active():
     with SCAN_ACTIVE_LOCK:
         return IS_SCANNING_ACTIVE
+
 
 def set_scan_active(val):
     global IS_SCANNING_ACTIVE
     with SCAN_ACTIVE_LOCK:
         IS_SCANNING_ACTIVE = bool(val)
 
-def check_scanner_online(force=False):
+
+def check_scanner_online(force=False, connection_mode=None, wifi_ip=None):
     """
     Checks if the physical Epson scanner is connected, powered on, and responsive.
-    Uses cached result for 2.5 seconds to prevent excessive process spawning during polling.
-    If a scan is actively running, avoids querying WIA to prevent COM device bus contention.
+    Supports both USB and Wi-Fi connection modes explicitly.
     """
+    saved_mode, saved_ip = get_current_connection_mode()
+    mode = (connection_mode or saved_mode or "usb").lower()
+    target_wifi_ip = wifi_ip or saved_ip or "192.168.31.223"
+
     if is_scan_active():
         return {
             "online": True,
             "busy": True,
             "scanning": True,
+            "connection_mode": mode,
             "device_name": "EPSON L3250 Series",
             "message": "Epson L3250 Scanning in progress..."
         }
@@ -158,64 +258,129 @@ def check_scanner_online(force=False):
     global _LAST_STATUS_TIME, _CACHED_STATUS
     now = time.time()
     with _STATUS_LOCK:
-        if not force and (now - _LAST_STATUS_TIME) < 2.5:
+        if not force and (now - _LAST_STATUS_TIME) < 2.5 and _CACHED_STATUS.get("connection_mode") == mode:
             return dict(_CACHED_STATUS)
 
-    ps_code = """
+    if mode == "wifi":
+        # 1. Check Wi-Fi Connection
+        is_ip_online = test_ip_reachable(target_wifi_ip, timeout=0.8)
+
+        # 2. Check if WIA has a Network scanner device
+        ps_code_wifi = """
 try {
     $dm = New-Object -ComObject WIA.DeviceManager
     $target = $null
     for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
         $info = $dm.DeviceInfos.Item($i)
         if ($info.Type -eq 1) {
-            $target = $info
-            if ($info.Properties.Item("Name").Value -like "*L3250*") {
+            $name = $info.Properties.Item("Name").Value
+            if ($name -like "*Network*" -or $name -like "*Wi-Fi*" -or $name -like "*WiFi*") {
+                $target = $info
+                break
+            }
+        }
+    }
+    if ($target) {
+        $dev = $target.Connect()
+        $dev.ExecuteCommand("{9B26B7B2-ACAD-11D2-A093-00C04F72DC3C}")
+        Write-Output "WIA_OK|$($target.Properties.Item('Name').Value)"
+    } else {
+        Write-Output "NO_WIA_NET"
+    }
+} catch {
+    Write-Output "WIA_FAIL|$($_.Exception.Message)"
+}
+"""
+        wia_net_ok = False
+        try:
+            res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_code_wifi], capture_output=True, text=True, timeout=3)
+            out = res.stdout.strip()
+            if "WIA_OK|" in out:
+                wia_net_ok = True
+        except Exception:
+            pass
+
+        is_online = is_ip_online or wia_net_ok
+        dev_name = "EPSON L3250 Series (Network)"
+        msg = f"EPSON L3250 Ready on Wi-Fi ({target_wifi_ip})" if is_online else f"Wi-Fi Printer Unreachable at {target_wifi_ip}"
+        status_dict = {
+            "online": is_online,
+            "connection_mode": "wifi",
+            "ip": target_wifi_ip,
+            "port": target_wifi_ip,
+            "device_name": dev_name,
+            "message": msg
+        }
+    else:
+        # USB Mode
+        ps_code_usb = """
+try {
+    $dm = New-Object -ComObject WIA.DeviceManager
+    $target = $null
+    for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
+        $info = $dm.DeviceInfos.Item($i)
+        if ($info.Type -eq 1) {
+            $name = $info.Properties.Item("Name").Value
+            $portVal = ""
+            try { $portVal = $info.Properties.Item("Port").Value } catch {}
+            if ($name -notlike "*Network*" -and ($name -like "*L3250*" -or $name -like "*Epson*" -or $portVal -like "*USB*")) {
+                $target = $info
                 break
             }
         }
     }
     if (-not $target) {
-        Write-Output "RESULT|0|No scanner detected|"
+        # Fallback to any scanner
+        if ($dm.DeviceInfos.Count -gt 0) { $target = $dm.DeviceInfos.Item(1) }
+    }
+    if (-not $target) {
+        Write-Output "RESULT|0|No USB scanner detected|"
         exit
     }
     $devName = $target.Properties.Item("Name").Value
     try {
         $dev = $target.Connect()
-        # Verify physical hardware by issuing synchronize command
         $dev.ExecuteCommand("{9B26B7B2-ACAD-11D2-A093-00C04F72DC3C}")
         Write-Output "RESULT|1|Ready|$devName"
     } catch {
-        Write-Output "RESULT|0|Scanner is powered off or busy|$devName"
+        Write-Output "RESULT|0|USB Scanner is powered off or busy|$devName"
     }
 } catch {
     Write-Output "RESULT|0|Scanner service unavailable|"
 }
 """
-    status_dict = {"online": False, "device_name": None, "message": "Scanner Offline"}
-    try:
-        res = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps_code],
-            capture_output=True,
-            text=True,
-            timeout=4
-        )
-        out = res.stdout.strip()
-        for line in out.splitlines():
-            if line.startswith("RESULT|"):
-                parts = line.split("|")
-                is_online = (parts[1] == "1")
-                msg = parts[2]
-                dev = parts[3] if len(parts) > 3 and parts[3] else "EPSON L3250 Series"
-                status_dict = {
-                    "online": is_online,
-                    "device_name": dev if is_online else None,
-                    "message": f"{dev} Ready" if is_online else f"{dev} Offline (Powered Off)"
-                }
-                break
-    except subprocess.TimeoutExpired:
-        status_dict = {"online": False, "device_name": None, "message": "Scanner Offline (No Response)"}
-    except Exception as e:
-        status_dict = {"online": False, "device_name": None, "message": f"Scanner Error: {e}"}
+        status_dict = {
+            "online": False,
+            "connection_mode": "usb",
+            "device_name": "EPSON L3250 Series (USB)",
+            "port": "USB001",
+            "message": "USB Scanner Offline (Powered Off)"
+        }
+        try:
+            res = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", ps_code_usb],
+                capture_output=True,
+                text=True,
+                timeout=4
+            )
+            out = res.stdout.strip()
+            for line in out.splitlines():
+                if line.startswith("RESULT|"):
+                    parts = line.split("|")
+                    is_online = (parts[1] == "1")
+                    dev = parts[3] if len(parts) > 3 and parts[3] else "EPSON L3250 Series"
+                    status_dict = {
+                        "online": is_online,
+                        "connection_mode": "usb",
+                        "port": "USB001",
+                        "device_name": dev,
+                        "message": f"{dev} Ready on USB" if is_online else f"{dev} Offline (Check USB cable & power)"
+                    }
+                    break
+        except subprocess.TimeoutExpired:
+            status_dict = {"online": False, "connection_mode": "usb", "port": "USB001", "device_name": "EPSON L3250 Series", "message": "USB Scanner Offline (No Response)"}
+        except Exception as e:
+            status_dict = {"online": False, "connection_mode": "usb", "port": "USB001", "device_name": "EPSON L3250 Series", "message": f"USB Scanner Error: {e}"}
 
     with _STATUS_LOCK:
         _LAST_STATUS_TIME = time.time()
@@ -228,11 +393,12 @@ _DEVICE_INFO_LOCK = threading.Lock()
 _LAST_DEVICE_INFO_TIME = 0
 _CACHED_DEVICE_INFO = None
 
+
 def get_system_device_info(force=False):
     """
     Detects whether the system is connected via Wi-Fi or USB,
-    and retrieves the printer name, model number, connection port,
-    and scanner availability status.
+    retrieves printer names for both USB and Wi-Fi interfaces,
+    model number, IP address, and status.
     """
     global _LAST_DEVICE_INFO_TIME, _CACHED_DEVICE_INFO
     now = time.time()
@@ -240,22 +406,37 @@ def get_system_device_info(force=False):
         if not force and _CACHED_DEVICE_INFO and (now - _LAST_DEVICE_INFO_TIME < 3.5):
             return _CACHED_DEVICE_INFO
 
+    active_mode, saved_wifi_ip = get_current_connection_mode()
+
     info = {
         "success": True,
-        "connection_type": "USB",
+        "active_mode": active_mode,
+        "connection_type": "USB" if active_mode == "usb" else "Wi-Fi",
         "wifi_ssid": None,
         "wifi_signal": None,
-        "printer_name": "EPSON L3250 Series",
+        "wifi_ip": saved_wifi_ip,
+        "usb_device": {
+            "name": "EPSON L3250 Series",
+            "port": "USB001",
+            "online": False
+        },
+        "wifi_device": {
+            "name": "EPSON L3250 Series (Network)",
+            "port": saved_wifi_ip,
+            "ip": saved_wifi_ip,
+            "online": False
+        },
+        "printer_name": "EPSON L3250 Series" if active_mode == "usb" else "EPSON L3250 Series (Network)",
         "model_number": "L3250",
-        "port": "USB001",
-        "printer_connection": "USB (USB001)",
+        "port": "USB001" if active_mode == "usb" else saved_wifi_ip,
+        "printer_connection": f"{'USB' if active_mode == 'usb' else 'Wi-Fi / Network'} ({'USB001' if active_mode == 'usb' else saved_wifi_ip})",
         "printer_status": "Offline",
         "scanner_name": "EPSON L3250 Series",
         "scanner_online": False,
         "scanner_message": "Scanner Offline"
     }
 
-    # 1. Check Wi-Fi connection interface
+    # 1. Check Wi-Fi connection interface via netsh
     try:
         wlan_res = subprocess.run(["netsh", "wlan", "show", "interfaces"], capture_output=True, text=True, timeout=2)
         for line in wlan_res.stdout.splitlines():
@@ -264,9 +445,6 @@ def get_system_device_info(force=False):
                 parts = line.split(":", 1)
                 if len(parts) == 2:
                     info["wifi_ssid"] = parts[1].strip()
-            elif line.startswith("State"):
-                if "connected" in line.lower():
-                    info["connection_type"] = "Wi-Fi"
             elif line.startswith("Signal"):
                 parts = line.split(":", 1)
                 if len(parts) == 2:
@@ -274,52 +452,51 @@ def get_system_device_info(force=False):
     except Exception:
         pass
 
-    # 2. Check Windows Printers via PowerShell
+    # 2. Check Windows Win32_Printers via PowerShell
     try:
         ps_cmd = 'Get-CimInstance Win32_Printer | Select-Object Name, DriverName, PortName, WorkOffline | ConvertTo-Json'
         ps_res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], capture_output=True, text=True, timeout=3)
         if ps_res.stdout.strip():
             p_data = json.loads(ps_res.stdout)
             printers = [p_data] if isinstance(p_data, dict) else p_data
-            target_pr = None
             for p in printers:
-                name = p.get("Name", "")
-                if "3250" in name or "epson" in name.lower():
-                    target_pr = p
-                    break
-            if not target_pr and printers:
-                target_pr = printers[0]
+                pname = p.get("Name", "")
+                pport = p.get("PortName", "")
+                offline = p.get("WorkOffline", False)
 
-            if target_pr:
-                info["printer_name"] = target_pr.get("Name")
-                info["port"] = target_pr.get("PortName")
-                offline = target_pr.get("WorkOffline", True)
-                info["printer_status"] = "Offline" if offline else "Ready"
-
-                m = re.search(r'([A-Za-z]+\s*\d{3,4})', info["printer_name"] or "")
-                if m:
-                    info["model_number"] = m.group(1).strip()
-                else:
-                    info["model_number"] = info["printer_name"]
-
-                port_str = info["port"] or ""
-                if "USB" in port_str.upper():
-                    info["printer_connection"] = f"USB ({port_str})"
-                    if info["connection_type"] != "Wi-Fi":
-                        info["connection_type"] = "USB"
-                elif "WSD" in port_str.upper() or "IP_" in port_str.upper() or "." in port_str:
-                    info["printer_connection"] = f"Wi-Fi / Network ({port_str})"
-                    info["connection_type"] = "Wi-Fi"
-                else:
-                    info["printer_connection"] = port_str
+                if "3250" in pname or "epson" in pname.lower():
+                    is_net = ("network" in pname.lower() or "192." in pport or "wsd" in pport.lower() or "." in pport)
+                    if is_net:
+                        info["wifi_device"]["name"] = pname
+                        info["wifi_device"]["port"] = pport
+                        info["wifi_device"]["online"] = not offline
+                        if "." in pport and not pport.startswith("WSD"):
+                            info["wifi_device"]["ip"] = pport
+                            info["wifi_ip"] = pport
+                    else:
+                        info["usb_device"]["name"] = pname
+                        info["usb_device"]["port"] = pport or "USB001"
+                        info["usb_device"]["online"] = not offline
     except Exception:
         pass
 
-    # 3. Check Scanner
-    sc_status = check_scanner_online(force=force)
+    # 3. Check Active Mode & Online Status
+    sc_status = check_scanner_online(force=force, connection_mode=active_mode, wifi_ip=info["wifi_ip"])
     info["scanner_online"] = sc_status.get("online", False)
-    info["scanner_name"] = sc_status.get("device_name") or info["printer_name"]
     info["scanner_message"] = sc_status.get("message", "Scanner Offline")
+
+    if active_mode == "usb":
+        info["printer_name"] = info["usb_device"]["name"]
+        info["port"] = info["usb_device"]["port"]
+        info["printer_connection"] = f"USB ({info['port']})"
+        info["printer_status"] = "Ready" if info["scanner_online"] or info["usb_device"]["online"] else "Offline"
+        info["scanner_name"] = info["usb_device"]["name"]
+    else:
+        info["printer_name"] = info["wifi_device"]["name"]
+        info["port"] = info["wifi_device"]["port"]
+        info["printer_connection"] = f"Wi-Fi / Network ({info['port']})"
+        info["printer_status"] = "Ready" if info["scanner_online"] or info["wifi_device"]["online"] else "Offline"
+        info["scanner_name"] = info["wifi_device"]["name"]
 
     with _DEVICE_INFO_LOCK:
         _LAST_DEVICE_INFO_TIME = time.time()
@@ -327,18 +504,118 @@ def get_system_device_info(force=False):
 
     return info
 
-def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_type="id_card", auto_enhance=False, enhance_preset="clean", corner_curve_mm=0):
+
+def scan_via_escl(target_ip, output_path, dpi=300, color_mode=1):
     """
-    Triggers the Epson L3250 scanner via WIA, saves the scan,
-    and optionally auto-crops (ID card, full A4 page, or small document).
+    Direct eSCL (Apple AirScan / Mopria standard) scanning over Wi-Fi network.
+    Supported natively by Epson L3250 over Wi-Fi network without PC driver dependencies.
+    """
+    if not target_ip:
+        raise Exception("No Wi-Fi printer IP address provided for eSCL scan.")
+
+    color_val = "RGB24" if color_mode == 1 else ("Grayscale8" if color_mode == 2 else "BlackAndWhite1")
+
+    base_url = None
+    for p in [80, 8080]:
+        test_url = f"http://{target_ip}:{p}/eSCL/ScannerCapabilities"
+        try:
+            req = urllib.request.Request(test_url, headers={"User-Agent": "HKMTECH-CardPrinter"})
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                if resp.status == 200:
+                    base_url = f"http://{target_ip}:{p}/eSCL"
+                    break
+        except Exception:
+            continue
+
+    if not base_url:
+        base_url = f"http://{target_ip}/eSCL"
+
+    scan_job_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03" xmlns:pwg="http://www.pwg.org/schemas/2010/12/sm">
+  <pwg:Version>2.6</pwg:Version>
+  <scan:Intent>Document</scan:Intent>
+  <pwg:ScanRegions>
+    <pwg:ScanRegion>
+      <pwg:Height>3507</pwg:Height>
+      <pwg:Width>2480</pwg:Width>
+      <pwg:XOffset>0</pwg:XOffset>
+      <pwg:YOffset>0</pwg:YOffset>
+    </pwg:ScanRegion>
+  </pwg:ScanRegions>
+  <scan:InputSource>Platen</scan:InputSource>
+  <scan:ColorMode>{color_val}</scan:ColorMode>
+  <scan:XResolution>{dpi}</scan:XResolution>
+  <scan:YResolution>{dpi}</scan:YResolution>
+</scan:ScanSettings>"""
+
+    post_url = f"{base_url}/ScanJobs"
+    post_req = urllib.request.Request(
+        post_url,
+        data=scan_job_xml.encode("utf-8"),
+        headers={
+            "Content-Type": "text/xml; charset=utf-8",
+            "User-Agent": "HKMTECH-CardPrinter"
+        },
+        method="POST"
+    )
+
+    with urllib.request.urlopen(post_req, timeout=12) as resp:
+        if resp.status not in (201, 200):
+            raise Exception(f"eSCL ScanJobs returned HTTP {resp.status}")
+        job_loc = resp.headers.get("Location")
+        if not job_loc:
+            raise Exception("No Location header returned from eSCL ScanJobs")
+
+    if not job_loc.startswith("http"):
+        root_url = base_url.rsplit("/eSCL", 1)[0]
+        job_url = f"{root_url}{job_loc}"
+    else:
+        job_url = job_loc
+
+    doc_url = f"{job_url}/NextDocument"
+    time.sleep(2)
+    doc_req = urllib.request.Request(doc_url, headers={"User-Agent": "HKMTECH-CardPrinter"})
+
+    for _ in range(35):
+        if ABORT_REQUESTED:
+            raise Exception("Scan was aborted by user.")
+        try:
+            with urllib.request.urlopen(doc_req, timeout=30) as doc_resp:
+                if doc_resp.status == 200:
+                    raw_bytes = doc_resp.read()
+                    import io
+                    img = Image.open(io.BytesIO(raw_bytes))
+                    img.save(output_path)
+                    return True
+        except urllib.error.HTTPError as he:
+            if he.code in (503, 404):
+                time.sleep(1)
+                continue
+            raise he
+        except Exception:
+            time.sleep(1)
+
+    raise Exception("eSCL Scan timed out waiting for document transfer.")
+
+
+def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_type="id_card", auto_enhance=False, enhance_preset="clean", corner_curve_mm=0, connection_mode=None, wifi_ip=None):
+    """
+    Triggers the Epson L3250 scanner via WIA or Wi-Fi eSCL based on connection mode,
+    saves the scan, and optionally auto-crops (ID card, full A4 page, or small document).
     Supports cancellation via abort_current_scan().
     """
     global CURRENT_SCAN_PROC, ABORT_REQUESTED
     ABORT_REQUESTED = False
     set_scan_active(True)
 
+    saved_mode, saved_ip = get_current_connection_mode()
+    mode = (connection_mode or saved_mode or "usb").lower()
+    target_ip = wifi_ip or saved_ip or "192.168.31.223"
+
     raw_scan_path = os.path.join(tempfile.gettempdir(), f"raw_scan_{int(time.time())}_{uuid.uuid4().hex[:6]}.bmp")
-    
+    scan_performed = False
+    device_name = "EPSON L3250 Series" if mode == "usb" else "EPSON L3250 Series (Network)"
+
     cmd = [
         "powershell",
         "-NoProfile",
@@ -346,7 +623,8 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
         "-File", SCAN_SCRIPT,
         "-OutputFile", raw_scan_path,
         "-Dpi", str(dpi),
-        "-ColorMode", str(color_mode)
+        "-ColorMode", str(color_mode),
+        "-ConnectionMode", mode
     ]
 
     try:
@@ -376,29 +654,25 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
             }
 
         output = stdout.strip() if stdout else ""
-        
-        device_name = "EPSON L3250 Series"
         for line in output.splitlines():
             if line.startswith("DEVICE:"):
                 device_name = line.replace("DEVICE:", "").strip()
-            elif line.startswith("NO_SCANNER"):
-                return {
-                    "success": False,
-                    "aborted": False,
-                    "error": "No scanner detected. Make sure your Epson L3250 is turned on and connected via USB or Wi-Fi.",
-                    "path": None,
-                    "cropped": False
-                }
-            elif line.startswith("ERROR:"):
-                return {
-                    "success": False,
-                    "aborted": False,
-                    "error": f"Scanner error: {line.replace('ERROR:', '').strip()}",
-                    "path": None,
-                    "cropped": False
-                }
 
-        if not os.path.exists(raw_scan_path):
+        if os.path.exists(raw_scan_path) and os.path.getsize(raw_scan_path) > 1000:
+            scan_performed = True
+        elif mode == "wifi":
+            # Fallback to direct eSCL scanning over Wi-Fi
+            try:
+                raw_png = raw_scan_path.replace(".bmp", ".png")
+                scan_via_escl(target_ip, raw_png, dpi=dpi, color_mode=color_mode)
+                if os.path.exists(raw_png):
+                    raw_scan_path = raw_png
+                    scan_performed = True
+                    device_name = f"EPSON L3250 (eSCL Network {target_ip})"
+            except Exception as escl_err:
+                print(f"eSCL fallback failed: {escl_err}")
+
+        if not scan_performed or not os.path.exists(raw_scan_path):
             if ABORT_REQUESTED:
                 return {
                     "success": False,
@@ -407,10 +681,11 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
                     "path": None,
                     "cropped": False
                 }
+            error_hint = "Make sure your Epson L3250 is turned on and connected via USB." if mode == "usb" else f"Make sure your Epson L3250 is turned on and connected to Wi-Fi ({target_ip})."
             return {
                 "success": False,
                 "aborted": False,
-                "error": f"Scan failed to create output file. {output}",
+                "error": f"Scanner failed to scan. {error_hint} {output}",
                 "path": None,
                 "cropped": False
             }
@@ -462,7 +737,7 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
         if os.path.exists(raw_scan_path):
             try:
                 os.remove(raw_scan_path)
-            except:
+            except Exception:
                 pass
 
         detected_bbox = list(ratio_info.get("bbox", [])) if "bbox" in ratio_info else None
@@ -481,6 +756,7 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
             "aspect": ratio_info.get("aspect", final_img.width / float(final_img.height)),
             "is_portrait": ratio_info.get("is_portrait", (final_img.height > final_img.width)),
             "device_name": device_name,
+            "connection_mode": mode,
             "error": None
         }
 
@@ -521,3 +797,5 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
 
 if __name__ == "__main__":
     print("Testing scanner module...")
+    info = get_system_device_info(force=True)
+    print("Device Info:", json.dumps(info, indent=2))

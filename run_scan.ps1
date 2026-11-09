@@ -1,7 +1,8 @@
 param(
     [string]$OutputFile = "temp_scan.bmp",
     [int]$Dpi = 200,
-    [int]$ColorMode = 1
+    [int]$ColorMode = 1,
+    [string]$ConnectionMode = "usb"
 )
 
 try {
@@ -12,11 +13,53 @@ try {
     }
 
     $targetDevice = $null
+
+    # 1. Match based on requested ConnectionMode (USB vs Wi-Fi)
     for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
         $info = $dm.DeviceInfos.Item($i)
         if ($info.Type -eq 1) { # Scanner
-            $targetDevice = $info
-            if ($info.Properties.Item("Name").Value -like "*L3250*") {
+            $devName = ""
+            $portVal = ""
+            try { $devName = $info.Properties.Item("Name").Value } catch {}
+            try { $portVal = $info.Properties.Item("Port").Value } catch {}
+
+            $isNetwork = ($devName -like "*Network*" -or $devName -like "*Wi-Fi*" -or $devName -like "*WiFi*" -or $portVal -like "*192.*" -or $portVal -like "*WSD*")
+
+            if ($ConnectionMode -eq "wifi") {
+                if ($isNetwork) {
+                    $targetDevice = $info
+                    break
+                }
+            } else { # USB mode
+                if (-not $isNetwork -and ($devName -like "*L3250*" -or $devName -like "*Epson*" -or $portVal -like "*USB*")) {
+                    $targetDevice = $info
+                    break
+                }
+            }
+        }
+    }
+
+    # 2. Fallback to any Epson scanner if exact mode driver isn't distinct
+    if (-not $targetDevice) {
+        for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
+            $info = $dm.DeviceInfos.Item($i)
+            if ($info.Type -eq 1) {
+                $devName = ""
+                try { $devName = $info.Properties.Item("Name").Value } catch {}
+                if ($devName -like "*L3250*" -or $devName -like "*Epson*") {
+                    $targetDevice = $info
+                    break
+                }
+            }
+        }
+    }
+
+    # 3. Fallback to first available scanner
+    if (-not $targetDevice) {
+        for ($i = 1; $i -le $dm.DeviceInfos.Count; $i++) {
+            $info = $dm.DeviceInfos.Item($i)
+            if ($info.Type -eq 1) {
+                $targetDevice = $info
                 break
             }
         }

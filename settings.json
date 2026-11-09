@@ -1,4 +1,8 @@
 {
+  "connectionMode": "usb",
+  "wifiPrinterIp": "192.168.31.223",
+  "wifiPrinterName": "EPSON L3250 Series (Network)",
+  "usbPrinterName": "EPSON L3250 Series",
   "scanDpi": 150,
   "paperSize": "a4",
   "autoCrop": true,

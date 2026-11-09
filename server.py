@@ -21,6 +21,10 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(CURRENT_DIR, "settings.json")
 
 DEFAULT_SETTINGS = {
+    "connectionMode": "usb",
+    "wifiPrinterIp": "192.168.31.223",
+    "wifiPrinterName": "EPSON L3250 Series (Network)",
+    "usbPrinterName": "EPSON L3250 Series",
     "scanDpi": 300,
     "paperSize": "a4",
     "autoCrop": True,
@@ -53,7 +57,7 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
-        if url.path == "/api/device_info":
+        if url.path == "/api/connection" or url.path == "/api/device_info":
             force = ("force" in (url.query or ""))
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -94,6 +98,67 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
         from PIL import Image
         import io
         url = urllib.parse.urlparse(self.path)
+
+        if url.path == "/api/connection":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            try:
+                params = json.loads(body)
+                mode = params.get("mode", "usb").lower()
+                wifi_ip = params.get("wifi_ip") or params.get("wifiPrinterIp")
+                set_default = params.get("setDefault", True)
+
+                current = dict(DEFAULT_SETTINGS)
+                if os.path.exists(SETTINGS_FILE):
+                    try:
+                        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                            current.update(json.load(f))
+                    except:
+                        pass
+                current["connectionMode"] = mode
+                if wifi_ip:
+                    current["wifiPrinterIp"] = str(wifi_ip).strip()
+                with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(current, f, indent=2)
+
+                if set_default and sys.platform == "win32":
+                    target_name = current.get("usbPrinterName", "EPSON L3250 Series") if mode == "usb" else current.get("wifiPrinterName", "EPSON L3250 Series (Network)")
+                    scanner.set_windows_default_printer(target_name)
+
+                info = scanner.get_system_device_info(force=True)
+                resp = {"success": True, "mode": mode, "info": info}
+            except Exception as e:
+                resp = {"success": False, "error": str(e)}
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if url.path == "/api/connection/test_wifi":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            try:
+                params = json.loads(body)
+                ip = params.get("ip") or params.get("wifiPrinterIp", "192.168.31.223")
+                reachable = scanner.test_ip_reachable(ip, timeout=1.5)
+                resp = {
+                    "success": True,
+                    "ip": ip,
+                    "online": reachable,
+                    "message": f"Epson printer online at {ip}" if reachable else f"Cannot reach printer at {ip}"
+                }
+            except Exception as e:
+                resp = {"success": False, "error": str(e)}
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
 
         if url.path == "/api/settings":
             length = int(self.headers.get("Content-Length", 0))
@@ -282,6 +347,8 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
             enhance_preset = params.get("enhance_preset", "clean")
             corner_curve_mm = float(params.get("corner_curve_mm", 0))
 
+            conn_mode = params.get("connection_mode")
+            wifi_ip = params.get("wifi_ip")
             temp_out = os.path.join(tempfile.gettempdir(), f"web_scan_{side}_{int(time.time())}_{uuid.uuid4().hex[:6]}.png")
             result = scanner.scan_from_epson(
                 output_path=temp_out,
@@ -291,7 +358,9 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                 doc_type=doc_type,
                 auto_enhance=auto_enhance,
                 enhance_preset=enhance_preset,
-                corner_curve_mm=corner_curve_mm
+                corner_curve_mm=corner_curve_mm,
+                connection_mode=conn_mode,
+                wifi_ip=wifi_ip
             )
 
             response_data = {}

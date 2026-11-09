@@ -191,6 +191,24 @@ class AadhaarPrinterApp:
         sec_wizard = ttk.LabelFrame(self.left_ctrl_frame, text=" ⚡ Automatic Scanner Integration ", padding=10)
         sec_wizard.pack(fill=tk.X, pady=(0, 10))
 
+        # CONNECTION MODE SELECTOR: USB vs Wi-Fi
+        conn_box = ttk.Frame(sec_wizard)
+        conn_box.pack(fill=tk.X, pady=(0, 6))
+        ttk.Label(conn_box, text="Connect:", font=("Segoe UI", 8, "bold")).pack(side=tk.LEFT, padx=(0, 6))
+        self.conn_mode_var = tk.StringVar(value="usb")
+        try:
+            if os.path.exists("settings.json"):
+                with open("settings.json", "r", encoding="utf-8") as _f:
+                    self.conn_mode_var.set(json.load(_f).get("connectionMode", "usb"))
+        except Exception:
+            pass
+        ttk.Radiobutton(
+            conn_box, text="🔌 USB", value="usb", variable=self.conn_mode_var, command=self.on_connection_mode_changed
+        ).pack(side=tk.LEFT, padx=4)
+        ttk.Radiobutton(
+            conn_box, text="📶 Wi-Fi", value="wifi", variable=self.conn_mode_var, command=self.on_connection_mode_changed
+        ).pack(side=tk.LEFT, padx=4)
+
         self.btn_wizard = tk.Button(
             sec_wizard,
             text="⚡ 1-Click Scan Both Sides (Guided)",
@@ -2073,9 +2091,26 @@ class AadhaarPrinterApp:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save Image: {e}")
 
-    def check_scanner_hardware_status(self):
+    def on_connection_mode_changed(self):
+        mode = self.conn_mode_var.get()
+        target_name = "EPSON L3250 Series" if mode == "usb" else "EPSON L3250 Series (Network)"
+        scanner.set_windows_default_printer(target_name)
+        try:
+            cur = {}
+            if os.path.exists("settings.json"):
+                with open("settings.json", "r", encoding="utf-8") as f:
+                    cur = json.load(f)
+            cur["connectionMode"] = mode
+            with open("settings.json", "w", encoding="utf-8") as f:
+                json.dump(cur, f, indent=2)
+        except Exception:
+            pass
+        self.check_scanner_hardware_status(force=True)
+
+    def check_scanner_hardware_status(self, force=False):
+        mode_val = self.conn_mode_var.get() if hasattr(self, "conn_mode_var") else "usb"
         def worker():
-            st = scanner.check_scanner_online()
+            st = scanner.check_scanner_online(force=force, connection_mode=mode_val)
             try:
                 self.root.after(0, lambda: self.update_scanner_status_ui(st))
             except:
