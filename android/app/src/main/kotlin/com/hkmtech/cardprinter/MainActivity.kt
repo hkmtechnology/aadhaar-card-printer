@@ -2,7 +2,10 @@ package com.hkmtech.cardprinter
 
 import android.Manifest
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Context
+import android.media.MediaScannerConnection
+import android.os.Environment
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbManager
@@ -440,6 +443,81 @@ class MainActivity : ComponentActivity() {
                 } catch (e: Exception) {
                     Toast.makeText(context, "Print Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
+            }
+        }
+
+        @JavascriptInterface
+        fun savePdf(base64Data: String, fileName: String): Boolean {
+            return saveFileToStorage(base64Data, fileName, "application/pdf", Environment.DIRECTORY_DOWNLOADS)
+        }
+
+        @JavascriptInterface
+        fun saveImage(base64Data: String, fileName: String): Boolean {
+            val mime = if (fileName.endsWith(".jpg", ignoreCase = true) || fileName.endsWith(".jpeg", ignoreCase = true)) "image/jpeg" else "image/png"
+            return saveFileToStorage(base64Data, fileName, mime, Environment.DIRECTORY_PICTURES)
+        }
+
+        private fun saveFileToStorage(base64Data: String, fileName: String, mimeType: String, publicDir: String): Boolean {
+            return try {
+                val cleanB64 = if (base64Data.contains(",")) base64Data.substringAfter(",") else base64Data
+                val bytes = Base64.decode(cleanB64, Base64.DEFAULT)
+                var savedUri: Uri? = null
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val values = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                        if (publicDir == Environment.DIRECTORY_PICTURES) {
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/HKM_Cards")
+                        } else {
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                        }
+                    }
+                    val targetUri = if (publicDir == Environment.DIRECTORY_PICTURES) {
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                    } else {
+                        MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                    }
+                    savedUri = context.contentResolver.insert(targetUri, values)
+                    savedUri?.let { uri ->
+                        context.contentResolver.openOutputStream(uri)?.use { os ->
+                            os.write(bytes)
+                        }
+                    }
+                } else {
+                    val dir = Environment.getExternalStoragePublicDirectory(publicDir)
+                    val targetDir = if (publicDir == Environment.DIRECTORY_PICTURES) File(dir, "HKM_Cards") else dir
+                    if (!targetDir.exists()) targetDir.mkdirs()
+                    val destFile = File(targetDir, fileName)
+                    FileOutputStream(destFile).use { it.write(bytes) }
+                    savedUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", destFile)
+                    MediaScannerConnection.scanFile(context, arrayOf(destFile.absolutePath), arrayOf(mimeType), null)
+                }
+
+                runOnUiThread {
+                    val folderName = if (publicDir == Environment.DIRECTORY_PICTURES) "Pictures/HKM_Cards" else "Downloads"
+                    Toast.makeText(context, "âœ… Saved $fileName to $folderName", Toast.LENGTH_LONG).show()
+
+                    savedUri?.let { uri ->
+                        try {
+                            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, mimeType)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(Intent.createChooser(viewIntent, "Open $fileName"))
+                        } catch (e: Exception) {
+                            Log.w("HKM_SAVE", "Chooser error: ${e.message}")
+                        }
+                    }
+                }
+                true
+            } catch (e: Exception) {
+                Log.e("HKM_SAVE", "Save error: ${e.message}", e)
+                runOnUiThread {
+                    Toast.makeText(context, "âŒ Save failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+                false
             }
         }
 

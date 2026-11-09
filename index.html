@@ -766,24 +766,16 @@
       bottom: 0;
     }
 
-    .half-tag {
-      position: absolute;
-      font-size: 10px;
-      font-weight: 700;
-      color: rgba(0, 0, 0, 0.25);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      user-select: none;
-      pointer-events: none;
-      left: 14px;
+        .half-tag {
+      display: none !important;
     }
 
-    .a4-top-half .half-tag {
-      top: 14px;
+    .a4-top-half     .half-tag {
+      display: none !important;
     }
 
-    .a4-bottom-half .half-tag {
-      top: 14px;
+    .a4-bottom-half     .half-tag {
+      display: none !important;
     }
 
     .center-cut-line {
@@ -808,6 +800,32 @@
       transform: translateY(-50%);
     }
 
+    
+    .doc-sheet-container {
+      width: 595px;
+      height: 842px;
+      background: #ffffff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      margin: 0 auto;
+      border-radius: 2px;
+    }
+
+    .doc-sheet-image {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      margin: auto;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
     .card-slot {
       position: absolute;
       left: 50%;
@@ -2228,7 +2246,7 @@
 
           <!-- FRONT CARD SLOT -->
           <div class="card-slot slot-front border-none" id="frontSlot" data-side="front" ondblclick="openManualCropModal('front')">
-            <div class="slot-actions-bar">
+            <div class="slot-actions-bar" style="display: none;">
               <button class="slot-orig-btn" id="frontSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('front')" title="Toggle original uncropped scan vs cropped card" style="display: none;">👁️ Original</button>
               <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('front');" title="Adjust crop box">✂ Adjust Crop</button>
             </div>
@@ -2263,7 +2281,7 @@
 
           <!-- BACK CARD SLOT -->
           <div class="card-slot slot-back border-none" id="backSlot" data-side="back" ondblclick="openManualCropModal('back')">
-            <div class="slot-actions-bar">
+            <div class="slot-actions-bar" style="display: none;">
               <button class="slot-orig-btn" id="backSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('back')" title="Toggle original uncropped scan vs cropped card" style="display: none;">👁️ Original</button>
               <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('back');" title="Adjust crop box">✂ Adjust Crop</button>
             </div>
@@ -2368,6 +2386,12 @@
         <!-- STEP 3: CARD SIZE & LAYOUT -->
         <div class="section-card">
           <div class="section-title">3. Card Size & Alignment</div>
+          <div style="margin-top: 8px; margin-bottom: 8px;">
+            <button type="button" class="btn btn-secondary" style="width: 100%; padding: 7px; font-size: 0.78rem; font-weight: 700; background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #93c5fd;" onclick="autoCenterBothCards()">
+              🎯 Auto-Center Cards on A4 Sheet
+            </button>
+          </div>
+    
 
           <div class="form-group">
             <label>Print Dimensions Preset</label>
@@ -4303,7 +4327,11 @@ function getApiUrl(endpoint) {
         }
 
         if (settings.topPosMm !== undefined) {
-          state.topPosMm = parseFloat(settings.topPosMm);
+          let tVal = parseFloat(settings.topPosMm);
+          if (isNaN(tVal) || tVal < 5 || tVal > 140) {
+            tVal = 47.25;
+          }
+          state.topPosMm = tVal;
           const topSlider = document.getElementById('topPosSlider');
           if (topSlider) topSlider.value = state.topPosMm;
           const topVal = document.getElementById('topPosVal');
@@ -4311,7 +4339,11 @@ function getApiUrl(endpoint) {
         }
 
         if (settings.bottomPosMm !== undefined) {
-          state.bottomPosMm = parseFloat(settings.bottomPosMm);
+          let bVal = parseFloat(settings.bottomPosMm);
+          if (isNaN(bVal) || bVal < 100 || bVal > 290) {
+            bVal = 195.75;
+          }
+          state.bottomPosMm = bVal;
           const botSlider = document.getElementById('bottomPosSlider');
           if (botSlider) botSlider.value = state.bottomPosMm;
           const botVal = document.getElementById('bottomPosVal');
@@ -5352,6 +5384,7 @@ function getApiUrl(endpoint) {
             }
             state[side].rotation = 0;
             detectAndApplyAspect(side, img, data.ratio_type, data.aspect);
+            autoCenterSlot(side);
             renderSlot(side);
             document.getElementById(side + 'Controls').style.display = 'flex';
             document.getElementById(side + 'Label').innerText = `Scanned ${side.toUpperCase()} (${data.cropped ? 'Auto-Cropped' : 'Full'})`;
@@ -5689,6 +5722,8 @@ function getApiUrl(endpoint) {
       const sideBtn = document.getElementById(side + 'ToggleOrigBtn');
       const slotBtn = document.getElementById(side + 'SlotOrigBtn');
       const badge = document.getElementById(side + 'OrigBadge');
+      const actionsBar = document.querySelector('#' + side + 'Slot .slot-actions-bar');
+      if (actionsBar) actionsBar.style.display = targetImg ? 'flex' : 'none';
 
       if (targetImg) {
         imgElem.src = targetImg.src;
@@ -5747,13 +5782,50 @@ function getApiUrl(endpoint) {
       onSettingChanged();
     }
 
+    
+    function autoCenterSlot(side) {
+      const dim = getCardSlotDimensions(side);
+      const midY = state.midLinePosMm || 148.5;
+      const pW = state.paperWidthMm || 210.0;
+      const pH = state.paperHeightMm || 297.0;
+
+      // Exact horizontal center
+      state[side].xMm = pW / 2.0;
+
+      // Exact vertical center in respective half
+      if (side === 'front') {
+        state.topPosMm = Math.max(2, Math.round(((midY - dim.hMm) / 2.0) * 10) / 10);
+        const topSlider = document.getElementById('topPosSlider');
+        if (topSlider) topSlider.value = state.topPosMm;
+        const topVal = document.getElementById('topPosVal');
+        if (topVal) topVal.innerText = state.topPosMm + ' mm';
+      } else {
+        const botRegionH = pH - midY;
+        state.bottomPosMm = Math.max(midY + 2, Math.round((midY + (botRegionH - dim.hMm) / 2.0) * 10) / 10);
+        const botSlider = document.getElementById('bottomPosSlider');
+        if (botSlider) botSlider.value = state.bottomPosMm;
+        const botVal = document.getElementById('bottomPosVal');
+        if (botVal) botVal.innerText = state.bottomPosMm + ' mm';
+        state.bottomOffsetFromCenter = 0;
+      }
+      updateSheetLayout();
+    }
+
+    function autoCenterBothCards() {
+      autoCenterSlot('front');
+      autoCenterSlot('back');
+      showToast('Cards centered on A4 sheet!', 'success');
+      onSettingChanged();
+    }
+    
     function updateSheetLayout() {
       const fDim = getCardSlotDimensions('front');
       const bDim = getCardSlotDimensions('back');
 
       const frontSlot = document.getElementById('frontSlot');
       if (frontSlot) {
-        const fX = (state.front.xMm !== undefined ? state.front.xMm : 105) * PX_PER_MM;
+        const pW = state.paperWidthMm || 210.0;
+        const fX = (state.front.xMm !== undefined ? state.front.xMm : (pW / 2.0)) * PX_PER_MM;
         const fY = state.topPosMm * PX_PER_MM;
         const fRot = state.front.canvasAngle || 0;
         frontSlot.style.width = fDim.wPx + 'px';
@@ -5766,7 +5838,7 @@ function getApiUrl(endpoint) {
 
       const backSlot = document.getElementById('backSlot');
       if (backSlot) {
-        const bX = (state.back.xMm !== undefined ? state.back.xMm : 105) * PX_PER_MM;
+        const bX = (state.back.xMm !== undefined ? state.back.xMm : (pW / 2.0)) * PX_PER_MM;
         const bY = state.bottomPosMm * PX_PER_MM;
         const bRot = state.back.canvasAngle || 0;
         backSlot.style.width = bDim.wPx + 'px';
@@ -6438,10 +6510,21 @@ function getApiUrl(endpoint) {
 
     function exportImage() {
       const canvas = renderHighResA4Canvas();
+      const dataUrl = canvas.toDataURL('image/png');
+      const base64Data = dataUrl.split(',')[1];
+      const fileName = 'HKMTECH_A4_Print_Ready.png';
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.saveImage === 'function') {
+        window.AndroidBridge.saveImage(base64Data, fileName);
+        showToast('Saving Image to Pictures: ' + fileName, 'success');
+        return;
+      }
+
       const a = document.createElement('a');
-      a.download = 'HKMTECH_A4_Print_Ready.png';
-      a.href = canvas.toDataURL('image/png');
+      a.download = fileName;
+      a.href = dataUrl;
       a.click();
+      showToast('Image Downloaded!', 'success');
     }
 
     function exportPDF() {
@@ -6452,14 +6535,29 @@ function getApiUrl(endpoint) {
 
       const copies = state.copies || 1;
       const pdfBytes = createA4ImagePDF(binaryImg, copies);
+
+      let binary = '';
+      const len = pdfBytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(pdfBytes[i]);
+      }
+      const pdfBase64 = btoa(binary);
+      const fileName = copies === 1 ? 'HKMTECH_A4_Print_Ready.pdf' : `HKMTECH_A4_${copies}_Copies.pdf`;
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.savePdf === 'function') {
+        window.AndroidBridge.savePdf(pdfBase64, fileName);
+        showToast('Saving PDF to Downloads: ' + fileName, 'success');
+        return;
+      }
+
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement('a');
-      a.download = copies === 1 ? 'HKMTECH_A4_Print_Ready.pdf' : `HKMTECH_A4_${copies}_Copies.pdf`;
+      a.download = fileName;
       a.href = url;
       a.click();
       URL.revokeObjectURL(url);
+      showToast('PDF Downloaded!', 'success');
     }
 
     function createA4ImagePDF(binaryJpeg, numCopies) {
@@ -6679,21 +6777,14 @@ function getApiUrl(endpoint) {
 
       try {
         const targetPageNum = docState.pages.length + 1;
-        const res = await fetch(getApiUrl('/api/scan'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            side: 'doc_page_' + targetPageNum,
-            dpi: docState.scanDpi,
-            autocrop: true,
-            doc_type: docState.docType,
-            auto_enhance: docState.autoEnhance,
-            enhance_preset: docState.enhancePreset
-          }),
-          signal: docState.abortController.signal
+        const data = await performUnifiedScan({
+          side: 'doc_page_' + targetPageNum,
+          dpi: docState.scanDpi,
+          autocrop: true,
+          docType: docState.docType,
+          auto_enhance: docState.autoEnhance,
+          enhance_preset: docState.enhancePreset
         });
-
-        const data = await res.json();
 
         if (data.aborted) {
           showToast('Scan was aborted by user.', 'warning');
@@ -7372,9 +7463,19 @@ function getApiUrl(endpoint) {
         return;
       }
       const page = docState.pages[docState.currentIndex];
+      const fileName = `HKMTECH_Page_${docState.currentIndex + 1}.png`;
+      const imgData = page.enhancedImg || page.rawImg;
+      const b64 = imgData.includes(',') ? imgData.split(',')[1] : imgData;
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.saveImage === 'function') {
+        window.AndroidBridge.saveImage(b64, fileName);
+        showToast('Page image saved to Pictures!', 'success');
+        return;
+      }
+
       const a = document.createElement('a');
-      a.download = `HKMTECH_Page_${docState.currentIndex + 1}.png`;
-      a.href = page.enhancedImg;
+      a.download = fileName;
+      a.href = imgData;
       a.click();
       showToast('Page image saved!', 'success');
     }
@@ -8355,6 +8456,8 @@ function getApiUrl(endpoint) {
       const sideBtn = document.getElementById(side + 'ToggleOrigBtn');
       const slotBtn = document.getElementById(side + 'SlotOrigBtn');
       const badge = document.getElementById(side + 'OrigBadge');
+      const actionsBar = document.querySelector('#' + side + 'Slot .slot-actions-bar');
+      if (actionsBar) actionsBar.style.display = targetImg ? 'flex' : 'none';
 
       const isOrig = state[side].showOriginal;
       const label = isOrig ? '✨ Show Cropped' : '👁️ Show Original';
