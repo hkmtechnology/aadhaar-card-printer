@@ -1978,6 +1978,7 @@
       transform: translate(-50%, -50%) !important;
     }
 
+    
     /* =========================================================================
        MODERN DPI SELECTOR CONTROLS & PERSISTENT SEGMENTED BUTTONS
        ========================================================================= */
@@ -3444,20 +3445,7 @@
         border-radius: 10px !important;
       }
 
-      /* Fullscreen Crop Modal on Mobile */
-      .crop-modal-box {
-        width: 100vw !important;
-        height: 100vh !important;
-        max-width: 100vw !important;
-        max-height: 100vh !important;
-        border-radius: 0 !important;
-      }
-
-      .crop-modal-toolbar {
-        padding: 8px 10px !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-      }
+      /* Fullscreen Crop Modal moved to consolidated block */
 
       /* Mobile Touch Interaction Enhancements for Card Placeholders & Handles */
       .card-slot {
@@ -4388,7 +4376,351 @@
       50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.8)); }
     }
     
-</style>
+
+    /* =========================================================================
+       MASTER RESPONSIVE ADJUST CROP & CAMERA RAW MODALS (DEFINITIVE AT END OF CSS)
+       ========================================================================= */
+    @media (max-width: 768px) {
+      .modal-overlay {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        box-sizing: border-box !important;
+      }
+
+      #cropModal, #passportCropModal, #cameraRawModal {
+        z-index: 1000005 !important;
+      }
+
+      /* Fullscreen Crop & Camera Raw Modals on Mobile */
+      .crop-modal-box,
+      .cameraraw-modal-box {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        box-sizing: border-box !important;
+        z-index: 1000006 !important;
+      }
+
+      /* Compact Header */
+      .crop-modal-header {
+        padding: 8px 12px !important;
+        background: #0f172a !important;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.22) !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      .crop-modal-header > div:first-child {
+        min-width: 0 !important;
+        flex: 1 !important;
+        overflow: hidden !important;
+      }
+
+      .crop-modal-desc, .raw-modal-subtitle {
+        display: none !important;
+      }
+      .crop-modal-header > div:first-child > div > div:last-child {
+        display: none !important; /* Hide long subtitle text on mobile */
+      }
+
+      .raw-btn-label {
+        display: none !important;
+      }
+      .crop-modal-header .modal-title {
+        font-size: 0.95rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 220px !important;
+      }
+
+      .crop-modal-header > div:last-child {
+        flex-shrink: 0 !important;
+      }
+
+      /* Compact Horizontal-Scrolling Toolbar Rows on Mobile */
+      .crop-modal-toolbar {
+        padding: 6px 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+        overflow-x: hidden !important;
+        background: #111a2e !important;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16) !important;
+        flex-shrink: 0 !important;
+      }
+
+      .crop-toolbar-group {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        margin-left: 0 !important;
+        padding-bottom: 2px !important;
+      }
+
+      .crop-toolbar-group::-webkit-scrollbar {
+        display: none !important;
+      }
+
+      .crop-toolbar-label {
+        font-size: 0.68rem !important;
+        color: #94a3b8 !important;
+        flex-shrink: 0 !important;
+      }
+
+      .crop-ratio-btn-group {
+        display: inline-flex !important;
+        flex-shrink: 0 !important;
+        background: rgba(15, 23, 42, 0.9) !important;
+      }
+
+      .crop-ratio-btn {
+        padding: 4px 8px !important;
+        font-size: 0.72rem !important;
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+      }
+
+      .crop-modal-toolbar .mini-btn {
+        padding: 4px 9px !important;
+        font-size: 0.72rem !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+      }
+
+      /* Workspace: Fills remaining viewport so image is prominently displayed */
+      .crop-workspace-wrapper {
+        flex: 1 1 0% !important;
+        min-height: 0 !important;
+        padding: 6px !important;
+        overflow: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: #080d1a !important;
+        touch-action: none !important;
+        position: relative !important;
+      }
+
+      .crop-workspace {
+        max-width: 100% !important;
+        max-height: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8) !important;
+      }
+
+      .crop-target-image {
+        max-width: 100% !important;
+        max-height: calc(100dvh - 235px) !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        display: block !important;
+      }
+
+      /* Single-Row Compact Fine Nudge Bar */
+      .crop-nudge-bar {
+        padding: 4px 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        flex-shrink: 0 !important;
+        gap: 6px !important;
+        background: #0d1527 !important;
+        border-top: 1px solid rgba(148, 163, 184, 0.16) !important;
+      }
+
+      .crop-nudge-bar::-webkit-scrollbar {
+        display: none !important;
+      }
+
+      .crop-nudge-bar > div:first-child span:last-child {
+        display: none !important;
+      }
+
+      .crop-nudge-controls {
+        flex-wrap: nowrap !important;
+        gap: 4px !important;
+      }
+
+      .crop-nudge-group {
+        padding: 2px 4px !important;
+        gap: 2px !important;
+      }
+
+      .crop-nudge-label {
+        font-size: 0.65rem !important;
+      }
+
+      .nudge-btn {
+        padding: 2px 5px !important;
+        font-size: 0.65rem !important;
+      }
+
+      /* Mobile Footer: Stacks cleanly so Cancel and Apply Crop are 100% visible and unclipped */
+      .crop-modal-footer {
+        padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        background: #0f172a !important;
+        border-top: 1px solid rgba(148, 163, 184, 0.22) !important;
+        flex-shrink: 0 !important;
+      }
+
+      .crop-modal-footer > div:first-child {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+      }
+
+      .crop-modal-footer > div:first-child label {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+      }
+
+      .crop-modal-footer > div:last-child {
+        width: 100% !important;
+        display: flex !important;
+        gap: 8px !important;
+      }
+
+      .crop-modal-footer .btn-secondary {
+        flex: 1 !important;
+        padding: 9px 12px !important;
+        text-align: center !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+      }
+
+      .crop-modal-footer .btn-primary {
+        flex: 2 !important;
+        padding: 9px 16px !important;
+        text-align: center !important;
+        font-size: 0.88rem !important;
+        font-weight: 800 !important;
+        white-space: nowrap !important;
+      }
+
+      /* Large Touch Target Handles for Finger Dragging */
+      .crop-handle::after,
+      .crop-edge-handle::after,
+      .crop-quad-dot::after {
+        content: '' !important;
+        position: absolute !important;
+        inset: -14px !important;
+        background: transparent !important;
+      }
+
+      /* Camera Raw Studio Modal on Mobile */
+      .cameraraw-modal-layout {
+        flex-direction: column !important;
+        overflow-y: auto !important;
+        flex: 1 !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      .cameraraw-preview-pane {
+        min-height: 200px !important;
+        max-height: 240px !important;
+        flex: none !important;
+        padding: 6px !important;
+        background: #060a12 !important;
+      }
+
+      .cameraraw-preview-pane canvas {
+        max-height: 200px !important;
+      }
+
+      .cameraraw-controls-pane {
+        width: 100% !important;
+        border-left: none !important;
+        border-top: 1px solid rgba(148, 163, 184, 0.2) !important;
+        flex: 1 !important;
+        padding: 10px 12px !important;
+      }
+
+      #cameraRawModal .crop-modal-footer {
+        padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        background: #0f172a !important;
+        flex-shrink: 0 !important;
+      }
+
+      #cameraRawModal .crop-modal-footer > div:first-child {
+        display: none !important;
+      }
+
+      #cameraRawModal .crop-modal-footer > div:last-child {
+        width: 100% !important;
+        display: flex !important;
+        gap: 8px !important;
+      }
+
+      #cameraRawModal .crop-modal-footer .btn-secondary {
+        flex: 1 !important;
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+      }
+
+      #cameraRawModal .crop-modal-footer .btn-primary {
+        flex: 2 !important;
+        padding: 8px 16px !important;
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+      }
+    }
+
+  </style>
 
   <!-- SVG SHARPENING CONVOLUTION FILTERS FOR CRISP AADHAAR TEXT & QR -->
   <svg style="position: absolute; width: 0; height: 0; pointer-events: none;" aria-hidden="true">
@@ -6658,19 +6990,17 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- MANUAL CROP ADJUSTMENT MODAL -->
-  <div class="modal-overlay" id="cropModal" style="display: none; z-index: 10000;">
+  <div class="modal-overlay" id="cropModal" style="display: none; z-index: 100005;">
     <div class="crop-modal-box">
       <!-- HEADER -->
       <div class="crop-modal-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 1.25rem;">✂️</span>
-          <div>
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden;">
+          <span style="font-size: 1.25rem; flex-shrink: 0;">✂️</span>
+          <div style="min-width: 0; flex: 1; overflow: hidden;">
             <div class="modal-title" id="cropModalTitle" style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">
               Adjust Crop — Front Card
             </div>
-            <div style="font-size: 0.75rem; color: #94a3b8;">
-              Drag the 8 corner & edge handles or the whole box. Fine-tune card edges to 100% precision.
-            </div>
+            <div class="crop-modal-desc" style="font-size: 0.75rem; color: #94a3b8;">Drag the 8 corner & edge handles or the whole box. Fine-tune card edges to 100% precision.</div>
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -6901,25 +7231,25 @@
   </div>
 
   <!-- PHOTOSHOP CAMERA RAW 18.3 STUDIO FULLSCREEN DIALOG -->
-  <div class="modal-overlay" id="cameraRawModal" style="display: none; z-index: 10002;">
+  <div class="modal-overlay" id="cameraRawModal" style="display: none; z-index: 100007;">
     <div class="cameraraw-modal-box">
       <!-- HEADER -->
-      <div class="crop-modal-header" style="background: rgba(15, 23, 42, 0.95);">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 1.35rem;">🎛️</span>
-          <div>
-            <div class="modal-title" style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">
+      <div class="crop-modal-header" style="background: rgba(15, 23, 42, 0.95); display: flex; justify-content: space-between; align-items: center; min-width: 0; width: 100%; box-sizing: border-box;">
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden;">
+          <span style="font-size: 1.25rem; flex-shrink: 0;">🎛️</span>
+          <div style="min-width: 0; flex: 1; overflow: hidden;">
+            <div class="modal-title" style="font-size: 1.02rem; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               Adobe Photoshop Camera Raw 18.3 Studio
             </div>
-            <div style="font-size: 0.75rem; color: #94a3b8;">
+            <div class="raw-modal-subtitle" style="font-size: 0.75rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               Professional exposure, highlights, skin texture softening, tone curve & HSL color grading
             </div>
           </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
           <div class="crop-ratio-btn-group" id="rawModalViewModes">
-            <button class="crop-ratio-btn active" id="btnRawViewSingle" onclick="setCameraRawViewMode('single')">🖼️ Single</button>
-            <button class="crop-ratio-btn" id="btnRawViewSplit" onclick="setCameraRawViewMode('split')">🌓 Split Before/After</button>
+            <button class="crop-ratio-btn active" id="btnRawViewSingle" onclick="setCameraRawViewMode('single')">🖼️ <span class="raw-btn-label">Single</span></button>
+            <button class="crop-ratio-btn" id="btnRawViewSplit" onclick="setCameraRawViewMode('split')">🌓 <span class="raw-btn-label">Split</span></button>
           </div>
           <button class="mini-btn btn-danger" onclick="closeCameraRawModal()" title="Close without saving">✕</button>
         </div>
@@ -7001,19 +7331,17 @@
   </div>
 
   <!-- PASSPORT PHOTO INTERACTIVE BIOMETRIC CROP MODAL -->
-  <div class="modal-overlay" id="passportCropModal" style="display: none; z-index: 10001;">
+  <div class="modal-overlay" id="passportCropModal" style="display: none; z-index: 100006;">
     <div class="crop-modal-box">
       <!-- HEADER -->
       <div class="crop-modal-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 1.35rem;">✂️</span>
-          <div>
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden;">
+          <span style="font-size: 1.25rem; flex-shrink: 0;">✂️</span>
+          <div style="min-width: 0; flex: 1; overflow: hidden;">
             <div class="modal-title" style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">
               Passport Photo Biometric Cropper
             </div>
-            <div style="font-size: 0.75rem; color: #94a3b8;">
-              Frame head inside oval with eyes at the golden eye level for 100% official compliance.
-            </div>
+            <div class="crop-modal-desc" style="font-size: 0.75rem; color: #94a3b8;">Frame head inside oval with eyes at the golden eye level for 100% official compliance.</div>
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
