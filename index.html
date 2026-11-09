@@ -1205,6 +1205,521 @@
       border-radius: 2px;
     }
 
+
+    /* =========================================================================
+       MULTI-PAGE DOCUMENT SCANNER UI OVERHAUL
+       ========================================================================= */
+
+    /* Document Size Target Selector Grid & Buttons */
+    .doc-target-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+
+    .doc-target-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 9px;
+      color: #cbd5e1;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .doc-target-btn:hover {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .doc-target-btn.active {
+      background: linear-gradient(135deg, rgba(14, 116, 144, 0.35) 0%, rgba(2, 132, 199, 0.3) 100%);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 0 10px rgba(56, 189, 248, 0.1);
+    }
+
+    .doc-target-btn-full {
+      width: 100%;
+    }
+
+    /* Primary Emerald Scan Next Page Button */
+    .doc-primary-scan-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      width: 100%;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 0.92rem;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-top: 6px;
+      margin-bottom: 8px;
+    }
+
+    .doc-primary-scan-btn:hover {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      border-color: #6ee7b7;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(16, 185, 129, 0.55);
+    }
+
+    .doc-primary-scan-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Upload Images Button */
+    .doc-upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 14px;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      border-radius: 9px;
+      color: #93c5fd;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .doc-upload-btn:hover {
+      background: rgba(51, 65, 85, 0.85);
+      border-color: #60a5fa;
+      border-style: solid;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Pages in Document List Container */
+    .doc-pages-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin-top: 10px;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .doc-pages-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .doc-pages-list::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 4px;
+    }
+
+    /* Individual Scanned Page Item Card */
+    .doc-page-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 12px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .doc-page-item:hover {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    .doc-page-item.active {
+      background: linear-gradient(90deg, rgba(14, 116, 144, 0.3) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 1px #06b6d4, 0 4px 18px rgba(6, 182, 212, 0.28);
+    }
+
+    .doc-page-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3.5px;
+      background: linear-gradient(180deg, #06b6d4 0%, #3b82f6 100%);
+    }
+
+    /* STRICTLY CONSTRAINED PAGE THUMBNAIL (Fixes Giant Image Bug!) */
+    .doc-page-thumb-wrap {
+      width: 52px;
+      height: 72px;
+      min-width: 52px;
+      max-width: 52px;
+      min-height: 72px;
+      max-height: 72px;
+      background: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .doc-page-thumb {
+      max-width: 100% !important;
+      max-height: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain !important;
+      display: block !important;
+      transition: transform 0.2s ease;
+    }
+
+    .doc-page-badge-num {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 0 4px;
+      border-radius: 3px;
+      line-height: 1.2;
+    }
+
+    .doc-page-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .doc-page-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .doc-page-badge {
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      white-space: nowrap;
+    }
+
+    .doc-page-sub {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Page Item Mini Action Buttons (Rotate, Move, Delete) */
+    .doc-page-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .doc-mini-btn {
+      width: 27px;
+      height: 27px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #cbd5e1;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .doc-mini-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: scale(1.08);
+    }
+
+    .doc-mini-btn.btn-del {
+      color: #f87171;
+    }
+
+    .doc-mini-btn.btn-del:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      color: #fee2e2;
+    }
+
+    /* Clear All Button */
+    .doc-clear-btn {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 6px;
+      color: #fca5a5;
+      padding: 3px 9px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .doc-clear-btn:hover {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: #ef4444;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* Multi-Page Preview Toolbar */
+    .doc-preview-toolbar {
+      width: 100%;
+      max-width: 650px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .doc-toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .doc-toolbar-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px 12px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px;
+      color: #cbd5e1;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .doc-toolbar-btn:hover {
+      background: rgba(30, 41, 59, 0.95);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .doc-toolbar-btn.btn-toggle-orig.active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: #f59e0b;
+      color: #fbbf24;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .doc-page-counter {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      padding: 0 4px;
+    }
+
+    /* Enhancement Filter Presets (Right Sidebar) */
+    .doc-presets-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .doc-filter-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 10px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 9px;
+      color: #cbd5e1;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .doc-filter-btn:hover {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .doc-filter-btn.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.32) 100%);
+      border-color: #10b981;
+      color: #34d399;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.28), inset 0 0 10px rgba(16, 185, 129, 0.1);
+    }
+
+    /* Apply Preset to All Pages Button */
+    .doc-apply-all-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.3) 100%);
+      border: 1px solid rgba(129, 140, 248, 0.45);
+      border-radius: 9px;
+      color: #c7d2fe;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+    }
+
+    .doc-apply-all-btn:hover {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(79, 70, 229, 0.45) 100%);
+      border-color: #818cf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 18px rgba(99, 102, 241, 0.35);
+    }
+
+    /* Print & Export Action Buttons */
+    .doc-print-all-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      width: 100%;
+      padding: 13px 18px;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 0.94rem;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 10px;
+    }
+
+    .doc-print-all-btn:hover {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      border-color: #6ee7b7;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(16, 185, 129, 0.55);
+    }
+
+    .doc-save-pdf-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 16px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+      border: 1px solid rgba(96, 165, 250, 0.45);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.38);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 8px;
+    }
+
+    .doc-save-pdf-btn:hover {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+      border-color: #93c5fd;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 22px rgba(37, 99, 235, 0.52);
+    }
+
+    .doc-save-img-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 9px;
+      color: #cbd5e1;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .doc-save-img-btn:hover {
+      background: rgba(51, 65, 85, 0.95);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
     .doc-sheet-image {
       max-width: 100%;
       max-height: 100%;
@@ -3336,19 +3851,19 @@
 
           <!-- Document Size Type Selector -->
           <div class="form-group" style="margin-bottom: 8px;">
-            <label style="color:#bfdbfe; font-size:0.75rem; font-weight:600; margin-bottom:4px; display:block;">
+            <label style="color:#bfdbfe; font-size:0.75rem; font-weight:600; margin-bottom:5px; display:block;">
               Document Size / Target:
             </label>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-              <button class="aspect-btn active" id="btnDocTypeA4" onclick="setDocScanType('a4')">
-                📄 Full A4 Page
+            <div class="doc-target-grid">
+              <button type="button" class="doc-target-btn active" id="btnDocTypeA4" onclick="setDocScanType('a4')">
+                <span>📄 Full A4 Page</span>
               </button>
-              <button class="aspect-btn" id="btnDocTypeSmall" onclick="setDocScanType('small')">
-                🪪 Small Doc / Slip
+              <button type="button" class="doc-target-btn" id="btnDocTypeSmall" onclick="setDocScanType('small')">
+                <span>🪪 Small Doc / Slip</span>
               </button>
             </div>
-            <button class="aspect-btn" id="btnDocTypeAuto" style="width:100%; margin-top:5px;" onclick="setDocScanType('auto')">
-              🔍 Auto-Detect (A4 vs Small Doc)
+            <button type="button" class="doc-target-btn doc-target-btn-full" id="btnDocTypeAuto" onclick="setDocScanType('auto')">
+              <span>🔍 Auto-Detect (A4 vs Small Doc)</span>
             </button>
           </div>
 
@@ -3373,8 +3888,8 @@
           </label>
 
           <!-- Primary Scan Next Page Button -->
-          <button class="btn-wizard" id="btnDocScanNext" style="background: #059669; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);" onclick="triggerDocScanNext()">
-            ➕ Scan Page <span id="docNextPageNum">1</span>
+          <button type="button" class="doc-primary-scan-btn" id="btnDocScanNext" onclick="triggerDocScanNext()">
+            <span>➕ Scan Page <strong id="docNextPageNum">1</strong></span>
           </button>
 
           <!-- Active Scan / Abort Banner -->
@@ -3388,8 +3903,8 @@
           <!-- Upload File Option -->
           <div style="margin-top: 8px;">
             <input type="file" id="docFileInput" accept="image/*" multiple style="display:none;" onchange="handleDocFileUpload(event)">
-            <button class="btn btn-secondary" style="width: 100%; font-size: 0.78rem; padding: 7px;" onclick="document.getElementById('docFileInput').click()">
-              📁 Upload Image Page(s)
+            <button type="button" class="doc-upload-btn" onclick="document.getElementById('docFileInput').click()">
+              <span>📁 Upload Image Page(s)</span>
             </button>
           </div>
         </div>
@@ -3398,7 +3913,7 @@
         <div class="section-card">
           <div class="section-title">
             <span>📄 Pages in Document (<span id="docPageCountBadge">0</span>)</span>
-            <button class="mini-btn" style="font-size: 0.7rem; color: #ef4444;" onclick="clearAllDocPages()">🗑️ Clear All</button>
+            <button type="button" class="doc-clear-btn" onclick="clearAllDocPages()">🗑️ Clear All</button>
           </div>
 
           <div id="docPagesContainer" class="doc-pages-list">
@@ -3420,29 +3935,29 @@
     <!-- CENTER PREVIEW WORKSPACE -->
     <main class="preview-workspace">
       <!-- Toolbar -->
-      <div class="preview-toolbar" style="width: 100%; max-width: 650px; justify-content: space-between;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button class="mini-btn" id="btnDocPrevPage" onclick="navigateDocPage(-1)">← Prev</button>
-          <span style="font-size: 0.85rem; font-weight: 700; color: #e2e8f0;">
+      <div class="preview-toolbar doc-preview-toolbar">
+        <div class="doc-toolbar-group">
+          <button type="button" class="doc-toolbar-btn" id="btnDocPrevPage" onclick="navigateDocPage(-1)">← Prev</button>
+          <span class="doc-page-counter">
             Page <span id="docCurrentPageNum">0</span> of <span id="docTotalPagesNum">0</span>
           </span>
-          <button class="mini-btn" id="btnDocNextPage" onclick="navigateDocPage(1)">Next →</button>
+          <button type="button" class="doc-toolbar-btn" id="btnDocNextPage" onclick="navigateDocPage(1)">Next →</button>
         </div>
 
-        <div style="display:flex; align-items:center; gap:6px;">
-          <button class="mini-btn btn-toggle-orig" id="btnDocToggleOriginal" onclick="toggleDocOriginalView()" title="Compare original scan vs enhanced document">
+        <div class="doc-toolbar-group">
+          <button type="button" class="doc-toolbar-btn btn-toggle-orig" id="btnDocToggleOriginal" onclick="toggleDocOriginalView()" title="Compare original scan vs enhanced document">
             👁️ Show Original
           </button>
-          <button class="mini-btn" onclick="rotateCurrentDocPage(-90)" title="Rotate 90° Left">⟲ 90°</button>
-          <button class="mini-btn" onclick="rotateCurrentDocPage(90)" title="Rotate 90° Right">⟳ 90°</button>
-          <button class="mini-btn" onclick="rotateCurrentDocPage(180)" title="Rotate 180°">🔄 180°</button>
+          <button type="button" class="doc-toolbar-btn" onclick="rotateCurrentDocPage(-90)" title="Rotate 90° Left">⟲ 90°</button>
+          <button type="button" class="doc-toolbar-btn" onclick="rotateCurrentDocPage(90)" title="Rotate 90° Right">⟳ 90°</button>
+          <button type="button" class="doc-toolbar-btn" onclick="rotateCurrentDocPage(180)" title="Rotate 180°">🔄 180°</button>
         </div>
 
         <div class="zoom-controls">
-          <button class="zoom-btn" onclick="zoomDocPage(0.1)">+</button>
+          <button type="button" class="zoom-btn" onclick="zoomDocPage(0.1)">+</button>
           <span class="zoom-level" id="docZoomLevel">85%</span>
-          <button class="zoom-btn" onclick="zoomDocPage(-0.1)">−</button>
-          <button class="zoom-btn" onclick="resetDocZoom()" style="font-size:0.7rem; width:auto; padding:0 6px;">Fit</button>
+          <button type="button" class="zoom-btn" onclick="zoomDocPage(-0.1)">−</button>
+          <button type="button" class="zoom-btn" onclick="resetDocZoom()" style="font-size:0.7rem; width:auto; padding:0 6px;">Fit</button>
         </div>
       </div>
 
@@ -3479,18 +3994,18 @@
             Filter Preset for Current Page:
           </div>
 
-          <div class="filter-presets-grid" style="grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px;">
-            <button class="filter-btn active" id="btnDocPresetClean" onclick="setDocFilterPreset('clean')">
-              ✨ Magic Clean
+          <div class="doc-presets-grid">
+            <button type="button" class="doc-filter-btn active" id="btnDocPresetClean" onclick="setDocFilterPreset('clean')">
+              <span>✨ Magic Clean</span>
             </button>
-            <button class="filter-btn" id="btnDocPresetXerox" onclick="setDocFilterPreset('xerox')">
-              📄 Crisp B&W Xerox
+            <button type="button" class="doc-filter-btn" id="btnDocPresetXerox" onclick="setDocFilterPreset('xerox')">
+              <span>📄 Crisp B&W Xerox</span>
             </button>
-            <button class="filter-btn" id="btnDocPresetVibrant" onclick="setDocFilterPreset('vibrant')">
-              📸 Vibrant Color
+            <button type="button" class="doc-filter-btn" id="btnDocPresetVibrant" onclick="setDocFilterPreset('vibrant')">
+              <span>📸 Vibrant Color</span>
             </button>
-            <button class="filter-btn" id="btnDocPresetGray" onclick="setDocFilterPreset('grayscale')">
-              🌫️ Grayscale
+            <button type="button" class="doc-filter-btn" id="btnDocPresetGray" onclick="setDocFilterPreset('grayscale')">
+              <span>🌫️ Grayscale</span>
             </button>
           </div>
 
@@ -3527,7 +4042,7 @@
             <input type="range" id="docSliderBrightness" min="-50" max="50" value="4" oninput="onDocSliderChange()">
           </div>
 
-          <button class="btn btn-secondary" style="width: 100%; font-size: 0.78rem; padding: 7px;" onclick="applyDocEnhancementToAllPages()">
+          <button type="button" class="doc-apply-all-btn" onclick="applyDocEnhancementToAllPages()">
             ⚡ Apply This Enhancement to ALL Pages
           </button>
         </div>
@@ -3550,7 +4065,7 @@
           </div>
 
           <!-- Primary Green Print Button -->
-          <button class="btn btn-print" id="btnDocPrintAll" style="font-size: 0.95rem; padding: 12px; margin-bottom: 8px;" onclick="printDocAllPages()">
+          <button type="button" class="doc-print-all-btn" id="btnDocPrintAll" onclick="printDocAllPages()">
             🖨️ Print All Pages to Epson L3250
           </button>
 
@@ -3562,19 +4077,19 @@
               <span id="docExportDpiHint" style="font-size: 0.68rem; color: #6ee7b7;">300 DPI Recommended</span>
             </div>
             <div class="segmented-control" style="grid-template-columns: repeat(4, 1fr);">
-              <button class="segmented-btn" id="btnExportDpi150" onclick="setDocDpi(150)">150</button>
-              <button class="segmented-btn" id="btnExportDpi200" onclick="setDocDpi(200)">200</button>
-              <button class="segmented-btn active" id="btnExportDpi300" onclick="setDocDpi(300)">300</button>
-              <button class="segmented-btn" id="btnExportDpi600" onclick="setDocDpi(600)">600</button>
+              <button type="button" class="segmented-btn" id="btnExportDpi150" onclick="setDocDpi(150)">150</button>
+              <button type="button" class="segmented-btn" id="btnExportDpi200" onclick="setDocDpi(200)">200</button>
+              <button type="button" class="segmented-btn active" id="btnExportDpi300" onclick="setDocDpi(300)">300</button>
+              <button type="button" class="segmented-btn" id="btnExportDpi600" onclick="setDocDpi(600)">600</button>
             </div>
           </div>
 
-          <button class="btn btn-pdf" id="btnDocSavePdf" style="margin-bottom: 8px;" onclick="saveDocMultiPagePdf()">
+          <button type="button" class="doc-save-pdf-btn" id="btnDocSavePdf" onclick="saveDocMultiPagePdf()">
             📥 Save Multi-Page (300 DPI) PDF
           </button>
 
           <!-- Save Image -->
-          <button class="btn btn-secondary" style="width: 100%; margin-bottom: 6px;" onclick="saveDocCurrentPageImage()">
+          <button type="button" class="doc-save-img-btn" onclick="saveDocCurrentPageImage()">
             💾 Save Current Page Image (PNG)
           </button>
         </div>
@@ -7683,21 +8198,30 @@ function getApiUrl(endpoint) {
         const typeLabel = p.docType === 'small' ? 'Small Doc' : 'A4 Page';
         const presetLabel = p.preset === 'clean' ? 'Magic Clean' : (p.preset === 'xerox' ? 'Xerox B&W' : (p.preset === 'vibrant' ? 'Vibrant' : (p.preset === 'grayscale' ? 'Grayscale' : 'Original')));
 
+        const rotScale = (p.rotation % 180 !== 0) ? 'scale(0.72)' : '';
+
         item.innerHTML = `
-          <img src="${p.enhancedImg}" class="doc-page-thumb" style="transform: rotate(${p.rotation}deg);" />
+          <div class="doc-page-thumb-wrap">
+            <img src="${p.enhancedImg}" class="doc-page-thumb" style="transform: rotate(${p.rotation}deg) ${rotScale};" alt="Page ${idx + 1}" />
+            <span class="doc-page-badge-num">${idx + 1}</span>
+          </div>
           <div class="doc-page-meta">
             <div class="doc-page-title">
               <span>Page ${idx + 1}</span>
-              <span style="font-size: 0.65rem; color: #10b981; font-weight: normal;">${presetLabel}</span>
+              <span class="doc-page-badge">${presetLabel}</span>
             </div>
-            <div class="doc-page-sub">${typeLabel} • ${p.rotation}° rot</div>
+            <div class="doc-page-sub">
+              <span>${typeLabel}</span>
+              <span>•</span>
+              <span>${p.rotation}° rot</span>
+            </div>
           </div>
           <div class="doc-page-actions">
-            <button class="doc-mini-btn" onclick="rotateDocPageAt(${idx}, -90)" title="Rotate Left">⟲</button>
-            <button class="doc-mini-btn" onclick="rotateDocPageAt(${idx}, 90)" title="Rotate Right">⟳</button>
-            ${idx > 0 ? `<button class="doc-mini-btn" onclick="moveDocPage(${idx}, -1)" title="Move Up">▲</button>` : ''}
-            ${idx < count - 1 ? `<button class="doc-mini-btn" onclick="moveDocPage(${idx}, 1)" title="Move Down">▼</button>` : ''}
-            <button class="doc-mini-btn btn-del" onclick="deleteDocPage(${idx})" title="Delete Page">✕</button>
+            <button type="button" class="doc-mini-btn" onclick="rotateDocPageAt(${idx}, -90)" title="Rotate Left">⟲</button>
+            <button type="button" class="doc-mini-btn" onclick="rotateDocPageAt(${idx}, 90)" title="Rotate Right">⟳</button>
+            ${idx > 0 ? `<button type="button" class="doc-mini-btn" onclick="moveDocPage(${idx}, -1)" title="Move Up">▲</button>` : ''}
+            ${idx < count - 1 ? `<button type="button" class="doc-mini-btn" onclick="moveDocPage(${idx}, 1)" title="Move Down">▼</button>` : ''}
+            <button type="button" class="doc-mini-btn btn-del" onclick="deleteDocPage(${idx})" title="Delete Page">✕</button>
           </div>
         `;
 
