@@ -348,48 +348,52 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun scanDirectOrBridge(side: String, autoCrop: Boolean, dpi: Int, docType: String = "id_card"): String {
             val dev = DeviceDetector.detect(context)
-            val bridgeIp = dev.bridgeIp
             val printerIp = dev.printerIp
+            val candidates = DeviceDetector.getCandidateBridgeIps(context)
 
-            Log.i("HKM_SCAN", "Initiating scan for side=$side, autoCrop=$autoCrop, dpi=$dpi, docType=$docType. Printer IP: $printerIp, Bridge IP: $bridgeIp")
+            Log.i("HKM_SCAN", "Initiating scan for side=$side, autoCrop=$autoCrop, dpi=$dpi, docType=$docType. Candidates: $candidates, printerIp: $printerIp")
 
-            // 1. Fast check if PC Scanner Bridge is actively running (short timeout 350ms)
-            if (DeviceDetector.isPortOpen(bridgeIp, 8767, 350)) {
-                try {
-                    val url = java.net.URL("http://$bridgeIp:8767/api/scan")
-                    val conn = url.openConnection() as java.net.HttpURLConnection
-                    conn.requestMethod = "POST"
-                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                    conn.connectTimeout = 3000
-                    conn.readTimeout = 120000
-                    conn.doOutput = true
-                    conn.doInput = true
+            // 1. Fast check if PC Scanner Bridge is actively running on any candidate host
+            for (bridgeIp in candidates) {
+                if (DeviceDetector.isPortOpen(bridgeIp, 8767, 250)) {
+                    Log.i("HKM_SCAN", "Found active PC scanner bridge at $bridgeIp:8767, executing scan...")
+                    try {
+                        val url = java.net.URL("http://$bridgeIp:8767/api/scan")
+                        val conn = url.openConnection() as java.net.HttpURLConnection
+                        conn.requestMethod = "POST"
+                        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                        conn.connectTimeout = 3000
+                        conn.readTimeout = 120000
+                        conn.doOutput = true
+                        conn.doInput = true
 
-                    val payload = JSONObject().apply {
-                        put("side", side)
-                        put("autocrop", autoCrop)
-                        put("dpi", dpi)
-                        put("doc_type", docType)
-                    }.toString()
+                        val payload = JSONObject().apply {
+                            put("side", side)
+                            put("autocrop", autoCrop)
+                            put("dpi", dpi)
+                            put("doc_type", docType)
+                        }.toString()
 
-                    conn.outputStream.use { os ->
-                        os.write(payload.toByteArray(Charsets.UTF_8))
+                        conn.outputStream.use { os ->
+                            os.write(payload.toByteArray(Charsets.UTF_8))
+                        }
+
+                        val code = conn.responseCode
+                        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+                        val response = stream.bufferedReader().use { it.readText() }
+                        val json = JSONObject(response)
+                        if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
+                            Log.i("HKM_SCAN", "Scan successfully returned from bridge at $bridgeIp:8767")
+                            return response
+                        }
+                    } catch (e: Exception) {
+                        Log.w("HKM_SCAN", "PC bridge scan attempt failed at $bridgeIp: ${e.message}")
                     }
-
-                    val code = conn.responseCode
-                    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                    val response = stream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(response)
-                    if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
-                        return response
-                    }
-                } catch (e: Exception) {
-                    Log.w("HKM_SCAN", "PC bridge scan attempt failed: ${e.message}")
                 }
             }
 
-            // 2. 100% STANDALONE DIRECT SCAN: Wi-Fi eSCL to Epson L3250 (No PC required!)
-            Log.i("HKM_SCAN", "Running standalone Wi-Fi eSCL scan to Epson printer at $printerIp...")
+            // 2. Direct Wi-Fi scan fallback
+            Log.i("HKM_SCAN", "Running direct Wi-Fi scan to Epson printer at $printerIp...")
             try {
                 val rawBytes = EpsonDirectScanner.scanViaEscl(printerIp, dpi)
                 if (rawBytes != null && rawBytes.isNotEmpty()) {
@@ -432,21 +436,16 @@ class MainActivity : ComponentActivity() {
 
             return JSONObject().apply {
                 put("success", false)
-                put("error", "Scan failed: Could not communicate with Epson L3250 ($printerIp). Please make sure the printer is turned on and connected to your Wi-Fi/Hotspot.")
+                put("error", "Scan failed: Could not communicate with Epson L3250 ($printerIp) or PC Bridge. Please make sure Epson Printer / PC Bridge is connected.")
             }.toString()
         }
 
         @JavascriptInterface
         fun getScannerBridgeIp(): String {
+            val activeIp = DeviceDetector.findActiveBridgeIp(context)
             val prefs = context.getSharedPreferences("hkm_prefs", Context.MODE_PRIVATE)
-            val dev = DeviceDetector.detect(context)
-            if (!dev.bridgeIp.isNullOrBlank()) {
-                prefs.edit().putString("scanner_ip", dev.bridgeIp).apply()
-                return dev.bridgeIp
-            }
-            val saved = prefs.getString("scanner_ip", null)
-            if (!saved.isNullOrBlank()) return saved
-            return "10.237.2.154"
+            prefs.edit().putString("scanner_ip", activeIp).apply()
+            return activeIp
         }
 
         @JavascriptInterface
