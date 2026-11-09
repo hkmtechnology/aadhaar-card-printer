@@ -11,7 +11,10 @@ REM 1. Check if server is already running and responding to HTTP
 curl.exe -s --max-time 1 http://127.0.0.1:8767/api/settings >nul 2>&1
 if not errorlevel 1 (
     echo [OK] Scanner bridge server is already active on http://127.0.0.1:8767
-    goto :launch_browser
+    goto REM Configure ADB reverse for mobile app if phone is plugged in
+adb reverse tcp:8767 tcp:8767 >nul 2>&1
+
+:launch_browser
 )
 
 REM 2. Determine Python launcher
@@ -58,6 +61,9 @@ exit /b 1
 :server_ready
 echo [OK] Scanner bridge server is active on http://127.0.0.1:8767
 echo.
+
+REM Configure ADB reverse for mobile app if phone is plugged in
+adb reverse tcp:8767 tcp:8767 >nul 2>&1
 
 :launch_browser
 set "TARGET_URL=http://127.0.0.1:8767/index.html"

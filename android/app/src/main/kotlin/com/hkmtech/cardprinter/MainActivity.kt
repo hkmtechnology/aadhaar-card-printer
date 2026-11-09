@@ -355,7 +355,7 @@ class MainActivity : ComponentActivity() {
 
             // 1. Fast check if PC Scanner Bridge is actively running on any candidate host
             for (bridgeIp in candidates) {
-                if (DeviceDetector.isPortOpen(bridgeIp, 8767, 250)) {
+                if (DeviceDetector.isPortOpen(bridgeIp, 8767, 500)) {
                     Log.i("HKM_SCAN", "Found active PC scanner bridge at $bridgeIp:8767, executing scan...")
                     try {
                         val url = java.net.URL("http://$bridgeIp:8767/api/scan")
@@ -390,6 +390,40 @@ class MainActivity : ComponentActivity() {
                         Log.w("HKM_SCAN", "PC bridge scan attempt failed at $bridgeIp: ${e.message}")
                     }
                 }
+            }
+
+                        // 1b. Direct HTTP attempt to 127.0.0.1 (ADB Reverse) in case socket probe was restricted
+            try {
+                val url = java.net.URL("http://127.0.0.1:8767/api/scan")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.connectTimeout = 2500
+                conn.readTimeout = 120000
+                conn.doOutput = true
+                conn.doInput = true
+
+                val payload = JSONObject().apply {
+                    put("side", side)
+                    put("autocrop", autoCrop)
+                    put("dpi", dpi)
+                    put("doc_type", docType)
+                }.toString()
+
+                conn.outputStream.use { os ->
+                    os.write(payload.toByteArray(Charsets.UTF_8))
+                }
+
+                val code = conn.responseCode
+                val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+                val response = stream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+                if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
+                    Log.i("HKM_SCAN", "Scan successfully returned from 127.0.0.1:8767 direct fallback")
+                    return response
+                }
+            } catch (e: Exception) {
+                Log.d("HKM_SCAN", "127.0.0.1 direct fallback skipped: ${e.message}")
             }
 
             // 2. Direct Wi-Fi scan fallback
@@ -434,9 +468,27 @@ class MainActivity : ComponentActivity() {
                 Log.e("HKM_SCAN", "Direct eSCL scan exception: ${e.message}", e)
             }
 
+            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            val phoneIp = try {
+                val ipInt = wm?.connectionInfo?.ipAddress ?: 0
+                if (ipInt != 0) {
+                    String.format(
+                        java.util.Locale.US,
+                        "%d.%d.%d.%d",
+                        ipInt and 0xff,
+                        (ipInt shr 8) and 0xff,
+                        (ipInt shr 16) and 0xff,
+                        (ipInt shr 24) and 0xff
+                    )
+                } else "Not Connected"
+            } catch (_: Exception) { "Unknown" }
+
             return JSONObject().apply {
                 put("success", false)
-                put("error", "Scan failed: Could not communicate with Epson L3250 ($printerIp) or PC Bridge. Please make sure Epson Printer / PC Bridge is connected.")
+                put("error", "Scan Connection Error: Could not reach Epson Printer or PC Bridge.\n\n" +
+                    "• USB Mode (Recommended): Keep USB cable plugged in. Enable USB Debugging on your phone. PC server will auto-connect.\n" +
+                    "• Wi-Fi Mode: Phone Wi-Fi IP is $phoneIp. Connect phone to the same Wi-Fi router as your PC (PC IP: 192.168.31.156).\n" +
+                    "• Epson Printer: Make sure Epson L3250 is ON and Start_App.bat (server.py) is running on your PC.")
             }.toString()
         }
 

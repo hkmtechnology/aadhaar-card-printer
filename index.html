@@ -3934,6 +3934,93 @@
       }
     }
 
+
+    /* Camera Raw 18.3 Color Mixer Rainbow Tracks */
+    .raw-slider-track-red::-webkit-slider-runnable-track { background: linear-gradient(90deg, #ec4899, #ef4444, #f97316) !important; height: 5px; border-radius: 3px; }
+    .raw-slider-track-orange::-webkit-slider-runnable-track { background: linear-gradient(90deg, #ef4444, #f97316, #eab308) !important; height: 5px; border-radius: 3px; }
+    .raw-slider-track-yellow::-webkit-slider-runnable-track { background: linear-gradient(90deg, #f97316, #eab308, #84cc16) !important; height: 5px; border-radius: 3px; }
+    .raw-slider-track-green::-webkit-slider-runnable-track { background: linear-gradient(90deg, #eab308, #22c55e, #14b8a6) !important; height: 5px; border-radius: 3px; }
+    .raw-slider-track-aqua::-webkit-slider-runnable-track { background: linear-gradient(90deg, #22c55e, #06b6d4, #3b82f6) !important; height: 5px; border-radius: 3px; }
+    .raw-slider-track-blue::-webkit-slider-runnable-track { background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6) !important; height: 5px; border-radius: 3px; }
+    .raw-slider-track-purple::-webkit-slider-runnable-track { background: linear-gradient(90deg, #3b82f6, #8b5cf6, #d946ef) !important; height: 5px; border-radius: 3px; }
+    .raw-slider-track-magenta::-webkit-slider-runnable-track { background: linear-gradient(90deg, #8b5cf6, #d946ef, #ef4444) !important; height: 5px; border-radius: 3px; }
+
+    /* Color Grading Wheels Layout */
+    .raw-color-wheels-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 8px 0;
+      text-align: center;
+    }
+    .raw-wheel-card {
+      background: #090e17;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 6px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .raw-wheel-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .raw-wheel-canvas-box {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: crosshair;
+      touch-action: none;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    }
+    .raw-wheel-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .raw-wheel-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      background: rgba(0,0,0,0.3);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      box-shadow: 0 0 4px #000;
+    }
+    .raw-wheel-lum-row {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      font-size: 0.62rem;
+      color: #64748b;
+    }
+
+    /* Clipping triangles in histogram header */
+    .raw-clip-warn {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      cursor: pointer;
+      opacity: 0.45;
+      transition: all 0.15s ease;
+    }
+    .raw-clip-warn.active {
+      opacity: 1.0;
+      filter: drop-shadow(0 0 4px currentColor);
+    }
+    
 </style>
 
   <!-- SVG SHARPENING CONVOLUTION FILTERS FOR CRISP AADHAAR TEXT & QR -->
@@ -5444,9 +5531,19 @@
 
           <!-- Real-Time RGB Waveform Histogram (Camera Raw 18.3) -->
           <div class="raw-histogram-box" title="Real-Time Tri-Color Waveform Histogram">
-            <div class="raw-histogram-header">
-              <span>RGB HISTOGRAM</span>
-              <span style="color:#38bdf8;">Camera Raw 18.3</span>
+            <div class="raw-histogram-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="raw-clip-warn" id="rawClipShadows" onclick="toggleRawClipping('shadows')" title="Shadow Clipping Warning (Blue)" style="color:#38bdf8;">
+                  <svg viewBox="0 0 12 12" width="12" height="12"><polygon points="0,0 12,0 0,12" fill="currentColor"/></svg>
+                </span>
+                <span>RGB HISTOGRAM</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="color:#38bdf8;">Camera Raw 18.3</span>
+                <span class="raw-clip-warn" id="rawClipHighlights" onclick="toggleRawClipping('highlights')" title="Highlight Clipping Warning (Red)" style="color:#ef4444;">
+                  <svg viewBox="0 0 12 12" width="12" height="12"><polygon points="12,0 12,12 0,0" fill="currentColor"/></svg>
+                </span>
+              </div>
             </div>
             <canvas id="rawHistogramCanvas" width="280" height="55" style="width: 100%; height: 55px; display: block; border-radius: 4px;"></canvas>
           </div>
@@ -5468,7 +5565,8 @@
           </div>
 
           <!-- COLLAPSIBLE ACCORDION PANELS MATCHING PHOTOSHOP CAMERA RAW -->
-          <!-- 1. LIGHT PANEL -->
+          <div id="cameraRawSidebarAccordions">
+<!-- 1. LIGHT PANEL -->
           <div class="raw-panel-accordion" id="accRawLight">
             <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawLight')">
               <span>▼ Light (Exposure & Dynamic Range)</span>
@@ -5892,45 +5990,187 @@
           </div>
 
           <!-- 6. COLOR MIXER (SKIN TONE HSL) -->
+          
+          <!-- 6. COLOR MIXER (FULL 8-CHANNEL HSL) -->
           <div class="raw-panel-accordion" id="accRawHsl">
             <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawHsl')">
-              <span>▼ Color Mixer (Skin Tone Tuning)</span>
-              <span style="font-size:0.65rem; color:#f59e0b;">Orange / Red</span>
+              <span>🎚️ Color Mixer (8-Channel HSL)</span>
+              <span id="rawHslModeBadge" style="font-size:0.65rem; color:#f59e0b; font-weight:700;">Saturation</span>
             </div>
             <div class="raw-accordion-body">
-              <div class="raw-slider-row">
-                <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawOrangeLum')">Orange Luminance (Face Brightness)</span>
-                  <span class="raw-slider-val" id="rawOrangeLumVal">0</span>
+              <!-- HSL Sub-tabs (Hue | Saturation | Luminance | All) -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:0.68rem; color:#94a3b8; font-weight:700;">Adjust:</span>
+                <div class="raw-curve-channel-tabs" role="tablist">
+                  <button type="button" class="raw-curve-tab active" id="tabHslSat" onclick="setRawHslTab('sat')">Saturation</button>
+                  <button type="button" class="raw-curve-tab" id="tabHslLum" onclick="setRawHslTab('lum')">Luminance</button>
+                  <button type="button" class="raw-curve-tab" id="tabHslHue" onclick="setRawHslTab('hue')">Hue</button>
                 </div>
-                <input type="range" id="rawOrangeLum" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
               </div>
+
+              <!-- 8 COLOR SLIDERS -->
               <div class="raw-slider-row">
                 <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawOrangeSat')">Orange Saturation (Skin Warmth)</span>
-                  <span class="raw-slider-val" id="rawOrangeSatVal">0</span>
+                  <span onclick="resetRawHslSlider('Reds')">Reds</span>
+                  <span class="raw-slider-val" id="rawHslRedsVal">0</span>
                 </div>
-                <input type="range" id="rawOrangeSat" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                <input type="range" class="raw-slider-track-red" id="rawHslReds" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Reds')">
               </div>
+
               <div class="raw-slider-row">
                 <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawRedLum')">Red Luminance (Lips & Cheeks)</span>
-                  <span class="raw-slider-val" id="rawRedLumVal">0</span>
+                  <span onclick="resetRawHslSlider('Oranges')">Oranges (Skin Tone)</span>
+                  <span class="raw-slider-val" id="rawHslOrangesVal">0</span>
                 </div>
-                <input type="range" id="rawRedLum" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                <input type="range" class="raw-slider-track-orange" id="rawHslOranges" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Oranges')">
               </div>
+
               <div class="raw-slider-row">
                 <div class="raw-slider-label">
-                  <span onclick="resetRawSlider('rawYellowSat')">Yellow Saturation</span>
-                  <span class="raw-slider-val" id="rawYellowSatVal">0</span>
+                  <span onclick="resetRawHslSlider('Yellows')">Yellows</span>
+                  <span class="raw-slider-val" id="rawHslYellowsVal">0</span>
                 </div>
-                <input type="range" id="rawYellowSat" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+                <input type="range" class="raw-slider-track-yellow" id="rawHslYellows" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Yellows')">
+              </div>
+
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawHslSlider('Greens')">Greens</span>
+                  <span class="raw-slider-val" id="rawHslGreensVal">0</span>
+                </div>
+                <input type="range" class="raw-slider-track-green" id="rawHslGreens" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Greens')">
+              </div>
+
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawHslSlider('Aquas')">Aquas</span>
+                  <span class="raw-slider-val" id="rawHslAquasVal">0</span>
+                </div>
+                <input type="range" class="raw-slider-track-aqua" id="rawHslAquas" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Aquas')">
+              </div>
+
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawHslSlider('Blues')">Blues</span>
+                  <span class="raw-slider-val" id="rawHslBluesVal">0</span>
+                </div>
+                <input type="range" class="raw-slider-track-blue" id="rawHslBlues" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Blues')">
+              </div>
+
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawHslSlider('Purples')">Purples</span>
+                  <span class="raw-slider-val" id="rawHslPurplesVal">0</span>
+                </div>
+                <input type="range" class="raw-slider-track-purple" id="rawHslPurples" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Purples')">
+              </div>
+
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawHslSlider('Magentas')">Magentas</span>
+                  <span class="raw-slider-val" id="rawHslMagentasVal">0</span>
+                </div>
+                <input type="range" class="raw-slider-track-magenta" id="rawHslMagentas" min="-100" max="100" value="0" oninput="onRawHslSliderInput('Magentas')">
               </div>
             </div>
           </div>
 
+          <!-- 7. COLOR GRADING (3-WAY WHEELS: SHADOWS, MIDTONES, HIGHLIGHTS) -->
+          <div class="raw-panel-accordion" id="accRawColorGrading">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawColorGrading')">
+              <span>🎨 Color Grading (3-Way Wheels)</span>
+              <span style="font-size:0.65rem; color:#a855f7;">Shadow / Mid / High</span>
+            </div>
+            <div class="raw-accordion-body">
+              <div class="raw-color-wheels-grid">
+                <!-- Midtones -->
+                <div class="raw-wheel-card">
+                  <div class="raw-wheel-title">Midtones</div>
+                  <div class="raw-wheel-canvas-box" id="boxWheelMid" onpointerdown="startColorWheelDrag(event, 'mid')">
+                    <canvas class="raw-wheel-canvas" id="canvasWheelMid" width="76" height="76"></canvas>
+                    <div class="raw-wheel-indicator" id="indWheelMid"></div>
+                  </div>
+                  <div class="raw-wheel-lum-row">
+                    <span>Lum: <span id="valWheelLumMid">0</span></span>
+                    <input type="range" id="sliderWheelLumMid" min="-100" max="100" value="0" oninput="onColorWheelLum('mid', this.value)" style="width:100%;">
+                  </div>
+                </div>
+                <!-- Shadows -->
+                <div class="raw-wheel-card">
+                  <div class="raw-wheel-title">Shadows</div>
+                  <div class="raw-wheel-canvas-box" id="boxWheelShadow" onpointerdown="startColorWheelDrag(event, 'shadow')">
+                    <canvas class="raw-wheel-canvas" id="canvasWheelShadow" width="76" height="76"></canvas>
+                    <div class="raw-wheel-indicator" id="indWheelShadow"></div>
+                  </div>
+                  <div class="raw-wheel-lum-row">
+                    <span>Lum: <span id="valWheelLumShadow">0</span></span>
+                    <input type="range" id="sliderWheelLumShadow" min="-100" max="100" value="0" oninput="onColorWheelLum('shadow', this.value)" style="width:100%;">
+                  </div>
+                </div>
+                <!-- Highlights -->
+                <div class="raw-wheel-card">
+                  <div class="raw-wheel-title">Highlights</div>
+                  <div class="raw-wheel-canvas-box" id="boxWheelHighlight" onpointerdown="startColorWheelDrag(event, 'highlight')">
+                    <canvas class="raw-wheel-canvas" id="canvasWheelHighlight" width="76" height="76"></canvas>
+                    <div class="raw-wheel-indicator" id="indWheelHighlight"></div>
+                  </div>
+                  <div class="raw-wheel-lum-row">
+                    <span>Lum: <span id="valWheelLumHighlight">0</span></span>
+                    <input type="range" id="sliderWheelLumHighlight" min="-100" max="100" value="0" oninput="onColorWheelLum('highlight', this.value)" style="width:100%;">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Blending & Balance -->
+              <div class="raw-slider-row" style="margin-top:6px;">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawCgBlending')">Blending</span>
+                  <span class="raw-slider-val" id="rawCgBlendingVal">50</span>
+                </div>
+                <input type="range" id="rawCgBlending" min="0" max="100" value="50" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawCgBalance')">Balance</span>
+                  <span class="raw-slider-val" id="rawCgBalanceVal">0</span>
+                </div>
+                <input type="range" id="rawCgBalance" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+            </div>
+          </div>
+
+          <!-- 8. OPTICS & VIGNETTE -->
+          <div class="raw-panel-accordion" id="accRawOptics">
+            <div class="raw-accordion-header" onclick="toggleRawAccordion('accRawOptics')">
+              <span>🔍 Optics & Distortion</span>
+              <span style="font-size:0.65rem; color:#94a3b8;">Lens Geometry</span>
+            </div>
+            <div class="raw-accordion-body">
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawDistortion')">Distortion</span>
+                  <span class="raw-slider-val" id="rawDistortionVal">0</span>
+                </div>
+                <input type="range" id="rawDistortion" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div class="raw-slider-row">
+                <div class="raw-slider-label">
+                  <span onclick="resetRawSlider('rawOpticsVignette')">Vignette</span>
+                  <span class="raw-slider-val" id="rawOpticsVignetteVal">0</span>
+                </div>
+                <input type="range" id="rawOpticsVignette" min="-100" max="100" value="0" oninput="onCameraRawSliderInput()">
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span style="font-size:0.70rem; color:#94a3b8;">Defringe (Chromatic Aberration):</span>
+                <button type="button" class="mini-btn" id="btnRawDefringe" onclick="toggleRawDefringe()" style="font-size:0.68rem; padding:2px 8px;">Defringe: OFF</button>
+              </div>
+            </div>
+          </div>
+    
+
         </div>
 
+        </div>
         <!-- SECTION 5: PRINT & EXPORT -->
         <div class="section-card">
           <div class="section-title">5. Print & Output</div>
@@ -6258,9 +6498,19 @@
         <div class="cameraraw-controls-pane" id="rawModalControlsPane">
           <!-- Live Histogram -->
           <div class="raw-histogram-box" style="margin-bottom: 4px;">
-            <div class="raw-histogram-header">
-              <span>RGB HISTOGRAM</span>
-              <span style="color:#38bdf8;">Camera Raw 18.3</span>
+            <div class="raw-histogram-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="raw-clip-warn" id="rawClipShadows" onclick="toggleRawClipping('shadows')" title="Shadow Clipping Warning (Blue)" style="color:#38bdf8;">
+                  <svg viewBox="0 0 12 12" width="12" height="12"><polygon points="0,0 12,0 0,12" fill="currentColor"/></svg>
+                </span>
+                <span>RGB HISTOGRAM</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="color:#38bdf8;">Camera Raw 18.3</span>
+                <span class="raw-clip-warn" id="rawClipHighlights" onclick="toggleRawClipping('highlights')" title="Highlight Clipping Warning (Red)" style="color:#ef4444;">
+                  <svg viewBox="0 0 12 12" width="12" height="12"><polygon points="12,0 12,12 0,0" fill="currentColor"/></svg>
+                </span>
+              </div>
             </div>
             <canvas id="rawModalHistogramCanvas" width="340" height="65" style="width: 100%; height: 65px; display: block; border-radius: 4px;"></canvas>
           </div>
@@ -11586,6 +11836,8 @@ function getApiUrl(endpoint) {
     function setSliderVal(id, val) {
       const el = document.getElementById(id);
       if (el) el.value = val;
+      const span = document.getElementById(id + 'Val');
+      if (span) span.textContent = (id === 'rawExposure') ? (val / 20).toFixed(2) + ' EV' : (val > 0 ? '+' + val : val);
     }
 
     function resetCameraRawSliders() {
@@ -11741,6 +11993,13 @@ function getApiUrl(endpoint) {
         setSliderVal('rawOrangeLum', 15);
         setSliderVal('rawOrangeSat', 5);
         setSliderVal('rawYellowSat', -29);
+        setSliderVal('rawHslYellows', -29);
+        setSliderVal('rawHslOranges', 15);
+        if (window.cameraRawState && window.cameraRawState.hsl) {
+          window.cameraRawState.hsl.Yellows.sat = -29;
+          window.cameraRawState.hsl.Oranges.lum = 15;
+          window.cameraRawState.hsl.Oranges.sat = 5;
+        }
         cameraRawState.isBw = false;
         showToast('👶 Applied Camera Raw 18.3 Soft Baby Skin Preset', 'success');
       } else if (preset === 'epson_print') {
@@ -12569,11 +12828,231 @@ function getApiUrl(endpoint) {
       ctx.restore();
     }
 
+    
+    // =========================================================================
+    // CAMERA RAW 18.3 ADVANCED COLOR MIXER & 3-WAY COLOR GRADING SYSTEM
+    // =========================================================================
+    if (!window.cameraRawState) {
+      window.cameraRawState = {};
+    }
+    window.cameraRawState.hslTab = 'sat';
+    window.cameraRawState.hsl = {
+      Reds: { sat: 0, lum: 0, hue: 0 },
+      Oranges: { sat: 0, lum: 0, hue: 0 },
+      Yellows: { sat: 0, lum: 0, hue: 0 },
+      Greens: { sat: 0, lum: 0, hue: 0 },
+      Aquas: { sat: 0, lum: 0, hue: 0 },
+      Blues: { sat: 0, lum: 0, hue: 0 },
+      Purples: { sat: 0, lum: 0, hue: 0 },
+      Magentas: { sat: 0, lum: 0, hue: 0 }
+    };
+    window.cameraRawState.colorGrading = {
+      mid: { angle: 0, sat: 0, lum: 0 },
+      shadow: { angle: 0, sat: 0, lum: 0 },
+      highlight: { angle: 0, sat: 0, lum: 0 },
+      blending: 50,
+      balance: 0
+    };
+    window.cameraRawState.optics = { distortion: 0, vignette: 0, defringe: false };
+    window.cameraRawState.clipShadows = false;
+    window.cameraRawState.clipHighlights = false;
+
+    function hsvToRgb(h, s, v) {
+      let r, g, b;
+      let i = Math.floor(h * 6);
+      let f = h * 6 - i;
+      let p = v * (1 - s);
+      let q = v * (1 - f * s);
+      let t = v * (1 - (1 - f) * s);
+      switch (i % 6) {
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+      }
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    function initColorWheels() {
+      ['Mid', 'Shadow', 'Highlight'].forEach(type => {
+        const canvas = document.getElementById('canvasWheel' + type);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = cx;
+        const imgData = ctx.createImageData(canvas.width, canvas.height);
+        const data = imgData.data;
+
+        for (let y = 0; y < canvas.height; y++) {
+          for (let x = 0; x < canvas.width; x++) {
+            const dx = x - cx;
+            const dy = y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const idx = (y * canvas.width + x) * 4;
+            if (dist <= radius) {
+              const sat = Math.min(1, dist / radius);
+              let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+              if (angle < 0) angle += 360;
+              const [r, g, b] = hsvToRgb(angle / 360, sat, 0.95);
+              data[idx] = r;
+              data[idx + 1] = g;
+              data[idx + 2] = b;
+              data[idx + 3] = 255;
+            } else {
+              data[idx + 3] = 0;
+            }
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      });
+    }
+
+    function setRawHslTab(tab) {
+      window.cameraRawState.hslTab = tab;
+      const tabs = ['sat', 'lum', 'hue'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabHsl' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (btn) btn.classList.toggle('active', t === tab);
+      });
+      const badge = document.getElementById('rawHslModeBadge');
+      if (badge) badge.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
+
+      // Refresh 8 slider values for this active sub-tab
+      const colors = ['Reds', 'Oranges', 'Yellows', 'Greens', 'Aquas', 'Blues', 'Purples', 'Magentas'];
+      colors.forEach(col => {
+        const val = window.cameraRawState.hsl[col][tab] || 0;
+        const slider = document.getElementById('rawHsl' + col);
+        const valSpan = document.getElementById('rawHsl' + col + 'Val');
+        if (slider) slider.value = val;
+        if (valSpan) valSpan.textContent = val > 0 ? '+' + val : val;
+      });
+    }
+
+    function onRawHslSliderInput(colorName) {
+      const tab = window.cameraRawState.hslTab || 'sat';
+      const slider = document.getElementById('rawHsl' + colorName);
+      if (!slider) return;
+      const val = parseInt(slider.value, 10) || 0;
+      window.cameraRawState.hsl[colorName][tab] = val;
+      const valSpan = document.getElementById('rawHsl' + colorName + 'Val');
+      if (valSpan) valSpan.textContent = val > 0 ? '+' + val : val;
+
+      // Sync legacy orange/red/yellow parameters
+      if (colorName === 'Oranges') {
+        cameraRawState.orangeLum = window.cameraRawState.hsl.Oranges.lum;
+        cameraRawState.orangeSat = window.cameraRawState.hsl.Oranges.sat;
+      } else if (colorName === 'Reds') {
+        cameraRawState.redLum = window.cameraRawState.hsl.Reds.lum;
+      } else if (colorName === 'Yellows') {
+        cameraRawState.yellowSat = window.cameraRawState.hsl.Yellows.sat;
+      }
+
+      onCameraRawSliderInput();
+    }
+
+    function resetRawHslSlider(colorName) {
+      const tab = window.cameraRawState.hslTab || 'sat';
+      window.cameraRawState.hsl[colorName][tab] = 0;
+      const slider = document.getElementById('rawHsl' + colorName);
+      const valSpan = document.getElementById('rawHsl' + colorName + 'Val');
+      if (slider) slider.value = 0;
+      if (valSpan) valSpan.textContent = '0';
+      onCameraRawSliderInput();
+    }
+
+    function startColorWheelDrag(e, wheelType) {
+      const box = document.getElementById('boxWheel' + (wheelType === 'mid' ? 'Mid' : wheelType === 'shadow' ? 'Shadow' : 'Highlight'));
+      if (!box) return;
+      box.setPointerCapture(e.pointerId);
+
+      function updateFromPointer(ev) {
+        const rect = box.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const x = ev.clientX - rect.left - cx;
+        const y = ev.clientY - rect.top - cy;
+        const dist = Math.sqrt(x * x + y * y);
+        const radius = cx;
+        const sat = Math.min(1.0, dist / radius);
+        let angle = Math.atan2(y, x) * (180 / Math.PI);
+        if (angle < 0) angle += 360;
+
+        window.cameraRawState.colorGrading[wheelType].angle = angle;
+        window.cameraRawState.colorGrading[wheelType].sat = sat;
+
+        // Position indicator dot
+        const clampedDist = Math.min(dist, radius);
+        const indX = cx + (x / (dist || 1)) * clampedDist;
+        const indY = cy + (y / (dist || 1)) * clampedDist;
+        const ind = document.getElementById('indWheel' + (wheelType === 'mid' ? 'Mid' : wheelType === 'shadow' ? 'Shadow' : 'Highlight'));
+        if (ind) {
+          ind.style.left = indX + 'px';
+          ind.style.top = indY + 'px';
+        }
+
+        onCameraRawSliderInput();
+      }
+
+      updateFromPointer(e);
+      box.onpointermove = updateFromPointer;
+      box.onpointerup = (ev) => {
+        box.onpointermove = null;
+        box.onpointerup = null;
+        try { box.releasePointerCapture(ev.pointerId); } catch(_) {}
+      };
+    }
+
+    function onColorWheelLum(wheelType, val) {
+      const num = parseInt(val, 10) || 0;
+      window.cameraRawState.colorGrading[wheelType].lum = num;
+      const span = document.getElementById('valWheelLum' + (wheelType === 'mid' ? 'Mid' : wheelType === 'shadow' ? 'Shadow' : 'Highlight'));
+      if (span) span.textContent = num > 0 ? '+' + num : num;
+      onCameraRawSliderInput();
+    }
+
+    function toggleRawClipping(type) {
+      if (type === 'shadows') {
+        window.cameraRawState.clipShadows = !window.cameraRawState.clipShadows;
+        const el = document.getElementById('rawClipShadows');
+        if (el) el.classList.toggle('active', window.cameraRawState.clipShadows);
+      } else {
+        window.cameraRawState.clipHighlights = !window.cameraRawState.clipHighlights;
+        const el = document.getElementById('rawClipHighlights');
+        if (el) el.classList.toggle('active', window.cameraRawState.clipHighlights);
+      }
+      applyCameraRawFilters();
+    }
+
+    function toggleRawDefringe() {
+      window.cameraRawState.optics.defringe = !window.cameraRawState.optics.defringe;
+      const btn = document.getElementById('btnRawDefringe');
+      if (btn) {
+        btn.textContent = 'Defringe: ' + (window.cameraRawState.optics.defringe ? 'ON' : 'OFF');
+        btn.style.borderColor = window.cameraRawState.optics.defringe ? '#38bdf8' : '#334155';
+        btn.style.color = window.cameraRawState.optics.defringe ? '#38bdf8' : '#94a3b8';
+      }
+      onCameraRawSliderInput();
+    }
+    
     function openCameraRawModal() {
       const modal = document.getElementById('cameraRawModal');
       if (!modal) return;
+
+      // Transfer full accordions into modal controls pane for 100% interactive editing
+      const sidebarAcc = document.getElementById('cameraRawSidebarAccordions');
+      const modalAcc = document.getElementById('rawModalAccordionsContainer');
+      if (sidebarAcc && modalAcc && sidebarAcc.children.length > 0) {
+        while (sidebarAcc.firstChild) {
+          modalAcc.appendChild(sidebarAcc.firstChild);
+        }
+      }
+
       modal.style.display = 'flex';
       setCameraRawViewMode(cameraRawState.viewMode || 'single');
+      initColorWheels();
 
       // Initialize interactive curve canvas
       initCurveCanvasInteractivity();
@@ -12596,6 +13075,14 @@ function getApiUrl(endpoint) {
 
     function closeCameraRawModal() {
       const modal = document.getElementById('cameraRawModal');
+      // Return accordions back to sidebar
+      const sidebarAcc = document.getElementById('cameraRawSidebarAccordions');
+      const modalAcc = document.getElementById('rawModalAccordionsContainer');
+      if (sidebarAcc && modalAcc && modalAcc.children.length > 0) {
+        while (modalAcc.firstChild) {
+          sidebarAcc.appendChild(modalAcc.firstChild);
+        }
+      }
       if (modal) modal.style.display = 'none';
     }
 

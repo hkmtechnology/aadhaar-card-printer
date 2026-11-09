@@ -36,7 +36,7 @@ object DeviceDetector {
         if (ip.isNotBlank()) cachedPrinterIp = ip.trim()
     }
 
-    fun isPortOpen(host: String, port: Int, timeoutMs: Int = 200): Boolean {
+    fun isPortOpen(host: String, port: Int, timeoutMs: Int = 500): Boolean {
         return try {
             val s = Socket()
             s.connect(InetSocketAddress(host, port), timeoutMs)
@@ -66,7 +66,24 @@ object DeviceDetector {
         list.add("10.237.2.1")
         list.add("192.168.31.1")
 
-        // 4. Read /proc/net/arp for reachable hosts
+        // 4. Wi-Fi DHCP Gateway
+        try {
+            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            val dhcp = wm?.dhcpInfo
+            if (dhcp != null && dhcp.gateway != 0) {
+                val gw = String.format(
+                    java.util.Locale.US,
+                    "%d.%d.%d.%d",
+                    dhcp.gateway and 0xff,
+                    (dhcp.gateway shr 8) and 0xff,
+                    (dhcp.gateway shr 16) and 0xff,
+                    (dhcp.gateway shr 24) and 0xff
+                )
+                list.add(gw)
+            }
+        } catch (_: Exception) {}
+
+        // 5. Read /proc/net/arp for reachable hosts
         try {
             val arp = File("/proc/net/arp")
             if (arp.exists() && arp.canRead()) {
@@ -88,7 +105,7 @@ object DeviceDetector {
 
     fun findActiveBridgeIp(context: Context): String {
         for (ip in getCandidateBridgeIps(context)) {
-            if (isPortOpen(ip, 8767, 180)) {
+            if (isPortOpen(ip, 8767, 400)) {
                 cachedBridgeIp = ip
                 return ip
             }

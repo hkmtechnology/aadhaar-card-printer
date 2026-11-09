@@ -816,10 +816,54 @@ def start_udp_discovery_beacon():
             pass
     threading.Thread(target=_beacon_loop, daemon=True).start()
 
+
+def start_adb_reverse_daemon():
+    """
+    Automatically maintains ADB reverse port forwarding (tcp:8767 -> tcp:8767)
+    for any USB-connected Android device running the HKM Mobile App.
+    Runs silently in a background daemon thread every 4 seconds.
+    """
+    def _adb_loop():
+        import subprocess
+        while True:
+            try:
+                res = subprocess.run(
+                    ["adb", "devices"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                )
+                if res.returncode == 0:
+                    lines = [line.strip() for line in res.stdout.splitlines() if line.strip() and not line.startswith("List of")]
+                    for line in lines:
+                        if "\tdevice" in line:
+                            dev_id = line.split("\t")[0].strip()
+                            rev_check = subprocess.run(
+                                ["adb", "-s", dev_id, "reverse", "--list"],
+                                capture_output=True,
+                                text=True,
+                                timeout=2,
+                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                            )
+                            if f"tcp:{PORT}" not in rev_check.stdout:
+                                subprocess.run(
+                                    ["adb", "-s", dev_id, "reverse", f"tcp:{PORT}", f"tcp:{PORT}"],
+                                    capture_output=True,
+                                    timeout=2,
+                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                                )
+                                print(f"[ADB Bridge] Auto-configured reverse tcp:{PORT} for device {dev_id}", flush=True)
+            except Exception:
+                pass
+            time.sleep(4)
+    threading.Thread(target=_adb_loop, daemon=True).start()
+
 def run_server():
     cleanup_project_temp_artifacts()
     server_address = ("0.0.0.0", PORT)
     start_udp_discovery_beacon()
+    start_adb_reverse_daemon()
     local_ip = get_local_ip()
     ThreadingHTTPServer.allow_reuse_address = True
 
