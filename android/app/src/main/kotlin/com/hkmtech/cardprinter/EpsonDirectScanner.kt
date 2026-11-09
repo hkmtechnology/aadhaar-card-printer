@@ -5,10 +5,7 @@ import android.net.wifi.WifiManager
 import android.util.Base64
 import java.io.InputStream
 import java.io.OutputStream
-import java.net.DatagramPacket
-import java.net.DatagramSocket
 import java.net.HttpURLConnection
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
@@ -25,10 +22,10 @@ object EpsonDirectScanner {
                 return String.format(Locale.US, "%d.%d.%d.%d", g and 0xff, g shr 8 and 0xff, g shr 16 and 0xff, g shr 24 and 0xff)
             }
         } catch (_: Exception) {}
-        return "192.168.192.168"
+        return "10.237.2.165"
     }
 
-    fun isPortReachable(host: String, port: Int, timeoutMs: Int = 800): Boolean {
+    fun isPortReachable(host: String, port: Int, timeoutMs: Int = 500): Boolean {
         return try {
             val socket = Socket()
             socket.connect(InetSocketAddress(host, port), timeoutMs)
@@ -40,16 +37,16 @@ object EpsonDirectScanner {
     }
 
     fun checkPrinterOnline(context: Context): Pair<Boolean, String> {
-        val gw = getGatewayIp(context)
-        val ipsToTest = listOf(gw, "192.168.192.168", "192.168.223.1", "192.168.49.1")
+        val dev = DeviceDetector.detect(context)
+        val ipsToTest = listOf(dev.printerIp, "10.237.2.251", "192.168.31.223", "192.168.192.168", "192.168.223.1")
 
         for (ip in ipsToTest.distinct()) {
             // Check RAW Print port 9100, HTTP port 80, or IPP port 631
-            if (isPortReachable(ip, 9100, 600) || isPortReachable(ip, 80, 600) || isPortReachable(ip, 631, 600)) {
+            if (isPortReachable(ip, 9100, 400) || isPortReachable(ip, 80, 400) || isPortReachable(ip, 631, 400)) {
                 return Pair(true, ip)
             }
         }
-        return Pair(false, gw)
+        return Pair(false, dev.printerIp)
     }
 
     fun scanViaEscl(printerIp: String, dpi: Int = 300): String? {
@@ -77,7 +74,7 @@ object EpsonDirectScanner {
                     requestMethod = "POST"
                     doOutput = true
                     doInput = true
-                    connectTimeout = 3500
+                    connectTimeout = 3000
                     readTimeout = 15000
                     setRequestProperty("Content-Type", "text/xml; charset=UTF-8")
                 }
@@ -97,33 +94,25 @@ object EpsonDirectScanner {
                         "http://$printerIp/eSCL/ScanJobs/NextDocument"
                     }
 
-                    // Poll for NextDocument (allow scanner carriage to start moving and stream JPEG)
-                    for (attempt in 0 until 12) {
+                    // Poll for NextDocument
+                    Thread.sleep(1500)
+                    for (attempt in 1..25) {
                         try {
                             val docUrl = URL(docUrlStr)
                             val docConn = (docUrl.openConnection() as HttpURLConnection).apply {
-                                requestMethod = "GET"
                                 connectTimeout = 4000
-                                readTimeout = 65000 // wait for scan motor to complete
+                                readTimeout = 30000
                             }
-                            val docCode = docConn.responseCode
-                            if (docCode == 200) {
+                            if (docConn.responseCode == 200) {
                                 val bytes = docConn.inputStream.use { it.readBytes() }
                                 docConn.disconnect()
                                 if (bytes.isNotEmpty()) {
-                                    val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                                    return "data:image/jpeg;base64,$b64"
+                                    return Base64.encodeToString(bytes, Base64.NO_WRAP)
                                 }
-                            } else if (docCode == 503) {
-                                docConn.disconnect()
-                                Thread.sleep(1000)
-                                continue
-                            } else {
-                                docConn.disconnect()
                             }
-                        } catch (_: Exception) {
-                            Thread.sleep(1000)
-                        }
+                            docConn.disconnect()
+                        } catch (_: Exception) {}
+                        Thread.sleep(1000)
                     }
                 }
             } catch (_: Exception) {}

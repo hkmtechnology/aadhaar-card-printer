@@ -465,12 +465,15 @@ def get_system_device_info(force=False):
                 offline = p.get("WorkOffline", False)
 
                 if "3250" in pname or "epson" in pname.lower():
-                    is_net = ("network" in pname.lower() or "192." in pport or "wsd" in pport.lower() or "." in pport)
+                    is_net = ("network" in pname.lower() or "192." in pport or "10." in pport or "wsd" in pport.lower() or "." in pport)
                     if is_net:
                         info["wifi_device"]["name"] = pname
-                        info["wifi_device"]["port"] = pport
+                        info["wifi_device"]["port"] = saved_wifi_ip or pport
                         info["wifi_device"]["online"] = not offline
-                        if "." in pport and not pport.startswith("WSD"):
+                        if saved_wifi_ip and test_ip_reachable(saved_wifi_ip, timeout=0.5):
+                            info["wifi_device"]["ip"] = saved_wifi_ip
+                            info["wifi_ip"] = saved_wifi_ip
+                        elif "." in pport and not pport.startswith("WSD"):
                             info["wifi_device"]["ip"] = pport
                             info["wifi_ip"] = pport
                     else:

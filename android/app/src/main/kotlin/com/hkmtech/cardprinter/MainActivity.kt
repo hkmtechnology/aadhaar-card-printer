@@ -247,9 +247,14 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun getScannerBridgeIp(): String {
             val prefs = context.getSharedPreferences("hkm_prefs", Context.MODE_PRIVATE)
+            val dev = DeviceDetector.detect(context)
+            if (!dev.bridgeIp.isNullOrBlank()) {
+                prefs.edit().putString("scanner_ip", dev.bridgeIp).apply()
+                return dev.bridgeIp
+            }
             val saved = prefs.getString("scanner_ip", null)
             if (!saved.isNullOrBlank()) return saved
-            return "192.168.31.156"
+            return "10.237.2.154"
         }
 
         @JavascriptInterface
@@ -261,7 +266,7 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun scanFromEpsonDirect(dpi: Int, docType: String): String? {
             val dev = DeviceDetector.detect(context)
-            val targetIp = if (dev.isWifiDirect) "192.168.223.1" else (dev.printerIp ?: "192.168.31.223")
+            val targetIp = dev.printerIp
             return EpsonDirectScanner.scanViaEscl(targetIp, dpi)
         }
 
@@ -289,7 +294,7 @@ class MainActivity : ComponentActivity() {
                 json.put("printer_status", if (dev.isReady) "Ready" else "Offline")
                 json.put("scanner_name", dev.scannerName)
                 json.put("scanner_online", dev.isReady)
-                val statusText = if (dev.isWifiDirect) "Ready on Wi-Fi Direct" else if (dev.isReady) "Ready on Wi-Fi" else "Offline"
+                val statusText = if (dev.isReady) "Ready on Hotspot (${dev.printerIp})" else "Offline"
                 json.put("scanner_message", "${dev.modelNumber} $statusText")
                 json.put("is_wifi_direct", dev.isWifiDirect)
                 json.put("is_usb", dev.connectionType.contains("USB", ignoreCase = true))

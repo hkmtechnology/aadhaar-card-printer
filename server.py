@@ -736,10 +736,7 @@ def run_server():
     server_address = ("0.0.0.0", PORT)
     start_udp_discovery_beacon()
     local_ip = get_local_ip()
-    if sys.platform != "win32":
-        ThreadingHTTPServer.allow_reuse_address = True
-    else:
-        ThreadingHTTPServer.allow_reuse_address = False
+    ThreadingHTTPServer.allow_reuse_address = True
 
     try:
         httpd = ThreadingHTTPServer(server_address, ScanRequestHandler)
