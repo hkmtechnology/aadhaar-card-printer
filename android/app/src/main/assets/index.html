@@ -1207,6 +1207,133 @@
 
 
     /* =========================================================================
+       PASSPORT PHOTO STUDIO: AI BACKGROUND STUDIO & BIOMETRIC CROP UI
+       ========================================================================= */
+    .photo-bg-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .photo-bg-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 8px;
+      color: #cbd5e1;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+    }
+    .photo-bg-chip:hover {
+      background: rgba(51, 65, 85, 0.85);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .photo-bg-chip.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.35) 0%, rgba(37, 99, 235, 0.45) 100%);
+      border-color: #38bdf8;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    }
+    .photo-bg-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+    .photo-bg-custom-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 8px;
+      cursor: pointer;
+      position: relative;
+    }
+    .photo-bg-custom-wrap input[type="color"] {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    /* Passport Biometric Crop Overlay Elements */
+    .passport-crop-oval-guide {
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 66%;
+      height: 72%;
+      border: 2px dashed rgba(56, 189, 248, 0.85);
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.3);
+      z-index: 4;
+    }
+    .passport-crop-eye-line {
+      position: absolute;
+      top: 42%;
+      left: 8%;
+      right: 8%;
+      height: 0;
+      border-top: 1.5px dotted rgba(245, 158, 11, 0.9);
+      pointer-events: none;
+      z-index: 4;
+    }
+    .passport-crop-eye-line::after {
+      content: 'EYE LEVEL (42%)';
+      position: absolute;
+      right: 4px;
+      top: -14px;
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: #fbbf24;
+      letter-spacing: 0.5px;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .passport-crop-chin-line {
+      position: absolute;
+      top: 78%;
+      left: 15%;
+      right: 15%;
+      height: 0;
+      border-top: 1.5px dotted rgba(245, 158, 11, 0.9);
+      pointer-events: none;
+      z-index: 4;
+    }
+    .passport-crop-chin-line::after {
+      content: 'CHIN LEVEL (78%)';
+      position: absolute;
+      right: 4px;
+      top: -14px;
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: #fbbf24;
+      letter-spacing: 0.5px;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* =========================================================================
        MULTI-PAGE DOCUMENT SCANNER UI OVERHAUL
        ========================================================================= */
 
@@ -4795,11 +4922,63 @@
             </div>
 
             <!-- Framing Controls -->
-            <div style="display: flex; gap: 4px; justify-content: center; margin-top: 6px;">
+            <div style="display: flex; gap: 4px; justify-content: center; margin-top: 6px; flex-wrap: wrap;">
+              <button class="mini-btn" onclick="openPassportCropModal()" title="Open Interactive Biometric Cropper" style="background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; font-weight: 700;">✂️ Crop Photo</button>
               <button class="mini-btn" onclick="rotatePhoto(-90)" title="Rotate Left">⟲ 90°</button>
               <button class="mini-btn" onclick="rotatePhoto(90)" title="Rotate Right">⟳ 90°</button>
               <button class="mini-btn" onclick="zoomPhotoFrame(0.1)" title="Zoom In">+</button>
               <button class="mini-btn" onclick="zoomPhotoFrame(-0.1)" title="Zoom Out">−</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 1B: 🪄 AI BACKGROUND STUDIO & COLOR REPLACEMENT -->
+        <div class="section-card" id="passportAiBgCard">
+          <div class="section-title">
+            <span>🪄 AI Background Studio</span>
+            <span style="font-size:0.68rem; background: linear-gradient(135deg, #7c3aed, #4f46e5); color:#fff; padding:2px 6px; border-radius:4px; font-weight:700;">u2netp AI</span>
+          </div>
+
+          <div style="margin-bottom: 10px;">
+            <button class="btn-scan-action" id="btnAiBgRemoval" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);" onclick="applyPassportAiBgRemoval()">
+              🪄 AI Remove Background
+            </button>
+            <div id="aiBgStatus" style="font-size: 0.72rem; color: #94a3b8; text-align: center; margin-top: 4px;">
+              Fast ~0.2s portrait cutout with clean edge matte
+            </div>
+          </div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size:0.75rem; color:#cbd5e1; font-weight:700; margin:0;">Photo Background Color:</label>
+              <button class="mini-btn" id="btnRestoreOriginalBg" onclick="restoreOriginalPhotoBg()" title="Restore Original Image Background" style="display: none; padding: 1px 7px; font-size: 0.68rem;">↺ Original</button>
+            </div>
+
+            <div class="photo-bg-palette" id="photoBgPalette">
+              <button type="button" class="photo-bg-chip active" data-color="#ffffff" onclick="setPassportBgColor('#ffffff')">
+                <span class="photo-bg-dot" style="background:#ffffff; border:1px solid #94a3b8;"></span>
+                <span>White</span>
+              </button>
+              <button type="button" class="photo-bg-chip" data-color="#a4d4f8" onclick="setPassportBgColor('#a4d4f8')">
+                <span class="photo-bg-dot" style="background:#a4d4f8;"></span>
+                <span>Sky Blue</span>
+              </button>
+              <button type="button" class="photo-bg-chip" data-color="#2563eb" onclick="setPassportBgColor('#2563eb')">
+                <span class="photo-bg-dot" style="background:#2563eb;"></span>
+                <span>Royal Blue</span>
+              </button>
+              <button type="button" class="photo-bg-chip" data-color="#e2e8f0" onclick="setPassportBgColor('#e2e8f0')">
+                <span class="photo-bg-dot" style="background:#e2e8f0; border:1px solid #94a3b8;"></span>
+                <span>Light Gray</span>
+              </button>
+              <button type="button" class="photo-bg-chip" data-color="#dc2626" onclick="setPassportBgColor('#dc2626')">
+                <span class="photo-bg-dot" style="background:#dc2626;"></span>
+                <span>Red</span>
+              </button>
+              <div class="photo-bg-custom-wrap" title="Pick Custom Background Color">
+                <input type="color" id="photoCustomBgPicker" value="#ffffff" onchange="setPassportBgColor(this.value)">
+                <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 600;">Custom 🎨</span>
+              </div>
             </div>
           </div>
         </div>
@@ -5388,6 +5567,121 @@
             Cancel
           </button>
           <button class="btn btn-primary" onclick="applyManualCrop()" style="padding: 7px 22px; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none;">
+            ✓ Apply Crop
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSPORT PHOTO INTERACTIVE BIOMETRIC CROP MODAL -->
+  <div class="modal-overlay" id="passportCropModal" style="display: none; z-index: 10001;">
+    <div class="crop-modal-box">
+      <!-- HEADER -->
+      <div class="crop-modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.35rem;">✂️</span>
+          <div>
+            <div class="modal-title" style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">
+              Passport Photo Biometric Cropper
+            </div>
+            <div style="font-size: 0.75rem; color: #94a3b8;">
+              Frame head inside oval with eyes at the golden eye level for 100% official compliance.
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button class="mini-btn btn-danger" onclick="closePassportCropModal()" title="Close without saving">✕</button>
+        </div>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div class="crop-modal-toolbar">
+        <div class="crop-toolbar-group">
+          <label class="crop-toolbar-label">Standard Ratio:</label>
+          <div class="crop-ratio-btn-group" id="passportCropRatioButtons">
+            <button class="crop-ratio-btn active" data-ratio="indian_passport" onclick="setPassportCropRatio('indian_passport')">
+              🇮🇳 Indian (35×45mm)
+            </button>
+            <button class="crop-ratio-btn" data-ratio="us_visa" onclick="setPassportCropRatio('us_visa')">
+              🇺🇸 US / OCI (51×51mm)
+            </button>
+            <button class="crop-ratio-btn" data-ratio="pan" onclick="setPassportCropRatio('pan')">
+              🪪 PAN (25×35mm)
+            </button>
+            <button class="crop-ratio-btn" data-ratio="stamp" onclick="setPassportCropRatio('stamp')">
+              🏷️ Stamp (25×30mm)
+            </button>
+            <button class="crop-ratio-btn" data-ratio="free" onclick="setPassportCropRatio('free')">
+              Free Crop
+            </button>
+          </div>
+        </div>
+
+        <div class="crop-toolbar-group" style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap;">
+          <button class="mini-btn" id="btnTogglePassportGuide" onclick="togglePassportCropGuide()" title="Toggle Biometric Face & Eye Guidelines">
+            👁️ Guide: ON
+          </button>
+          <button class="mini-btn" onclick="rotatePassportCropImage(-90)" title="Rotate 90° CCW">
+            ⟲ 90°
+          </button>
+          <button class="mini-btn" onclick="rotatePassportCropImage(90)" title="Rotate 90° CW">
+            ⟳ 90°
+          </button>
+          <button class="mini-btn" onclick="resetPassportCropBox()" title="Reset crop box to center">
+            ⟲ Reset Box
+          </button>
+        </div>
+      </div>
+
+      <!-- WORKSPACE / IMAGE CONTAINER -->
+      <div class="crop-workspace-wrapper" id="passportCropWorkspaceWrapper">
+        <div class="crop-workspace" id="passportCropWorkspace">
+          <img id="passportCropTargetImage" class="crop-target-image" alt="Passport Portrait to Crop" />
+
+          <!-- CROP SELECTION BOX -->
+          <div id="passportCropSelectionBox" class="crop-selection-box">
+            <!-- 3x3 Grid Lines -->
+            <div class="crop-grid-line crop-grid-h1"></div>
+            <div class="crop-grid-line crop-grid-h2"></div>
+            <div class="crop-grid-line crop-grid-v1"></div>
+            <div class="crop-grid-line crop-grid-v2"></div>
+
+            <!-- Biometric Overlays -->
+            <div id="passportCropBiometricGuides">
+              <div class="passport-crop-oval-guide" title="Align Face & Head Inside Oval"></div>
+              <div class="passport-crop-eye-line" title="Align Eyes on this line"></div>
+              <div class="passport-crop-chin-line" title="Align Chin on this line"></div>
+            </div>
+
+            <!-- 4 Corner Handles -->
+            <div class="crop-handle crop-handle-tl" data-handle="tl" title="Drag Top-Left"></div>
+            <div class="crop-handle crop-handle-tr" data-handle="tr" title="Drag Top-Right"></div>
+            <div class="crop-handle crop-handle-bl" data-handle="bl" title="Drag Bottom-Left"></div>
+            <div class="crop-handle crop-handle-br" data-handle="br" title="Drag Bottom-Right"></div>
+
+            <!-- 4 Edge Handles -->
+            <div class="crop-edge-handle crop-edge-t" data-handle="t" title="Drag Top Edge"></div>
+            <div class="crop-edge-handle crop-edge-b" data-handle="b" title="Drag Bottom Edge"></div>
+            <div class="crop-edge-handle crop-edge-l" data-handle="l" title="Drag Left Edge"></div>
+            <div class="crop-edge-handle crop-edge-r" data-handle="r" title="Drag Right Edge"></div>
+
+            <!-- Live Dimension Chip -->
+            <div id="passportCropDimensionChip" class="crop-dimension-chip">
+              35 × 45 mm (Standard)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="crop-modal-footer">
+        <div style="font-size: 0.78rem; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+          <span>💡 <em>Tip: Position face in oval, eyes on yellow line for approved passport photos</em></span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="closePassportCropModal()" style="padding: 7px 16px;">Cancel</button>
+          <button class="btn btn-primary" onclick="applyPassportCrop()" style="padding: 7px 22px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border: none;">
             ✓ Apply Crop
           </button>
         </div>
@@ -9563,6 +9857,9 @@ function getApiUrl(endpoint) {
 
     const photoState = {
       rawImg: null,
+      originalRawImg: null,
+      cutoutImg: null,
+      bgColor: '#ffffff',
       framedImg: null,
       enhancedImg: null,
       rotation: 0,
@@ -9674,10 +9971,20 @@ function getApiUrl(endpoint) {
 
     function loadPhotoFromDataUrl(dataUrl) {
       photoState.rawImg = dataUrl;
+      photoState.originalRawImg = dataUrl;
+      photoState.cutoutImg = null;
+      photoState.bgColor = '#ffffff';
       photoState.rotation = 0;
       photoState.frameZoom = 1.0;
       photoState.framePanX = 0;
       photoState.framePanY = 0;
+      const restBtn = document.getElementById('btnRestoreOriginalBg');
+      if (restBtn) restBtn.style.display = 'none';
+      const status = document.getElementById('aiBgStatus');
+      if (status) status.innerText = 'Fast ~0.2s portrait cutout with clean edge matte';
+      document.querySelectorAll('#photoBgPalette .photo-bg-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.color === '#ffffff');
+      });
       updatePhotoFraming();
     }
 
@@ -10413,6 +10720,523 @@ function getApiUrl(endpoint) {
     }
 
   
+    // =========================================================================
+    // PASSPORT PHOTO BIOMETRIC CROPPER & AI BACKGROUND STUDIO CONTROLLERS
+    // =========================================================================
+
+    const passportCropState = {
+      naturalW: 0,
+      naturalH: 0,
+      displayW: 0,
+      displayH: 0,
+      ratioMode: 'indian_passport',
+      targetRatio: 35.0 / 45.0,
+      showGuide: true,
+      box: { x: 0, y: 0, w: 100, h: 100 },
+      isDragging: false,
+      dragHandle: null,
+      dragStartPointer: { x: 0, y: 0 },
+      dragStartBox: { x: 0, y: 0, w: 0, h: 0 }
+    };
+
+    function openPassportCropModal() {
+      if (!photoState.rawImg) {
+        showToast('Please scan or upload a passport photo first!', 'warning');
+        return;
+      }
+      const modal = document.getElementById('passportCropModal');
+      const targetElem = document.getElementById('passportCropTargetImage');
+      if (!modal || !targetElem) return;
+
+      modal.style.display = 'flex';
+      targetElem.onload = () => {
+        initPassportCropWorkspace();
+      };
+      targetElem.src = photoState.rawImg;
+      if (targetElem.complete && targetElem.naturalWidth > 0) {
+        initPassportCropWorkspace();
+      }
+    }
+
+    function closePassportCropModal() {
+      const modal = document.getElementById('passportCropModal');
+      if (modal) modal.style.display = 'none';
+      passportCropState.isDragging = false;
+      passportCropState.dragHandle = null;
+    }
+
+    function initPassportCropWorkspace() {
+      const targetElem = document.getElementById('passportCropTargetImage');
+      if (!targetElem) return;
+      const wrapper = document.getElementById('passportCropWorkspaceWrapper');
+      if (wrapper) {
+        wrapper.scrollTop = 0;
+        wrapper.scrollLeft = 0;
+      }
+
+      passportCropState.naturalW = targetElem.naturalWidth || 800;
+      passportCropState.naturalH = targetElem.naturalHeight || 600;
+
+      const rect = targetElem.getBoundingClientRect();
+      passportCropState.displayW = rect.width || targetElem.offsetWidth || 600;
+      passportCropState.displayH = rect.height || targetElem.offsetHeight || 400;
+
+      let ratio = 'indian_passport';
+      if (photoState.sizePreset === 'us_visa') ratio = 'us_visa';
+      else if (photoState.sizePreset === 'pan') ratio = 'pan';
+      else if (photoState.sizePreset === 'stamp') ratio = 'stamp';
+      setPassportCropRatio(ratio, false);
+
+      resetPassportCropBox();
+      bindPassportCropPointerEvents();
+    }
+
+    function resetPassportCropBox() {
+      const dw = passportCropState.displayW;
+      const dh = passportCropState.displayH;
+      if (dw <= 0 || dh <= 0) return;
+      const ratio = passportCropState.targetRatio || (35.0 / 45.0);
+
+      let h = dh * 0.82;
+      let w = h * ratio;
+      if (w > dw * 0.92) {
+        w = dw * 0.92;
+        h = w / ratio;
+      }
+
+      passportCropState.box = {
+        x: Math.max(0, (dw - w) / 2),
+        y: Math.max(0, (dh - h) / 2),
+        w: Math.min(dw, w),
+        h: Math.min(dh, h)
+      };
+      updatePassportCropBoxDOM();
+    }
+
+    function setPassportCropRatio(mode, recalc = true) {
+      passportCropState.ratioMode = mode;
+      document.querySelectorAll('#passportCropRatioButtons .crop-ratio-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.ratio === mode);
+      });
+
+      if (mode === 'indian_passport') {
+        passportCropState.targetRatio = 35.0 / 45.0;
+      } else if (mode === 'us_visa') {
+        passportCropState.targetRatio = 1.0;
+      } else if (mode === 'pan') {
+        passportCropState.targetRatio = 25.0 / 35.0;
+      } else if (mode === 'stamp') {
+        passportCropState.targetRatio = 25.0 / 30.0;
+      } else if (mode === 'free') {
+        passportCropState.targetRatio = null;
+      }
+
+      if (recalc && passportCropState.targetRatio && passportCropState.displayW > 0) {
+        const curCenter = {
+          x: passportCropState.box.x + passportCropState.box.w / 2,
+          y: passportCropState.box.y + passportCropState.box.h / 2
+        };
+        let newW = passportCropState.box.w;
+        let newH = newW / passportCropState.targetRatio;
+
+        if (newH > passportCropState.displayH * 0.95) {
+          newH = passportCropState.displayH * 0.95;
+          newW = newH * passportCropState.targetRatio;
+        }
+        if (newW > passportCropState.displayW * 0.95) {
+          newW = passportCropState.displayW * 0.95;
+          newH = newW / passportCropState.targetRatio;
+        }
+
+        let newX = curCenter.x - newW / 2;
+        let newY = curCenter.y - newH / 2;
+        newX = Math.max(0, Math.min(passportCropState.displayW - newW, newX));
+        newY = Math.max(0, Math.min(passportCropState.displayH - newH, newY));
+
+        passportCropState.box = { x: newX, y: newY, w: newW, h: newH };
+        updatePassportCropBoxDOM();
+      }
+    }
+
+    function togglePassportCropGuide() {
+      passportCropState.showGuide = !passportCropState.showGuide;
+      const el = document.getElementById('passportCropBiometricGuides');
+      const btn = document.getElementById('btnTogglePassportGuide');
+      if (el) el.style.display = passportCropState.showGuide ? 'block' : 'none';
+      if (btn) btn.innerText = passportCropState.showGuide ? '👁️ Guide: ON' : '👁️ Guide: OFF';
+    }
+
+    function rotatePassportCropImage(deg) {
+      const targetElem = document.getElementById('passportCropTargetImage');
+      if (!targetElem || !passportCropState.naturalW) return;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.height;
+        canvas.height = img.width;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((deg * Math.PI) / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        const rotatedDataUrl = canvas.toDataURL('image/jpeg', 0.96);
+        targetElem.src = rotatedDataUrl;
+        photoState.rawImg = rotatedDataUrl;
+        initPassportCropWorkspace();
+      };
+      img.src = targetElem.src;
+    }
+
+    function updatePassportCropBoxDOM() {
+      const boxElem = document.getElementById('passportCropSelectionBox');
+      if (!boxElem) return;
+      const b = passportCropState.box;
+      boxElem.style.left = b.x + 'px';
+      boxElem.style.top = b.y + 'px';
+      boxElem.style.width = b.w + 'px';
+      boxElem.style.height = b.h + 'px';
+
+      const chip = document.getElementById('passportCropDimensionChip');
+      if (chip && passportCropState.displayW > 0) {
+        const scaleX = passportCropState.naturalW / passportCropState.displayW;
+        const scaleY = passportCropState.naturalH / passportCropState.displayH;
+        const natW = Math.round(b.w * scaleX);
+        const natH = Math.round(b.h * scaleY);
+        let label = `${natW} × ${natH} px`;
+        if (passportCropState.ratioMode === 'indian_passport') {
+          label = `🇮🇳 Indian (35×45 mm) • ${natW}×${natH}`;
+        } else if (passportCropState.ratioMode === 'us_visa') {
+          label = `🇺🇸 US Visa (51×51 mm) • ${natW}×${natH}`;
+        } else if (passportCropState.ratioMode === 'pan') {
+          label = `🪪 PAN (25×35 mm) • ${natW}×${natH}`;
+        } else if (passportCropState.ratioMode === 'stamp') {
+          label = `🏷️ Stamp (25×30 mm) • ${natW}×${natH}`;
+        } else {
+          label = `Free • ${natW}×${natH} px`;
+        }
+        chip.textContent = label;
+      }
+    }
+
+    function bindPassportCropPointerEvents() {
+      const boxElem = document.getElementById('passportCropSelectionBox');
+      if (!boxElem) return;
+
+      boxElem.onpointerdown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const handle = e.target.dataset.handle || 'move';
+        passportCropState.isDragging = true;
+        passportCropState.dragHandle = handle;
+        passportCropState.dragStartPointer = { x: e.clientX, y: e.clientY };
+        passportCropState.dragStartBox = { ...passportCropState.box };
+
+        if (boxElem.setPointerCapture) {
+          try { boxElem.setPointerCapture(e.pointerId); } catch(err){}
+        }
+
+        window.addEventListener('pointermove', onPassportCropPointerMove);
+        window.addEventListener('pointerup', onPassportCropPointerUp);
+      };
+    }
+
+    function onPassportCropPointerMove(e) {
+      if (!passportCropState.isDragging || !passportCropState.dragHandle) return;
+      e.preventDefault();
+
+      const dx = e.clientX - passportCropState.dragStartPointer.x;
+      const dy = e.clientY - passportCropState.dragStartPointer.y;
+      const start = passportCropState.dragStartBox;
+      const dw = passportCropState.displayW;
+      const dh = passportCropState.displayH;
+      const minSize = 35;
+      const handle = passportCropState.dragHandle;
+
+      if (handle === 'move') {
+        passportCropState.box = {
+          x: Math.max(0, Math.min(dw - start.w, start.x + dx)),
+          y: Math.max(0, Math.min(dh - start.h, start.y + dy)),
+          w: start.w,
+          h: start.h
+        };
+        updatePassportCropBoxDOM();
+        return;
+      }
+
+      const ratio = passportCropState.targetRatio;
+      let newX = start.x;
+      let newY = start.y;
+      let newW = start.w;
+      let newH = start.h;
+
+      if (!ratio) {
+        if (handle.includes('r')) newW = Math.max(minSize, Math.min(dw - start.x, start.w + dx));
+        if (handle.includes('l')) {
+          const maxLeftMove = start.w - minSize;
+          const actualDx = Math.max(-start.x, Math.min(maxLeftMove, dx));
+          newX = start.x + actualDx;
+          newW = start.w - actualDx;
+        }
+        if (handle.includes('b')) newH = Math.max(minSize, Math.min(dh - start.y, start.h + dy));
+        if (handle.includes('t')) {
+          const maxTopMove = start.h - minSize;
+          const actualDy = Math.max(-start.y, Math.min(maxTopMove, dy));
+          newY = start.y + actualDy;
+          newH = start.h - actualDy;
+        }
+      } else {
+        if (handle === 'br') {
+          let w = Math.max(minSize, Math.min(dw - start.x, start.w + dx));
+          let h = w / ratio;
+          if (start.y + h > dh) {
+            h = dh - start.y;
+            w = h * ratio;
+          }
+          newW = w;
+          newH = h;
+        } else if (handle === 'bl') {
+          let w = Math.max(minSize, Math.min(start.x + start.w, start.w - dx));
+          let h = w / ratio;
+          if (start.y + h > dh) {
+            h = dh - start.y;
+            w = h * ratio;
+          }
+          newX = start.x + start.w - w;
+          newW = w;
+          newH = h;
+        } else if (handle === 'tr') {
+          let w = Math.max(minSize, Math.min(dw - start.x, start.w + dx));
+          let h = w / ratio;
+          if (start.y + start.h - h < 0) {
+            h = start.y + start.h;
+            w = h * ratio;
+          }
+          newY = start.y + start.h - h;
+          newW = w;
+          newH = h;
+        } else if (handle === 'tl') {
+          let w = Math.max(minSize, Math.min(start.x + start.w, start.w - dx));
+          let h = w / ratio;
+          if (start.y + start.h - h < 0) {
+            h = start.y + start.h;
+            w = h * ratio;
+          }
+          newX = start.x + start.w - w;
+          newY = start.y + start.h - h;
+          newW = w;
+          newH = h;
+        } else if (handle === 'r' || handle === 'l') {
+          let w = (handle === 'r')
+            ? Math.max(minSize, Math.min(dw - start.x, start.w + dx))
+            : Math.max(minSize, Math.min(start.x + start.w, start.w - dx));
+          let h = w / ratio;
+          let diffH = h - start.h;
+          let y = start.y - diffH / 2;
+          if (y < 0) y = 0;
+          if (y + h > dh) {
+            h = dh - y;
+            w = h * ratio;
+          }
+          newX = (handle === 'r') ? start.x : (start.x + start.w - w);
+          newY = y;
+          newW = w;
+          newH = h;
+        } else if (handle === 'b' || handle === 't') {
+          let h = (handle === 'b')
+            ? Math.max(minSize, Math.min(dh - start.y, start.h + dy))
+            : Math.max(minSize, Math.min(start.y + start.h, start.h - dy));
+          let w = h * ratio;
+          let diffW = w - start.w;
+          let x = start.x - diffW / 2;
+          if (x < 0) x = 0;
+          if (x + w > dw) {
+            w = dw - x;
+            h = w / ratio;
+          }
+          newX = x;
+          newY = (handle === 'b') ? start.y : (start.y + start.h - h);
+          newW = w;
+          newH = h;
+        }
+      }
+
+      passportCropState.box = { x: newX, y: newY, w: newW, h: newH };
+      updatePassportCropBoxDOM();
+    }
+
+    function onPassportCropPointerUp(e) {
+      if (!passportCropState.isDragging) return;
+      passportCropState.isDragging = false;
+      passportCropState.dragHandle = null;
+      window.removeEventListener('pointermove', onPassportCropPointerMove);
+      window.removeEventListener('pointerup', onPassportCropPointerUp);
+    }
+
+    function applyPassportCrop() {
+      const targetElem = document.getElementById('passportCropTargetImage');
+      if (!targetElem || !passportCropState.displayW) return;
+
+      const scaleX = passportCropState.naturalW / passportCropState.displayW;
+      const scaleY = passportCropState.naturalH / passportCropState.displayH;
+
+      let natX = Math.round(passportCropState.box.x * scaleX);
+      let natY = Math.round(passportCropState.box.y * scaleY);
+      let natW = Math.round(passportCropState.box.w * scaleX);
+      let natH = Math.round(passportCropState.box.h * scaleY);
+
+      natX = Math.max(0, Math.min(passportCropState.naturalW - 10, natX));
+      natY = Math.max(0, Math.min(passportCropState.naturalH - 10, natY));
+      natW = Math.max(10, Math.min(passportCropState.naturalW - natX, natW));
+      natH = Math.max(10, Math.min(passportCropState.naturalH - natY, natH));
+
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = natW;
+      offCanvas.height = natH;
+      const ctx = offCanvas.getContext('2d');
+      ctx.drawImage(targetElem, natX, natY, natW, natH, 0, 0, natW, natH);
+
+      const croppedDataUrl = offCanvas.toDataURL('image/jpeg', 0.98);
+
+      photoState.rawImg = croppedDataUrl;
+      photoState.originalRawImg = photoState.originalRawImg || croppedDataUrl;
+      photoState.cutoutImg = null;
+      updatePhotoFraming();
+      closePassportCropModal();
+      showToast('Passport photo cropped successfully!', 'success');
+    }
+
+    async function applyPassportAiBgRemoval() {
+      if (!photoState.rawImg) {
+        showToast('Please scan or upload a photo first!', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btnAiBgRemoval');
+      const status = document.getElementById('aiBgStatus');
+      const origText = btn ? btn.innerText : '🪄 AI Remove Background';
+      if (btn) {
+        btn.innerText = '⏳ AI Removing Background...';
+        btn.disabled = true;
+      }
+      if (status) status.innerText = 'Extracting portrait mask with u2netp AI...';
+
+      try {
+        const res = await fetch(getApiUrl('/api/photo/remove_bg'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: photoState.rawImg })
+        });
+        const data = await res.json();
+        if (data.success && data.image) {
+          photoState.originalRawImg = photoState.originalRawImg || photoState.rawImg;
+          photoState.cutoutImg = data.image;
+          compositePassportBg(photoState.bgColor || '#ffffff');
+
+          if (status) status.innerText = '✨ Portrait cutout active! Choose background color below.';
+          const restBtn = document.getElementById('btnRestoreOriginalBg');
+          if (restBtn) restBtn.style.display = 'inline-block';
+          showToast('✨ AI background removed successfully!', 'success');
+        } else {
+          showToast('Background removal failed: ' + (data.error || 'Server error'), 'error');
+          if (status) status.innerText = 'Failed to remove background';
+        }
+      } catch (err) {
+        showToast('Error connecting to AI service: ' + err.message, 'error');
+        if (status) status.innerText = 'AI connection error';
+      } finally {
+        if (btn) {
+          btn.innerText = origText;
+          btn.disabled = false;
+        }
+      }
+    }
+
+    async function setPassportBgColor(hexColor) {
+      if (!photoState.rawImg) {
+        showToast('Please scan or upload a photo first!', 'warning');
+        return;
+      }
+
+      photoState.bgColor = hexColor;
+
+      document.querySelectorAll('#photoBgPalette .photo-bg-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.color.toLowerCase() === hexColor.toLowerCase());
+      });
+      const picker = document.getElementById('photoCustomBgPicker');
+      if (picker) picker.value = hexColor;
+
+      if (photoState.cutoutImg) {
+        compositePassportBg(hexColor);
+        const status = document.getElementById('aiBgStatus');
+        if (status) status.innerText = `Background changed to ${hexColor}`;
+        showToast(`Background set to ${hexColor}`, 'info');
+        return;
+      }
+
+      const status = document.getElementById('aiBgStatus');
+      if (status) status.innerText = `Applying ${hexColor} background with AI...`;
+
+      try {
+        const res = await fetch(getApiUrl('/api/photo/change_bg'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: photoState.rawImg, color: hexColor })
+        });
+        const data = await res.json();
+        if (data.success && data.image) {
+          photoState.originalRawImg = photoState.originalRawImg || photoState.rawImg;
+          photoState.cutoutImg = data.cutout;
+          photoState.rawImg = data.image;
+          updatePhotoFraming();
+
+          const restBtn = document.getElementById('btnRestoreOriginalBg');
+          if (restBtn) restBtn.style.display = 'inline-block';
+          if (status) status.innerText = `✨ ${hexColor} background active!`;
+          showToast(`Background changed to ${hexColor}!`, 'success');
+        } else {
+          showToast('Failed to change background: ' + (data.error || 'Server error'), 'error');
+        }
+      } catch (err) {
+        showToast('Error applying background: ' + err.message, 'error');
+      }
+    }
+
+    function compositePassportBg(hexColor) {
+      if (!photoState.cutoutImg) return;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = hexColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        photoState.rawImg = canvas.toDataURL('image/jpeg', 0.96);
+        updatePhotoFraming();
+      };
+      img.src = photoState.cutoutImg;
+    }
+
+    function restoreOriginalPhotoBg() {
+      if (!photoState.originalRawImg) return;
+      photoState.rawImg = photoState.originalRawImg;
+      photoState.cutoutImg = null;
+      photoState.bgColor = '#ffffff';
+
+      document.querySelectorAll('#photoBgPalette .photo-bg-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.color === '#ffffff');
+      });
+      const restBtn = document.getElementById('btnRestoreOriginalBg');
+      if (restBtn) restBtn.style.display = 'none';
+
+      const status = document.getElementById('aiBgStatus');
+      if (status) status.innerText = 'Original background restored';
+
+      updatePhotoFraming();
+      showToast('Restored original photo background.', 'info');
+    }
+
     // ==========================================
     // TOAST NOTIFICATION UTILITY
     // ==========================================
@@ -11585,8 +12409,20 @@ function getApiUrl(endpoint) {
       newCroppedImg.src = croppedDataUrl;
     }
 
-    // Keyboard navigation in Manual Crop Modal
+    // Keyboard navigation in Manual Crop Modal & Passport Crop Modal
     window.addEventListener('keydown', (e) => {
+      const pModal = document.getElementById('passportCropModal');
+      if (pModal && pModal.style.display === 'flex') {
+        if (e.key === 'Escape') {
+          closePassportCropModal();
+          return;
+        }
+        if (e.key === 'Enter') {
+          applyPassportCrop();
+          return;
+        }
+      }
+
       const modal = document.getElementById('cropModal');
       if (!modal || modal.style.display !== 'flex') return;
 

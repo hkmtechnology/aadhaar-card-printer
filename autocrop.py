@@ -1311,3 +1311,82 @@ def render_passport_grid_a4(
                 draw.line([(x, max(0, top_px - 40)), (x, min(sheet_h, top_px + grid_h + 40))], fill=guide_color, width=line_w)
 
     return page
+
+
+# =========================================================================
+# AI-POWERED PASSPORT PHOTO BACKGROUND REMOVAL & COLOR REPLACEMENT
+# =========================================================================
+_REMBG_SESSION = None
+
+def get_rembg_session():
+    global _REMBG_SESSION
+    if _REMBG_SESSION is None:
+        try:
+            import rembg
+            _REMBG_SESSION = rembg.new_session("u2netp")
+        except Exception as e:
+            print(f"[REMBG WARN] Could not init u2netp session: {e}")
+            _REMBG_SESSION = False
+    return _REMBG_SESSION if _REMBG_SESSION is not False else None
+
+def remove_photo_background(image_input):
+    """
+    AI-powered portrait background removal using u2netp.
+    Returns: (cutout_rgba_pil, success_bool)
+    """
+    if isinstance(image_input, np.ndarray):
+        img_rgb = cv2.cvtColor(image_input, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(img_rgb)
+    elif isinstance(image_input, str):
+        pil_img = Image.open(image_input).convert("RGB")
+    else:
+        pil_img = image_input.convert("RGB")
+
+    session = get_rembg_session()
+    if session:
+        try:
+            import rembg
+            cutout = rembg.remove(pil_img, session=session)
+            return cutout, True
+        except Exception as e:
+            print(f"[REMBG ERROR] {e}")
+
+    # Fallback to OpenCV GrabCut
+    img_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+    h, w = img_bgr.shape[:2]
+    mask = np.zeros((h, w), np.uint8)
+    rect = (max(5, int(w * 0.05)), max(5, int(h * 0.05)), min(w - 10, int(w * 0.9)), min(h - 10, int(h * 0.95)))
+    bgdModel = np.zeros((1, 65), np.float64)
+    fgdModel = np.zeros((1, 65), np.float64)
+    try:
+        cv2.grabCut(img_bgr, mask, rect, bgdModel, fgdModel, 3, cv2.GC_INIT_WITH_RECT)
+        mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+        mask2 = cv2.GaussianBlur(mask2 * 255, (7, 7), 0)
+        rgba = np.dstack([img_bgr, mask2])
+        cutout = Image.fromarray(cv2.cvtColor(rgba, cv2.COLOR_BGRA2RGBA))
+        return cutout, True
+    except Exception as e:
+        print(f"[GRABCUT FALLBACK ERROR] {e}")
+        rgba = pil_img.convert("RGBA")
+        return rgba, False
+
+def change_photo_background(image_input, hex_color="#ffffff"):
+    """
+    Replaces portrait background with chosen official backdrop color (White, Sky Blue, Royal Blue, etc.)
+    Returns: (final_rgb_pil, cutout_rgba_pil, success_bool)
+    """
+    from PIL import ImageColor
+    if isinstance(image_input, Image.Image) and image_input.mode == "RGBA":
+        cutout = image_input
+        success = True
+    else:
+        cutout, success = remove_photo_background(image_input)
+
+    try:
+        rgb_color = ImageColor.getrgb(hex_color)
+    except Exception:
+        rgb_color = (255, 255, 255)
+
+    bg_img = Image.new("RGB", cutout.size, rgb_color)
+    bg_img.paste(cutout, (0, 0), mask=cutout.split()[3])
+    return bg_img, cutout, success

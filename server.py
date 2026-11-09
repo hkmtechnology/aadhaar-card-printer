@@ -605,6 +605,79 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if url.path == "/api/photo/remove_bg":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            try:
+                params = json.loads(body)
+                img_data = params.get("image", "")
+                if "," in img_data:
+                    img_data = img_data.split(",", 1)[1]
+                if not img_data:
+                    raise ValueError("No photo image provided.")
+                raw_bytes = base64.b64decode(img_data)
+
+                from io import BytesIO
+                from PIL import Image
+                input_pil = Image.open(BytesIO(raw_bytes))
+
+                cutout_pil, ok = autocrop.remove_photo_background(input_pil)
+                out_io = BytesIO()
+                cutout_pil.save(out_io, format="PNG")
+                out_b64 = base64.b64encode(out_io.getvalue()).decode("utf-8")
+                resp = {"success": True, "image": f"data:image/png;base64,{out_b64}"}
+            except Exception as e:
+                resp = {"success": False, "error": str(e)}
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if url.path == "/api/photo/change_bg":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+            try:
+                params = json.loads(body)
+                img_data = params.get("image", "")
+                hex_color = params.get("color", "#ffffff").strip()
+                if "," in img_data:
+                    img_data = img_data.split(",", 1)[1]
+                if not img_data:
+                    raise ValueError("No photo image provided.")
+                raw_bytes = base64.b64decode(img_data)
+
+                from io import BytesIO
+                from PIL import Image
+                input_pil = Image.open(BytesIO(raw_bytes))
+
+                final_pil, cutout_pil, ok = autocrop.change_photo_background(input_pil, hex_color=hex_color)
+
+                out_io = BytesIO()
+                final_pil.save(out_io, format="JPEG", quality=96)
+                out_b64 = base64.b64encode(out_io.getvalue()).decode("utf-8")
+
+                cutout_io = BytesIO()
+                cutout_pil.save(cutout_io, format="PNG")
+                cutout_b64 = base64.b64encode(cutout_io.getvalue()).decode("utf-8")
+
+                resp = {
+                    "success": True,
+                    "image": f"data:image/jpeg;base64,{out_b64}",
+                    "cutout": f"data:image/png;base64,{cutout_b64}"
+                }
+            except Exception as e:
+                resp = {"success": False, "error": str(e)}
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         if url.path == "/api/photo/print_grid":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
