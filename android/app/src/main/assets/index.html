@@ -2433,7 +2433,7 @@
     .card-image {
       width: 100%;
       height: 100%;
-      object-fit: fill; /* Fill slot snugly with 0px gap matching exact card aspect ratio */
+      object-fit: contain; /* Show scanned image at 100% original ratio without stretching or distortion */
       background: transparent;
       display: block;
       pointer-events: none;
@@ -3140,6 +3140,53 @@
         -webkit-overflow-scrolling: touch !important;
       }
 
+      /* Mobile Touch Interaction Enhancements for Card Placeholders & Handles */
+      .card-slot {
+        touch-action: none !important;
+      }
+      .slot-corner-handle {
+        width: 22px !important;
+        height: 22px !important;
+        border: 2.5px solid #ffffff !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.75), 0 0 8px rgba(56, 189, 248, 0.8) !important;
+        touch-action: none !important;
+      }
+      .slot-corner-handle::after {
+        content: '';
+        position: absolute;
+        inset: -14px;
+        background: transparent;
+      }
+      .handle-tl { top: -11px !important; left: -11px !important; }
+      .handle-tr { top: -11px !important; right: -11px !important; }
+      .handle-bl { bottom: -11px !important; left: -11px !important; }
+      .handle-br { bottom: -11px !important; right: -11px !important; }
+
+      .slot-rotate-stalk {
+        height: 28px !important;
+        top: -28px !important;
+      }
+      .slot-rotate-handle {
+        width: 26px !important;
+        height: 26px !important;
+        top: -40px !important;
+        touch-action: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        background: #f59e0b !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.75), 0 0 10px rgba(245, 158, 11, 0.9) !important;
+      }
+      .slot-rotate-handle::after {
+        content: '';
+        position: absolute;
+        inset: -14px;
+        background: transparent;
+      }
+
       /* Responsive Device Detection Modal on Mobile */
       .device-modal-card {
         border-radius: 14px !important;
@@ -3467,7 +3514,8 @@
     }
 
     .slot-orig-btn,
-    .slot-crop-btn {
+    .slot-crop-btn,
+    .slot-rotate-btn {
       display: inline-flex !important;
       align-items: center;
       gap: 5px;
@@ -3561,6 +3609,7 @@
       .slot-actions-bar,
       .slot-orig-btn,
       .slot-crop-btn,
+      .slot-rotate-btn,
       .slot-orig-badge {
         display: none !important;
       }
@@ -3872,6 +3921,10 @@
           <button class="mini-btn" onclick="adjustZoom(0.1)">+</button>
           <button class="mini-btn" onclick="resetZoom()">Fit</button>
         </div>
+        <div style="display: flex; gap: 4px; margin-left: auto;">
+          <button class="mini-btn" onclick="rotateCardSlot('front', 90)" title="Rotate Top (Front) Card 90°">⟳ Top 90°</button>
+          <button class="mini-btn" onclick="rotateCardSlot('back', 90)" title="Rotate Bottom (Back) Card 90°">⟳ Bottom 90°</button>
+        </div>
       </div>
 
       <div class="preview-viewport">
@@ -3900,6 +3953,7 @@
             <div class="slot-actions-bar">
               <button type="button" class="slot-orig-btn" id="frontSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('front')" title="Toggle original uncropped scan vs cropped card">👁️ Original</button>
               <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('front');" title="Adjust crop box">✂ Adjust Crop</button>
+              <button type="button" class="slot-rotate-btn" onclick="event.stopPropagation(); rotateCardSlot('front', 90)" title="Rotate Front Card 90° Clockwise">⟳ 90°</button>
             </div>
             <div class="slot-orig-badge" id="frontOrigBadge" style="display: none;">👁️ Viewing Original Scan</div>
             <!-- 4 Corner Resize Handles (Drag to resize document size) -->
@@ -3910,7 +3964,7 @@
 
             <!-- Top Rotate Stalk & Knob -->
             <div class="slot-rotate-stalk"></div>
-            <div class="slot-rotate-handle" data-side="front" title="Drag to rotate card (Shift to snap 15°, double-click to reset 0°)"></div>
+            <div class="slot-rotate-handle" data-side="front" title="Drag to rotate card (Shift to snap 15°, double-click to reset 0°)">↻</div>
 
             <!-- Transform Tooltip Badge -->
             <div class="slot-drag-badge" id="frontDragBadge">📐 0°</div>
@@ -3935,6 +3989,7 @@
             <div class="slot-actions-bar">
               <button type="button" class="slot-orig-btn" id="backSlotOrigBtn" onclick="event.stopPropagation(); toggleCardOriginalView('back')" title="Toggle original uncropped scan vs cropped card">👁️ Original</button>
               <button class="slot-crop-btn" onclick="event.stopPropagation(); openManualCropModal('back');" title="Adjust crop box">✂ Adjust Crop</button>
+              <button type="button" class="slot-rotate-btn" onclick="event.stopPropagation(); rotateCardSlot('back', 90)" title="Rotate Back Card 90° Clockwise">⟳ 90°</button>
             </div>
             <div class="slot-orig-badge" id="backOrigBadge" style="display: none;">👁️ Viewing Original Scan</div>
             <!-- 4 Corner Resize Handles (Drag to resize document size) -->
@@ -3945,7 +4000,7 @@
 
             <!-- Top Rotate Stalk & Knob -->
             <div class="slot-rotate-stalk"></div>
-            <div class="slot-rotate-handle" data-side="back" title="Drag to rotate card (Shift to snap 15°, double-click to reset 0°)"></div>
+            <div class="slot-rotate-handle" data-side="back" title="Drag to rotate card (Shift to snap 15°, double-click to reset 0°)">↻</div>
 
             <!-- Transform Tooltip Badge -->
             <div class="slot-drag-badge" id="backDragBadge">📐 0°</div>
@@ -6351,18 +6406,50 @@ function getApiUrl(endpoint) {
       }, 2500);
     }
 
+    // =========================================================================
+    // ROTATION FUNCTION FOR MOBILE APP & DESKTOP (TAB 2 LIVE SHEET)
+    // =========================================================================
+    function rotateCardSlot(side, deltaAngle = 90) {
+      if (!state[side]) return;
+      let cur = state[side].canvasAngle || 0;
+      cur = (cur + deltaAngle) % 360;
+      if (cur > 180) cur -= 360;
+      if (cur <= -180) cur += 360;
+      state[side].canvasAngle = Math.round(cur);
+      updateSheetLayout();
+      const badge = document.getElementById(side + 'DragBadge');
+      if (badge) {
+        badge.innerText = `📐 ${state[side].canvasAngle}°`;
+        badge.classList.add('visible');
+        setTimeout(() => badge.classList.remove('visible'), 1200);
+      }
+      onSettingChanged();
+      showToast(`Rotated ${side.toUpperCase()} card to ${state[side].canvasAngle}°`, 'info');
+    }
+    window.rotateCardSlot = rotateCardSlot;
+
     function initCanvasInteractions() {
       ['front', 'back'].forEach(side => {
         const slot = document.getElementById(side + 'Slot');
         if (!slot) return;
         const dragBadge = document.getElementById(side + 'DragBadge');
 
-        // 1. CORNER SIZING / RESIZE HANDLES (Drag corner to resize document)
+        function getEvtPoint(e) {
+          if (e.touches && e.touches.length > 0) {
+            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+          }
+          if (e.changedTouches && e.changedTouches.length > 0) {
+            return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+          }
+          return { clientX: e.clientX, clientY: e.clientY };
+        }
+
+        // 1. ALL FOUR CORNERS CAN BE ADJUSTED BY FINGERS / MOUSE
         const cornerResizeHandles = slot.querySelectorAll('.slot-corner-handle');
         cornerResizeHandles.forEach(handle => {
-          handle.addEventListener('mousedown', (e) => {
+          function onCornerStart(e) {
             e.stopPropagation();
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
 
             slot.classList.add('is-resizing');
             handle.classList.add('active');
@@ -6371,12 +6458,14 @@ function getApiUrl(endpoint) {
             const centerX = slotRect.left + slotRect.width / 2;
             const centerY = slotRect.top + slotRect.height / 2;
 
-            const startDist = Math.hypot(e.clientX - centerX, e.clientY - centerY);
+            const pt0 = getEvtPoint(e);
+            const startDist = Math.hypot(pt0.clientX - centerX, pt0.clientY - centerY);
             const startWidthMm = state.widthMm || 85.6;
-            const ratio = state[side].aspectRatio || (85.6 / 54.0);
 
-            const onMouseMove = (moveEvent) => {
-              const currentDist = Math.hypot(moveEvent.clientX - centerX, moveEvent.clientY - centerY);
+            function onCornerMove(moveEvent) {
+              if (moveEvent.cancelable) moveEvent.preventDefault();
+              const pt = getEvtPoint(moveEvent);
+              const currentDist = Math.hypot(pt.clientX - centerX, pt.clientY - centerY);
               if (startDist < 4) return;
 
               const scale = currentDist / startDist;
@@ -6385,7 +6474,7 @@ function getApiUrl(endpoint) {
               // Snap to common presets
               let isSnapped = false;
               [85.6, 110.0, 135.0, 175.0].forEach(snap => {
-                if (Math.abs(newWidthMm - snap) < 1.8) {
+                if (Math.abs(newWidthMm - snap) < 2.0) {
                   newWidthMm = snap;
                   isSnapped = true;
                 }
@@ -6418,24 +6507,33 @@ function getApiUrl(endpoint) {
                 dragBadge.innerText = `↔ ${dim.wMm.toFixed(1)} × ${dim.hMm.toFixed(1)} mm${isSnapped ? ' (Preset)' : ''}`;
                 dragBadge.classList.add('visible');
               }
-            };
+            }
 
-            const onMouseUp = () => {
-              window.removeEventListener('mousemove', onMouseMove);
-              window.removeEventListener('mouseup', onMouseUp);
+            function onCornerEnd() {
+              window.removeEventListener('mousemove', onCornerMove);
+              window.removeEventListener('mouseup', onCornerEnd);
+              window.removeEventListener('touchmove', onCornerMove);
+              window.removeEventListener('touchend', onCornerEnd);
+              window.removeEventListener('touchcancel', onCornerEnd);
               slot.classList.remove('is-resizing');
               handle.classList.remove('active');
               if (dragBadge) {
                 setTimeout(() => dragBadge.classList.remove('visible'), 1200);
               }
               onSettingChanged();
-            };
+            }
 
-            window.addEventListener('mousemove', onMouseMove);
-            window.addEventListener('mouseup', onMouseUp);
-          });
+            window.addEventListener('mousemove', onCornerMove, { passive: false });
+            window.addEventListener('mouseup', onCornerEnd);
+            window.addEventListener('touchmove', onCornerMove, { passive: false });
+            window.addEventListener('touchend', onCornerEnd);
+            window.addEventListener('touchcancel', onCornerEnd);
+          }
 
-          // Double click on corner handle resets size to standard 85.6 mm
+          handle.addEventListener('mousedown', onCornerStart);
+          handle.addEventListener('touchstart', onCornerStart, { passive: false });
+
+          // Double tap / click to reset size
           handle.addEventListener('dblclick', (e) => {
             e.stopPropagation();
             state.widthMm = 85.6;
@@ -6455,12 +6553,12 @@ function getApiUrl(endpoint) {
           });
         });
 
-        // 1b. TOP ROTATION KNOB (Drag to rotate card)
+        // 2. TOP ROTATION KNOB (Drag by finger or mouse to rotate card)
         const rotateHandle = slot.querySelector('.slot-rotate-handle');
         if (rotateHandle) {
-          rotateHandle.addEventListener('mousedown', (e) => {
+          function onRotateStart(e) {
             e.stopPropagation();
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
 
             slot.classList.add('is-rotating');
             rotateHandle.classList.add('active');
@@ -6469,12 +6567,15 @@ function getApiUrl(endpoint) {
             const centerX = slotRect.left + slotRect.width / 2;
             const centerY = slotRect.top + slotRect.height / 2;
 
-            const initialMouseAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+            const pt0 = getEvtPoint(e);
+            const initialAngle = Math.atan2(pt0.clientY - centerY, pt0.clientX - centerX) * 180 / Math.PI;
             const startAngle = state[side].canvasAngle || 0;
 
-            const onMouseMove = (moveEvent) => {
-              const currentMouseAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * 180 / Math.PI;
-              let diff = currentMouseAngle - initialMouseAngle;
+            function onRotateMove(moveEvent) {
+              if (moveEvent.cancelable) moveEvent.preventDefault();
+              const pt = getEvtPoint(moveEvent);
+              const currentAngle = Math.atan2(pt.clientY - centerY, pt.clientX - centerX) * 180 / Math.PI;
+              let diff = currentAngle - initialAngle;
               let targetAngle = startAngle + diff;
 
               while (targetAngle > 180) targetAngle -= 360;
@@ -6486,7 +6587,7 @@ function getApiUrl(endpoint) {
                 isSnapped = true;
               } else {
                 [0, 90, -90, 180, -180].forEach(snap => {
-                  if (Math.abs(targetAngle - snap) < 2.5) {
+                  if (Math.abs(targetAngle - snap) < 3.5) {
                     targetAngle = snap;
                     isSnapped = true;
                   }
@@ -6500,22 +6601,31 @@ function getApiUrl(endpoint) {
                 dragBadge.innerText = `📐 ${state[side].canvasAngle}°${isSnapped ? ' (Snapped)' : ''}`;
                 dragBadge.classList.add('visible');
               }
-            };
+            }
 
-            const onMouseUp = () => {
-              window.removeEventListener('mousemove', onMouseMove);
-              window.removeEventListener('mouseup', onMouseUp);
+            function onRotateEnd() {
+              window.removeEventListener('mousemove', onRotateMove);
+              window.removeEventListener('mouseup', onRotateEnd);
+              window.removeEventListener('touchmove', onRotateMove);
+              window.removeEventListener('touchend', onRotateEnd);
+              window.removeEventListener('touchcancel', onRotateEnd);
               slot.classList.remove('is-rotating');
               rotateHandle.classList.remove('active');
               if (dragBadge) {
                 setTimeout(() => dragBadge.classList.remove('visible'), 1000);
               }
               onSettingChanged();
-            };
+            }
 
-            window.addEventListener('mousemove', onMouseMove);
-            window.addEventListener('mouseup', onMouseUp);
-          });
+            window.addEventListener('mousemove', onRotateMove, { passive: false });
+            window.addEventListener('mouseup', onRotateEnd);
+            window.addEventListener('touchmove', onRotateMove, { passive: false });
+            window.addEventListener('touchend', onRotateEnd);
+            window.addEventListener('touchcancel', onRotateEnd);
+          }
+
+          rotateHandle.addEventListener('mousedown', onRotateStart);
+          rotateHandle.addEventListener('touchstart', onRotateStart, { passive: false });
 
           rotateHandle.addEventListener('dblclick', (e) => {
             e.stopPropagation();
@@ -6530,33 +6640,40 @@ function getApiUrl(endpoint) {
           });
         }
 
-        // 2. DRAG TO MOVE PLACEHOLDER (TRANSLATION)
-        slot.addEventListener('mousedown', (e) => {
+        // 3. DRAG SCANNED IMAGE PLACEHOLDER BY FINGERS / MOUSE (TRANSLATION)
+        function onSlotDragStart(e) {
           if (e.target.closest('.slot-corner-handle') || e.target.closest('.slot-rotate-handle') || e.target.closest('button') || e.target.closest('input')) {
             return;
           }
 
-          e.preventDefault();
+          if (e.cancelable) e.preventDefault();
           slot.classList.add('is-dragging');
 
-          const startX = e.clientX;
-          const startY = e.clientY;
+          const pt0 = getEvtPoint(e);
+          const startX = pt0.clientX;
+          const startY = pt0.clientY;
           const initialXMm = state[side].xMm !== undefined ? state[side].xMm : 105;
           const initialYMm = (side === 'front') ? state.topPosMm : state.bottomPosMm;
-          const zoom = state.zoom || 0.85;
 
-          const onMouseMove = (moveEvent) => {
-            const dx = (moveEvent.clientX - startX) / (zoom * PX_PER_MM);
-            const dy = (moveEvent.clientY - startY) / (zoom * PX_PER_MM);
+          const sheet = document.getElementById('a4Sheet');
+          const sheetRect = sheet ? sheet.getBoundingClientRect() : { width: 600, height: 848 };
+          const paperW = state.paperWidthMm || 210.0;
+          const paperH = state.paperHeightMm || 297.0;
+          const mmPerPixelX = paperW / Math.max(10, sheetRect.width);
+          const mmPerPixelY = paperH / Math.max(10, sheetRect.height);
+
+          function onSlotDragMove(moveEvent) {
+            if (moveEvent.cancelable) moveEvent.preventDefault();
+            const pt = getEvtPoint(moveEvent);
+            const dx = (pt.clientX - startX) * mmPerPixelX;
+            const dy = (pt.clientY - startY) * mmPerPixelY;
 
             let newXMm = Math.round((initialXMm + dx) * 2) / 2;
             let newYMm = Math.round((initialYMm + dy) * 2) / 2;
 
             const dim = getCardSlotDimensions(side);
-            const pW = state.paperWidthMm || 210.0;
-            const pH = state.paperHeightMm || 297.0;
-            newXMm = Math.max(dim.wMm / 2, Math.min(pW - dim.wMm / 2, newXMm));
-            newYMm = Math.max(5, Math.min(pH - dim.hMm - 5, newYMm));
+            newXMm = Math.max(dim.wMm / 2, Math.min(paperW - dim.wMm / 2, newXMm));
+            newYMm = Math.max(5, Math.min(paperH - dim.hMm - 5, newYMm));
 
             state[side].xMm = newXMm;
             if (side === 'front') {
@@ -6572,7 +6689,7 @@ function getApiUrl(endpoint) {
               const botVal = document.getElementById('bottomPosVal');
               if (botVal) botVal.innerText = newYMm + ' mm';
 
-              const bottomRegionH = pH - state.midLinePosMm;
+              const bottomRegionH = paperH - state.midLinePosMm;
               const centeredBottomPos = state.midLinePosMm + (bottomRegionH - dim.hMm) / 2;
               state.bottomOffsetFromCenter = state.bottomPosMm - centeredBottomPos;
             }
@@ -6583,21 +6700,30 @@ function getApiUrl(endpoint) {
               dragBadge.innerText = `📍 X: ${newXMm.toFixed(1)}mm | Y: ${newYMm.toFixed(1)}mm`;
               dragBadge.classList.add('visible');
             }
-          };
+          }
 
-          const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
+          function onSlotDragEnd() {
+            window.removeEventListener('mousemove', onSlotDragMove);
+            window.removeEventListener('mouseup', onSlotDragEnd);
+            window.removeEventListener('touchmove', onSlotDragMove);
+            window.removeEventListener('touchend', onSlotDragEnd);
+            window.removeEventListener('touchcancel', onSlotDragEnd);
             slot.classList.remove('is-dragging');
             if (dragBadge) {
               setTimeout(() => dragBadge.classList.remove('visible'), 1000);
             }
             onSettingChanged();
-          };
+          }
 
-          window.addEventListener('mousemove', onMouseMove);
-          window.addEventListener('mouseup', onMouseUp);
-        });
+          window.addEventListener('mousemove', onSlotDragMove, { passive: false });
+          window.addEventListener('mouseup', onSlotDragEnd);
+          window.addEventListener('touchmove', onSlotDragMove, { passive: false });
+          window.addEventListener('touchend', onSlotDragEnd);
+          window.addEventListener('touchcancel', onSlotDragEnd);
+        }
+
+        slot.addEventListener('mousedown', onSlotDragStart);
+        slot.addEventListener('touchstart', onSlotDragStart, { passive: false });
       });
     }
 
@@ -6628,41 +6754,17 @@ function getApiUrl(endpoint) {
       if (!img) return;
       const rawW = img.naturalWidth || img.width || 85.6;
       const rawH = img.naturalHeight || img.height || 54.0;
-      const rawAspect = serverAspect || (rawW / rawH);
+      const rawAspect = (rawW > 0 && rawH > 0) ? (rawW / rawH) : (serverAspect || (85.6 / 54.0));
 
-      let ratio = 85.6 / 54.0;
-      let name = 'Standard ID (85.6×54)';
-
-      if (state.aspectMode === 'auto') {
-        if (serverRatioType === '4:3' || (rawAspect >= 1.20 && rawAspect <= 1.45)) {
-          ratio = 4.0 / 3.0;
-          name = '4:3 Landscape';
-        } else if (serverRatioType === '3:4' || (rawAspect >= 0.68 && rawAspect <= 0.82)) {
-          ratio = 3.0 / 4.0;
-          name = '3:4 Portrait';
-        } else if (serverRatioType === 'id_card_portrait' || (rawAspect >= 0.58 && rawAspect < 0.68)) {
-          // If 90 degree card detected, auto-rotate horizontally
-          ratio = 85.6 / 54.0;
-          name = 'Standard ID (85.6×54)';
-        } else if (serverRatioType === 'id_card' || (rawAspect >= 1.48 && rawAspect <= 1.75)) {
-          ratio = 85.6 / 54.0;
-          name = 'Standard ID (85.6×54)';
-        } else {
-          ratio = rawAspect;
-          name = rawAspect >= 1.0 ? `${rawAspect.toFixed(2)}:1 Landscape` : `1:${(1/rawAspect).toFixed(2)} Portrait`;
-        }
-      } else if (state.aspectMode === '4:3') {
-        ratio = 4.0 / 3.0;
-        name = '4:3 Landscape';
-      } else if (state.aspectMode === '3:4') {
-        ratio = 3.0 / 4.0;
-        name = '3:4 Portrait';
-      } else if (state.aspectMode === 'id_card') {
-        ratio = 85.6 / 54.0;
+      // Always show scanned image at 100% original ratio in simulations without distortion
+      const ratio = rawAspect;
+      let name = `${rawAspect.toFixed(2)}:1 Original`;
+      if (Math.abs(rawAspect - (85.6 / 54.0)) < 0.12) {
         name = 'Standard ID (85.6×54)';
-      } else if (state.aspectMode === 'exact') {
-        ratio = rawAspect;
-        name = `${rawAspect.toFixed(2)}:1 Exact`;
+      } else if (rawAspect >= 1.25 && rawAspect <= 1.40) {
+        name = '4:3 Landscape';
+      } else if (rawAspect >= 0.70 && rawAspect <= 0.80) {
+        name = '3:4 Portrait';
       }
 
       state[side].aspectRatio = ratio;
@@ -6672,7 +6774,7 @@ function getApiUrl(endpoint) {
       if (badge) badge.innerText = name;
 
       const statusBadge = document.getElementById('aspectStatusBadge');
-      if (statusBadge) statusBadge.innerText = '⚡ Detected: ' + name;
+      if (statusBadge) statusBadge.innerText = '⚡ Original Ratio: ' + name;
 
       updateSheetLayout();
     }
@@ -6706,7 +6808,16 @@ function getApiUrl(endpoint) {
     }
 
     function getCardSlotDimensions(side) {
-      const ratio = state[side].aspectRatio || (85.6 / 54.0);
+      const isOrig = state[side].showOriginal && state[side].rawImg;
+      const targetImg = isOrig ? state[side].rawImg : state[side].croppedImg;
+
+      // 100% preserve original scanned image aspect ratio in simulations
+      let ratio = state[side].aspectRatio;
+      if (targetImg && targetImg.naturalWidth && targetImg.naturalHeight) {
+        ratio = targetImg.naturalWidth / targetImg.naturalHeight;
+      }
+      if (!ratio || isNaN(ratio)) ratio = (85.6 / 54.0);
+
       const baseMm = state.widthMm || 85.6;
 
       let wMm, hMm;
