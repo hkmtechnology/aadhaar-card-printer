@@ -162,16 +162,28 @@ object CardAutoCropper {
                 origCropW = min(origW - origCropX, origCropW + (padX * 2))
                 origCropH = min(origH - origCropY, origCropH + (padY * 2))
 
-                val croppedBmp = Bitmap.createBitmap(originalBmp, origCropX, origCropY, origCropW, origCropH)
+                var croppedBmp = Bitmap.createBitmap(originalBmp, origCropX, origCropY, origCropW, origCropH)
+
+                // If docType == "id_card" and card is oriented vertically (90 degree placement), rotate 90 degrees to landscape!
+                if (docType == "id_card" && croppedBmp.height > croppedBmp.width) {
+                    val matrix = android.graphics.Matrix()
+                    matrix.postRotate(90f)
+                    val rotBmp = Bitmap.createBitmap(croppedBmp, 0, 0, croppedBmp.width, croppedBmp.height, matrix, true)
+                    croppedBmp.recycle()
+                    croppedBmp = rotBmp
+                }
+
                 val outStream = ByteArrayOutputStream()
                 croppedBmp.compress(Bitmap.CompressFormat.JPEG, 92, outStream)
+                val finalW = croppedBmp.width
+                val finalH = croppedBmp.height
                 croppedBmp.recycle()
                 originalBmp.recycle()
 
                 val croppedBytes = outStream.toByteArray()
                 val croppedDataUri = "data:image/jpeg;base64,${Base64.encodeToString(croppedBytes, Base64.NO_WRAP)}"
 
-                val aspect = origCropW.toFloat() / origCropH.toFloat()
+                val aspect = finalW.toFloat() / finalH.toFloat()
                 val isCardAspect = (aspect in 1.4f..1.8f) || (aspect in 0.55f..0.72f)
                 val ratioType = if (isCardAspect) "standard" else "custom"
 

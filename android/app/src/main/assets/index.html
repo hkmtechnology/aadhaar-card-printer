@@ -1210,6 +1210,455 @@
        MULTI-PAGE DOCUMENT SCANNER UI OVERHAUL
        ========================================================================= */
 
+
+    /* =========================================================================
+       MODERN ADJUST CROP MODAL & INTERACTIVE WORKSPACE (HIGH-PRECISION UI)
+       ========================================================================= */
+    .crop-modal-box {
+      width: 95vw !important;
+      max-width: 1240px !important;
+      height: 90vh !important;
+      max-height: 900px !important;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 35px rgba(56, 189, 248, 0.15) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      position: relative !important;
+    }
+
+    .crop-modal-header {
+      padding: 12px 18px !important;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18) !important;
+      background: rgba(15, 23, 42, 0.95) !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      flex-shrink: 0 !important;
+    }
+
+    .crop-modal-toolbar {
+      padding: 8px 16px !important;
+      background: rgba(15, 23, 42, 0.85) !important;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      flex-wrap: wrap !important;
+      flex-shrink: 0 !important;
+    }
+
+    .crop-toolbar-group {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    .crop-toolbar-label {
+      font-size: 0.72rem !important;
+      font-weight: 700 !important;
+      color: #94a3b8 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+    }
+
+    .crop-ratio-btn-group {
+      display: inline-flex !important;
+      background: rgba(15, 23, 42, 0.85) !important;
+      border: 1px solid rgba(56, 189, 248, 0.25) !important;
+      border-radius: 8px !important;
+      padding: 2px !important;
+      gap: 2px !important;
+    }
+
+    .crop-ratio-btn {
+      padding: 5px 11px !important;
+      font-size: 0.75rem !important;
+      font-weight: 600 !important;
+      color: #94a3b8 !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      transition: all 0.16s ease !important;
+      white-space: nowrap !important;
+      outline: none !important;
+    }
+
+    .crop-ratio-btn:hover:not(.active) {
+      background: rgba(51, 65, 85, 0.6) !important;
+      color: #f1f5f9 !important;
+    }
+
+    .crop-ratio-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      box-shadow: 0 1px 8px rgba(37, 99, 235, 0.45) !important;
+    }
+
+    .crop-workspace-wrapper {
+      flex: 1 !important;
+      overflow: auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: #070d18 !important;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) !important;
+      background-size: 20px 20px !important;
+      position: relative !important;
+      padding: 20px !important;
+      box-sizing: border-box !important;
+    }
+
+    .crop-workspace {
+      position: relative !important;
+      display: inline-block !important;
+      user-select: none !important;
+      max-width: 100% !important;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8) !important;
+    }
+
+    .crop-target-image {
+      display: block !important;
+      max-width: 100% !important;
+      max-height: calc(90vh - 240px) !important;
+      object-fit: contain !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 4px !important;
+      pointer-events: none !important;
+    }
+
+    .crop-selection-box {
+      position: absolute !important;
+      border: 2px solid #38bdf8 !important;
+      box-shadow: 0 0 0 9999px rgba(3, 7, 18, 0.68), 0 0 20px rgba(56, 189, 248, 0.45) !important;
+      cursor: move !important;
+      touch-action: none !important;
+      box-sizing: border-box !important;
+    }
+
+    .crop-grid-line {
+      position: absolute !important;
+      pointer-events: none !important;
+    }
+
+    .crop-grid-h1 {
+      left: 0 !important;
+      right: 0 !important;
+      top: 33.33% !important;
+      border-top: 1px dashed rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .crop-grid-h2 {
+      left: 0 !important;
+      right: 0 !important;
+      top: 66.66% !important;
+      border-top: 1px dashed rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .crop-grid-v1 {
+      top: 0 !important;
+      bottom: 0 !important;
+      left: 33.33% !important;
+      border-left: 1px dashed rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .crop-grid-v2 {
+      top: 0 !important;
+      bottom: 0 !important;
+      left: 66.66% !important;
+      border-left: 1px dashed rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .crop-handle {
+      position: absolute !important;
+      width: 16px !important;
+      height: 16px !important;
+      background: #38bdf8 !important;
+      border: 2.5px solid #ffffff !important;
+      border-radius: 50% !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), 0 0 8px rgba(56, 189, 248, 0.8) !important;
+      touch-action: none !important;
+      z-index: 10 !important;
+      box-sizing: border-box !important;
+      transition: transform 0.15s ease !important;
+    }
+
+    .crop-handle:hover,
+    .crop-handle.active {
+      transform: scale(1.3) !important;
+      background: #f59e0b !important;
+    }
+
+    .crop-handle-tl { top: -8px !important; left: -8px !important; cursor: nwse-resize !important; }
+    .crop-handle-tr { top: -8px !important; right: -8px !important; cursor: nesw-resize !important; }
+    .crop-handle-bl { bottom: -8px !important; left: -8px !important; cursor: nesw-resize !important; }
+    .crop-handle-br { bottom: -8px !important; right: -8px !important; cursor: nwse-resize !important; }
+
+    .crop-edge-handle {
+      position: absolute !important;
+      background: #38bdf8 !important;
+      border: 2px solid #ffffff !important;
+      border-radius: 4px !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+      touch-action: none !important;
+      z-index: 9 !important;
+      box-sizing: border-box !important;
+    }
+
+    .crop-edge-handle:hover,
+    .crop-edge-handle.active {
+      background: #f59e0b !important;
+      transform: scale(1.15) !important;
+    }
+
+    .crop-edge-t {
+      top: -5px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 32px !important;
+      height: 10px !important;
+      cursor: ns-resize !important;
+    }
+
+    .crop-edge-b {
+      bottom: -5px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 32px !important;
+      height: 10px !important;
+      cursor: ns-resize !important;
+    }
+
+    .crop-edge-l {
+      left: -5px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 10px !important;
+      height: 32px !important;
+      cursor: ew-resize !important;
+    }
+
+    .crop-edge-r {
+      right: -5px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 10px !important;
+      height: 32px !important;
+      cursor: ew-resize !important;
+    }
+
+    .crop-dimension-chip {
+      position: absolute !important;
+      bottom: 8px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      background: rgba(15, 23, 42, 0.92) !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.45) !important;
+      border-radius: 999px !important;
+      padding: 3px 12px !important;
+      font-size: 0.72rem !important;
+      font-weight: 700 !important;
+      pointer-events: none !important;
+      white-space: nowrap !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
+      z-index: 8 !important;
+    }
+
+    /* Free-Form Quad Selection Styles */
+    .crop-quad-container {
+      position: absolute !important;
+      inset: 0 !important;
+      pointer-events: auto !important;
+      touch-action: none !important;
+    }
+
+    .crop-quad-svg {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      pointer-events: none !important;
+    }
+
+    .crop-quad-polygon {
+      fill: rgba(56, 189, 248, 0.16) !important;
+      stroke: #38bdf8 !important;
+      stroke-width: 2.5 !important;
+      stroke-dasharray: 6, 3 !important;
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6)) !important;
+      pointer-events: fill !important;
+      cursor: move !important;
+    }
+
+    .crop-quad-dot {
+      position: absolute !important;
+      width: 26px !important;
+      height: 26px !important;
+      margin-left: -13px !important;
+      margin-top: -13px !important;
+      border-radius: 50% !important;
+      background: #38bdf8 !important;
+      border: 3px solid #ffffff !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.75), 0 0 12px rgba(56, 189, 248, 0.85) !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 20 !important;
+      touch-action: none !important;
+      transition: transform 0.15s ease !important;
+      box-sizing: border-box !important;
+    }
+
+    .crop-quad-dot:hover,
+    .crop-quad-dot.active {
+      transform: scale(1.3) !important;
+      background: #f59e0b !important;
+      border-color: #ffffff !important;
+    }
+
+    .quad-dot-label {
+      font-size: 0.62rem !important;
+      font-weight: 900 !important;
+      color: #0f172a !important;
+      line-height: 1 !important;
+      pointer-events: none !important;
+      user-select: none !important;
+    }
+
+    .crop-quad-mid {
+      position: absolute !important;
+      width: 16px !important;
+      height: 16px !important;
+      margin-left: -8px !important;
+      margin-top: -8px !important;
+      border-radius: 4px !important;
+      background: rgba(56, 189, 248, 0.8) !important;
+      border: 2px solid #ffffff !important;
+      cursor: pointer !important;
+      z-index: 15 !important;
+      touch-action: none !important;
+      box-sizing: border-box !important;
+    }
+
+    .crop-quad-mid:hover,
+    .crop-quad-mid.active {
+      transform: scale(1.25) !important;
+      background: #f59e0b !important;
+    }
+
+    .crop-quad-chip {
+      position: absolute !important;
+      top: 12px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      background: rgba(15, 23, 42, 0.92) !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.45) !important;
+      border-radius: 999px !important;
+      padding: 4px 14px !important;
+      font-size: 0.74rem !important;
+      font-weight: 700 !important;
+      pointer-events: none !important;
+      z-index: 30 !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    .crop-nudge-bar {
+      padding: 8px 18px !important;
+      background: rgba(15, 23, 42, 0.95) !important;
+      border-top: 1px solid rgba(148, 163, 184, 0.15) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+      flex-shrink: 0 !important;
+    }
+
+    .crop-nudge-controls {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      flex-wrap: wrap !important;
+    }
+
+    .crop-nudge-group {
+      display: flex !important;
+      align-items: center !important;
+      gap: 3px !important;
+      background: rgba(30, 41, 59, 0.6) !important;
+      padding: 2px 6px !important;
+      border-radius: 6px !important;
+      border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    }
+
+    .crop-nudge-label {
+      font-size: 0.72rem !important;
+      font-weight: 700 !important;
+      color: #cbd5e1 !important;
+    }
+
+    .nudge-btn {
+      background: rgba(15, 23, 42, 0.8) !important;
+      border: 1px solid rgba(56, 189, 248, 0.25) !important;
+      color: #e2e8f0 !important;
+      font-size: 0.7rem !important;
+      font-weight: 700 !important;
+      padding: 2px 7px !important;
+      border-radius: 4px !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+    }
+
+    .nudge-btn:hover {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+    }
+
+    .crop-modal-footer {
+      padding: 12px 20px !important;
+      background: rgba(15, 23, 42, 0.98) !important;
+      border-top: 1px solid rgba(148, 163, 184, 0.2) !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      flex-shrink: 0 !important;
+    }
+
+    .crop-magnifier {
+      position: absolute !important;
+      width: 130px !important;
+      height: 130px !important;
+      border-radius: 50% !important;
+      border: 3px solid #38bdf8 !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(56, 189, 248, 0.5) !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      z-index: 100 !important;
+      transform: translate(-50%, -120%) !important;
+      background: #000 !important;
+    }
+
+    .crop-magnifier-crosshair {
+      position: absolute !important;
+      inset: 0 !important;
+      pointer-events: none !important;
+      border-top: 1px dashed rgba(239, 68, 68, 0.85) !important;
+      border-left: 1px dashed rgba(239, 68, 68, 0.85) !important;
+      top: 50% !important;
+      left: 50% !important;
+      width: 100% !important;
+      height: 100% !important;
+      transform: translate(-50%, -50%) !important;
+    }
+
     /* =========================================================================
        MODERN DPI SELECTOR CONTROLS & PERSISTENT SEGMENTED BUTTONS
        ========================================================================= */
@@ -6192,8 +6641,9 @@ function getApiUrl(endpoint) {
           ratio = 3.0 / 4.0;
           name = '3:4 Portrait';
         } else if (serverRatioType === 'id_card_portrait' || (rawAspect >= 0.58 && rawAspect < 0.68)) {
-          ratio = 54.0 / 85.6;
-          name = 'Standard ID Portrait (54×85.6)';
+          // If 90 degree card detected, auto-rotate horizontally
+          ratio = 85.6 / 54.0;
+          name = 'Standard ID (85.6×54)';
         } else if (serverRatioType === 'id_card' || (rawAspect >= 1.48 && rawAspect <= 1.75)) {
           ratio = 85.6 / 54.0;
           name = 'Standard ID (85.6×54)';
@@ -6208,13 +6658,8 @@ function getApiUrl(endpoint) {
         ratio = 3.0 / 4.0;
         name = '3:4 Portrait';
       } else if (state.aspectMode === 'id_card') {
-        if (rawAspect < 0.9) {
-          ratio = 54.0 / 85.6;
-          name = 'Standard ID Portrait (54×85.6)';
-        } else {
-          ratio = 85.6 / 54.0;
-          name = 'Standard ID (85.6×54)';
-        }
+        ratio = 85.6 / 54.0;
+        name = 'Standard ID (85.6×54)';
       } else if (state.aspectMode === 'exact') {
         ratio = rawAspect;
         name = `${rawAspect.toFixed(2)}:1 Exact`;
@@ -6463,6 +6908,28 @@ function getApiUrl(endpoint) {
     // =========================================================================
     // UNIFIED PERSISTENT DPI ENGINE (REMEMBERS LAST CHOICE ACROSS ALL MODES)
     // =========================================================================
+// Ensure all 2-in-1 ID cards are placed horizontally (Landscape 85.6x54)
+    // If a card is scanned or placed at 90 degrees (height > width), auto-rotate horizontally!
+    function normalizeCardHorizontal(img, onReady) {
+      if (!img) { onReady(img); return; }
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      if (h > w) {
+        const canvas = document.createElement('canvas');
+        canvas.width = h;
+        canvas.height = w;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((90 * Math.PI) / 180);
+        ctx.drawImage(img, -w / 2, -h / 2);
+        const rot = new Image();
+        rot.onload = () => onReady(rot);
+        rot.src = canvas.toDataURL('image/png');
+      } else {
+        onReady(img);
+      }
+    }
+
     function setAppDpi(dpi, triggerSave = true) {
       const chosenDpi = parseInt(dpi, 10) || 300;
       state.scanDpi = chosenDpi;
@@ -6636,14 +7103,16 @@ function getApiUrl(endpoint) {
                 if (cropData.success && cropData.image) {
                   const croppedImg = new Image();
                   croppedImg.onload = () => {
-                    state[side].cropBBox = cropData.bbox || null;
-                    state[side].cropCorners = cropData.corners || null;
-                    state[side].croppedImg = croppedImg;
-                    detectAndApplyAspect(side, croppedImg, cropData.ratio_type, cropData.aspect);
-                    updateSheetLayout();
-                    renderSlot(side);
-                    document.getElementById(side + 'Controls').style.display = 'flex';
-                    document.getElementById(side + 'Label').innerText = `${file.name} (Auto-Cropped)`;
+                    normalizeCardHorizontal(croppedImg, (finalImg) => {
+                      state[side].cropBBox = cropData.bbox || null;
+                      state[side].cropCorners = cropData.corners || null;
+                      state[side].croppedImg = finalImg;
+                      detectAndApplyAspect(side, finalImg, cropData.ratio_type, cropData.aspect);
+                      updateSheetLayout();
+                      renderSlot(side);
+                      document.getElementById(side + 'Controls').style.display = 'flex';
+                      document.getElementById(side + 'Label').innerText = `${file.name} (Auto-Cropped)`;
+                    });
                   };
                   croppedImg.src = cropData.image;
                   return;
@@ -6654,11 +7123,14 @@ function getApiUrl(endpoint) {
             }
           }
 
-          detectAndApplyAspect(side, img);
-          updateSheetLayout();
-          renderSlot(side);
-          document.getElementById(side + 'Controls').style.display = 'flex';
-          document.getElementById(side + 'Label').innerText = file.name;
+          normalizeCardHorizontal(img, (finalImg) => {
+            state[side].croppedImg = finalImg;
+            detectAndApplyAspect(side, finalImg);
+            updateSheetLayout();
+            renderSlot(side);
+            document.getElementById(side + 'Controls').style.display = 'flex';
+            document.getElementById(side + 'Label').innerText = file.name;
+          });
         };
         img.src = rawDataUrl;
       };
@@ -6755,25 +7227,27 @@ function getApiUrl(endpoint) {
           completeScanProgressBar();
           const img = new Image();
           img.onload = () => {
-            state[side].rawImg = img;
-            state[side].croppedImg = img;
-            state[side].cropBBox = data.bbox || null;
-            state[side].cropCorners = data.corners || null;
-            if (data.raw_image) {
-              const rImg = new Image();
-              rImg.onload = () => { state[side].rawImg = rImg; };
-              rImg.src = data.raw_image;
-            }
-            state[side].rotation = 0;
-            detectAndApplyAspect(side, img, data.ratio_type, data.aspect);
-            autoCenterSlot(side);
-            renderSlot(side);
-            document.getElementById(side + 'Controls').style.display = 'flex';
-            document.getElementById(side + 'Label').innerText = `Scanned ${side.toUpperCase()} (${data.cropped ? 'Auto-Cropped' : 'Full'})`;
-            setTimeout(() => {
-              setScanningState(false);
-              closeScanModal();
-            }, 600);
+            normalizeCardHorizontal(img, (finalImg) => {
+              state[side].rawImg = img;
+              state[side].croppedImg = finalImg;
+              state[side].cropBBox = data.bbox || null;
+              state[side].cropCorners = data.corners || null;
+              if (data.raw_image) {
+                const rImg = new Image();
+                rImg.onload = () => { state[side].rawImg = rImg; };
+                rImg.src = data.raw_image;
+              }
+              state[side].rotation = 0;
+              detectAndApplyAspect(side, finalImg, data.ratio_type, data.aspect);
+              autoCenterSlot(side);
+              renderSlot(side);
+              document.getElementById(side + 'Controls').style.display = 'flex';
+              document.getElementById(side + 'Label').innerText = `Scanned ${side.toUpperCase()} (${data.cropped ? 'Auto-Cropped' : 'Full'})`;
+              setTimeout(() => {
+                setScanningState(false);
+                closeScanModal();
+              }, 600);
+            });
           };
           img.src = data.image;
         } else {
@@ -6841,32 +7315,34 @@ function getApiUrl(endpoint) {
           if (data.success && data.image) {
             const img = new Image();
             img.onload = () => {
-              state.front.rawImg = img;
-              state.front.croppedImg = img;
-              state.front.cropBBox = data.bbox || null;
-              state.front.cropCorners = data.corners || null;
-              if (data.raw_image) {
-                const rImg = new Image();
-                rImg.onload = () => { state.front.rawImg = rImg; };
-                rImg.src = data.raw_image;
-              }
-              state.front.rotation = 0;
-              detectAndApplyAspect('front', img, data.ratio_type, data.aspect);
-              renderSlot('front');
-              document.getElementById('frontControls').style.display = 'flex';
-              document.getElementById('frontLabel').innerText = 'Scanned Front Side';
+              normalizeCardHorizontal(img, (finalImg) => {
+                state.front.rawImg = img;
+                state.front.croppedImg = finalImg;
+                state.front.cropBBox = data.bbox || null;
+                state.front.cropCorners = data.corners || null;
+                if (data.raw_image) {
+                  const rImg = new Image();
+                  rImg.onload = () => { state.front.rawImg = rImg; };
+                  rImg.src = data.raw_image;
+                }
+                state.front.rotation = 0;
+                detectAndApplyAspect('front', finalImg, data.ratio_type, data.aspect);
+                renderSlot('front');
+                document.getElementById('frontControls').style.display = 'flex';
+                document.getElementById('frontLabel').innerText = 'Scanned Front Side';
 
-              setScanningState(false);
+                setScanningState(false);
 
-              completeScanProgressBar();
-              // Advance to Step 2
-              state.wizardStep = 2;
-              document.getElementById('scanAnim').style.display = 'none';
-              document.getElementById('scanStepTitle').innerText = 'Step 2: Turn Card to BACK Side';
-              document.getElementById('scanStepDesc').innerHTML = 'Front scanned successfully!<br><br>Now <strong>turn the card over to the BACK side</strong> on the scanner glass and click Scan Back.';
-              btn.style.display = 'inline-block';
-              btn.innerText = '⚡ Scan Back';
-              document.getElementById('btnAbortScan').style.display = 'none';
+                completeScanProgressBar();
+                // Advance to Step 2
+                state.wizardStep = 2;
+                document.getElementById('scanAnim').style.display = 'none';
+                document.getElementById('scanStepTitle').innerText = 'Step 2: Turn Card to BACK Side';
+                document.getElementById('scanStepDesc').innerHTML = 'Front scanned successfully!<br><br>Now <strong>turn the card over to the BACK side</strong> on the scanner glass and click Scan Back.';
+                btn.style.display = 'inline-block';
+                btn.innerText = '⚡ Scan Back';
+                document.getElementById('btnAbortScan').style.display = 'none';
+              });
             };
             img.src = data.image;
           } else {
@@ -6897,27 +7373,29 @@ function getApiUrl(endpoint) {
           if (data.success && data.image) {
             const img = new Image();
             img.onload = () => {
-              state.back.rawImg = img;
-              state.back.croppedImg = img;
-              state.back.cropBBox = data.bbox || null;
-              state.back.cropCorners = data.corners || null;
-              if (data.raw_image) {
-                const rImg = new Image();
-                rImg.onload = () => { state.back.rawImg = rImg; };
-                rImg.src = data.raw_image;
-              }
-              state.back.rotation = 0;
-              detectAndApplyAspect('back', img, data.ratio_type, data.aspect);
-              renderSlot('back');
-              document.getElementById('backControls').style.display = 'flex';
-              document.getElementById('backLabel').innerText = 'Scanned Back Side';
+              normalizeCardHorizontal(img, (finalImg) => {
+                state.back.rawImg = img;
+                state.back.croppedImg = finalImg;
+                state.back.cropBBox = data.bbox || null;
+                state.back.cropCorners = data.corners || null;
+                if (data.raw_image) {
+                  const rImg = new Image();
+                  rImg.onload = () => { state.back.rawImg = rImg; };
+                  rImg.src = data.raw_image;
+                }
+                state.back.rotation = 0;
+                detectAndApplyAspect('back', finalImg, data.ratio_type, data.aspect);
+                renderSlot('back');
+                document.getElementById('backControls').style.display = 'flex';
+                document.getElementById('backLabel').innerText = 'Scanned Back Side';
 
-              completeScanProgressBar();
-              setTimeout(() => {
-                setScanningState(false);
-                closeScanModal();
-                alert('🎉 Both sides scanned successfully!\nFront is on the top half and Back is on the bottom half of A4.\nClick "Print to Epson L3250" whenever you are ready!');
-              }, 600);
+                completeScanProgressBar();
+                setTimeout(() => {
+                  setScanningState(false);
+                  closeScanModal();
+                  alert('🎉 Both sides scanned successfully!\nFront is on the top half and Back is on the bottom half of A4.\nClick "Print to Epson L3250" whenever you are ready!');
+                }, 600);
+              });
             };
             img.src = data.image;
           } else {
@@ -10099,15 +10577,8 @@ function getApiUrl(endpoint) {
       cropState.naturalW = targetElem.naturalWidth || 800;
       cropState.naturalH = targetElem.naturalHeight || 600;
 
-      // Determine initial aspect ratio based on existing slot or natural image orientation
-      const currentSlotAspect = state[cropState.activeSide].aspectRatio || (cropState.naturalW / cropState.naturalH);
-      const isPortrait = currentSlotAspect < 1.0 || (cropState.naturalH > cropState.naturalW);
-
-      if (isPortrait) {
-        setCropRatio('id_portrait', false);
-      } else {
-        setCropRatio('id_landscape', false);
-      }
+      // In 2-in-1 Card Mode, ID card slots are strictly landscape (85.6 x 54 mm)
+      setCropRatio('id_landscape', false);
 
       // Read rendered dimensions of image inside workspace
       const rect = targetElem.getBoundingClientRect();
@@ -10909,23 +11380,25 @@ function getApiUrl(endpoint) {
             if (data.success && data.image) {
               const newCroppedImg = new Image();
               newCroppedImg.onload = () => {
-                if (!state[side].rawImg) {
-                  state[side].rawImg = targetImg;
-                }
-                state[side].croppedImg = newCroppedImg;
-                state[side].cropBBox = data.bbox || null;
-                state[side].cropCorners = natPoints;
+                normalizeCardHorizontal(newCroppedImg, (finalImg) => {
+                  if (!state[side].rawImg) {
+                    state[side].rawImg = targetImg;
+                  }
+                  state[side].croppedImg = finalImg;
+                  state[side].cropBBox = data.bbox || null;
+                  state[side].cropCorners = natPoints;
 
-                const aspect = data.aspect || (newCroppedImg.width / newCroppedImg.height);
-                state[side].aspectRatio = aspect;
-                state[side].ratioName = aspect >= 1.0 ? `${aspect.toFixed(2)}:1 Quad` : `1:${(1/aspect).toFixed(2)} Quad`;
+                  const aspect = finalImg.naturalWidth / finalImg.naturalHeight;
+                  state[side].aspectRatio = aspect;
+                  state[side].ratioName = 'Standard ID (85.6×54)';
 
-                updateSheetLayout();
-                renderSlot(side);
-                document.getElementById(side + 'Controls').style.display = 'flex';
-                document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Quad Cropped)`;
-                closeManualCropModal();
-                showToast(`Free-Form Quad crop applied with 100% precision!`, 'success');
+                  updateSheetLayout();
+                  renderSlot(side);
+                  document.getElementById(side + 'Controls').style.display = 'flex';
+                  document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Quad Cropped)`;
+                  closeManualCropModal();
+                  showToast(`Free-Form Quad crop applied with 100% precision!`, 'success');
+                });
               };
               newCroppedImg.src = data.image;
               return;
@@ -10973,44 +11446,30 @@ function getApiUrl(endpoint) {
       const croppedDataUrl = offCanvas.toDataURL('image/png');
       const newCroppedImg = new Image();
       newCroppedImg.onload = () => {
-        if (!state[side].rawImg) {
-          state[side].rawImg = targetImg;
-        }
-        state[side].croppedImg = newCroppedImg;
-        state[side].cropBBox = [natX, natY, natW, natH];
-        state[side].cropCorners = [
-          [natX, natY],
-          [natX + natW, natY],
-          [natX + natW, natY + natH],
-          [natX, natY + natH]
-        ];
-        state[side].cropCorners = [
-          [natX, natY],
-          [natX + natW, natY],
-          [natX + natW, natY + natH],
-          [natX, natY + natH]
-        ];
+        normalizeCardHorizontal(newCroppedImg, (finalImg) => {
+          if (!state[side].rawImg) {
+            state[side].rawImg = targetImg;
+          }
+          state[side].croppedImg = finalImg;
+          state[side].cropBBox = [natX, natY, natW, natH];
+          state[side].cropCorners = [
+            [natX, natY],
+            [natX + natW, natY],
+            [natX + natW, natY + natH],
+            [natX, natY + natH]
+          ];
 
-        const aspect = natW / parseFloat(natH);
-        state[side].aspectRatio = aspect;
-        if (cropState.ratioMode === 'id_landscape') {
+          const aspect = finalImg.naturalWidth / parseFloat(finalImg.naturalHeight);
+          state[side].aspectRatio = aspect;
           state[side].ratioName = 'Standard ID (85.6×54)';
-        } else if (cropState.ratioMode === 'id_portrait') {
-          state[side].ratioName = 'Standard ID Portrait (54×85.6)';
-        } else if (cropState.ratioMode === '4:3') {
-          state[side].ratioName = '4:3 Landscape';
-        } else if (cropState.ratioMode === '3:4') {
-          state[side].ratioName = '3:4 Portrait';
-        } else {
-          state[side].ratioName = aspect >= 1.0 ? `${aspect.toFixed(2)}:1 Custom` : `1:${(1/aspect).toFixed(2)} Custom`;
-        }
 
-        updateSheetLayout();
-        renderSlot(side);
-        document.getElementById(side + 'Controls').style.display = 'flex';
-        document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Manual Cropped)`;
-        closeManualCropModal();
-        showToast(`Manual crop applied with exact corner curves!`, 'success');
+          updateSheetLayout();
+          renderSlot(side);
+          document.getElementById(side + 'Controls').style.display = 'flex';
+          document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Manual Cropped)`;
+          closeManualCropModal();
+          showToast(`Manual crop applied with exact corner curves!`, 'success');
+        });
       };
       newCroppedImg.src = croppedDataUrl;
     }

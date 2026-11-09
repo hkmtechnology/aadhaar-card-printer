@@ -573,6 +573,27 @@ def detect_and_crop_id_card(image_input, padding_px=0, deskew=True, corner_curve
 
         # Automatic Text Orientation & Horizontalness Alignment
         cropped_bgr, rot_angle, is_portrait, aspect, ratio_type = detect_and_correct_text_orientation(cropped_bgr)
+
+        # 2-in-1 Card Normalization: ID cards are strictly landscape (85.6 x 54 mm).
+        # If placed at 90 degrees on the flatbed glass (height > width), auto-rotate horizontally!
+        if cropped_bgr.shape[0] > cropped_bgr.shape[1]:
+            im_cw = cv2.rotate(cropped_bgr, cv2.ROTATE_90_CLOCKWISE)
+            im_ccw = cv2.rotate(cropped_bgr, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            def _score_hdr(im):
+                g = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+                gh, gw = g.shape
+                top_q = g[:int(gh * 0.28), :]
+                bot_q = g[int(gh * 0.72):, :]
+                top_edges = np.mean(cv2.Canny(top_q, 50, 150) > 0)
+                bot_edges = np.mean(cv2.Canny(bot_q, 50, 150) > 0)
+                top_dark = np.mean(top_q < 120)
+                bot_dark = np.mean(bot_q < 120)
+                return (top_edges - bot_edges) * 100.0 + (top_dark - bot_dark) * 50.0
+            cropped_bgr = im_cw if _score_hdr(im_cw) >= _score_hdr(im_ccw) else im_ccw
+            is_portrait = False
+            aspect = cropped_bgr.shape[1] / float(cropped_bgr.shape[0])
+            ratio_type = "id_card"
+
         cw = cropped_bgr.shape[1]
         ch = cropped_bgr.shape[0]
 
@@ -677,6 +698,25 @@ def warp_quad_card(image_input, points, corner_curve_mm=3.18, deskew=True, auto_
         aspect = cw / float(ch)
         is_portrait = (ch > cw)
         ratio_type = "id_card_portrait" if is_portrait else "id_card"
+
+    # 2-in-1 Card Normalization: If warped card is portrait (height > width), auto-rotate horizontally!
+    if warped_bgr.shape[0] > warped_bgr.shape[1]:
+        im_cw = cv2.rotate(warped_bgr, cv2.ROTATE_90_CLOCKWISE)
+        im_ccw = cv2.rotate(warped_bgr, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        def _score_hdr_warp(im):
+            g = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+            gh, gw = g.shape
+            top_q = g[:int(gh * 0.28), :]
+            bot_q = g[int(gh * 0.72):, :]
+            top_edges = np.mean(cv2.Canny(top_q, 50, 150) > 0)
+            bot_edges = np.mean(cv2.Canny(bot_q, 50, 150) > 0)
+            top_dark = np.mean(top_q < 120)
+            bot_dark = np.mean(bot_q < 120)
+            return (top_edges - bot_edges) * 100.0 + (top_dark - bot_dark) * 50.0
+        warped_bgr = im_cw if _score_hdr_warp(im_cw) >= _score_hdr_warp(im_ccw) else im_ccw
+        is_portrait = False
+        aspect = warped_bgr.shape[1] / float(warped_bgr.shape[0])
+        ratio_type = "id_card"
 
     warped_rgb = cv2.cvtColor(warped_bgr, cv2.COLOR_BGR2RGB)
     warped_pil = Image.fromarray(warped_rgb)

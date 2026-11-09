@@ -9,7 +9,7 @@
   "aspectMode": "exact",
   "sizePreset": "xerox",
   "cardWidthMm": 110,
-  "topPosMm": 19.3,
+  "topPosMm": 36.7,
   "bottomPosMm": 168,
   "borderStyle": "none",
   "borderClass": "border-none",
@@ -30,5 +30,6 @@
   "frontXMm": 105,
   "backXMm": 105,
   "frontAngle": 0,
-  "backAngle": 0
+  "backAngle": 0,
+  "docScanDpi": 150
 }
