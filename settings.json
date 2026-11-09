@@ -1,6 +1,6 @@
 {
   "connectionMode": "usb",
-  "wifiPrinterIp": "10.237.2.251",
+  "wifiPrinterIp": "10.237.2.154",
   "wifiPrinterName": "EPSON L3250 Series (Network)",
   "usbPrinterName": "EPSON L3250 Series",
   "scanDpi": 150,
@@ -9,7 +9,7 @@
   "aspectMode": "exact",
   "sizePreset": "standard",
   "cardWidthMm": 122.8,
-  "topPosMm": 35.5,
+  "topPosMm": 12.9,
   "bottomPosMm": 184,
   "borderStyle": "none",
   "borderClass": "border-none",
