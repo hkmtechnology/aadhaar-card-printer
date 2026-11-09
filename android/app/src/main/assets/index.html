@@ -4030,7 +4030,34 @@
 // UNIFIED SCAN & PRINT ENGINE (NATIVE ANDROID BRIDGE + HTTP FETCH)
 // =========================================================================
 async function performUnifiedScan(payload) {
-  // Use async non-blocking fetch so progress bar animations and abort events run smoothly at 60fps
+  const isAndroid = !!(window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp());
+
+  // 1. If running in Android App without PC bridge, execute standalone direct Wi-Fi scan immediately (No PC needed!)
+  if (isAndroid && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
+    const bridgeHost = getScannerBridgeHost();
+    let pcBridgeOnline = false;
+    try {
+      const probe = await fetch(`http://${bridgeHost}:8767/api/status`, { signal: AbortSignal.timeout(350) });
+      if (probe.ok) pcBridgeOnline = true;
+    } catch (_) {}
+
+    if (!pcBridgeOnline) {
+      console.log('Standalone mode: Scanning directly from Epson L3250 over Wi-Fi/Hotspot...');
+      try {
+        const respStr = window.AndroidBridge.scanDirectOrBridge(
+          payload.side || 'front',
+          payload.autocrop !== false,
+          payload.dpi || 300,
+          payload.doc_type || 'id_card'
+        );
+        if (respStr) return JSON.parse(respStr);
+      } catch (nativeErr) {
+        console.warn('Standalone native scan error:', nativeErr);
+      }
+    }
+  }
+
+  // 2. Standard flow: Try PC Bridge fetch first with abort controller
   try {
     const res = await fetch(getApiUrl('/api/scan'), {
       method: 'POST',
@@ -4047,7 +4074,7 @@ async function performUnifiedScan(payload) {
       return { success: false, aborted: true, message: 'Scan aborted by user' };
     }
     // Fallback to native Android Bridge if fetch fails and not aborted
-    if (window.AndroidBridge && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
+    if (isAndroid && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
       try {
         const respStr = window.AndroidBridge.scanDirectOrBridge(
           payload.side || 'front',
@@ -5455,6 +5482,11 @@ function getApiUrl(endpoint) {
       try {
         await fetch(getApiUrl('/api/abort'), { method: 'POST' });
       } catch (err) {}
+
+      // 1b. Tell native Android bridge to abort direct eSCL scan
+      if (window.AndroidBridge && typeof window.AndroidBridge.abortScan === 'function') {
+        try { window.AndroidBridge.abortScan(); } catch (e) {}
+      }
 
       // 2. Abort client-side fetch
       if (state.abortController) {

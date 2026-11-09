@@ -327,62 +327,112 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun abortScan() {
+            EpsonDirectScanner.abortCurrentScan()
+        }
+
+        @JavascriptInterface
+        fun getPrinterIp(): String {
+            val dev = DeviceDetector.detect(context)
+            return dev.printerIp
+        }
+
+        @JavascriptInterface
+        fun setPrinterIp(ip: String) {
+            val clean = ip.trim().replace("http://", "").replace("https://", "").split(":")[0]
+            val prefs = context.getSharedPreferences("hkm_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("printer_ip", clean).apply()
+            DeviceDetector.setPrinterIp(clean)
+        }
+
+        @JavascriptInterface
         fun scanDirectOrBridge(side: String, autoCrop: Boolean, dpi: Int, docType: String = "id_card"): String {
             val dev = DeviceDetector.detect(context)
             val bridgeIp = dev.bridgeIp
+            val printerIp = dev.printerIp
 
-            // 1. First attempt: PC Scanner Bridge
-            try {
-                val url = java.net.URL("http://$bridgeIp:8767/api/scan")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                conn.connectTimeout = 5000
-                conn.readTimeout = 120000
-                conn.doOutput = true
-                conn.doInput = true
+            Log.i("HKM_SCAN", "Initiating scan for side=$side, autoCrop=$autoCrop, dpi=$dpi, docType=$docType. Printer IP: $printerIp, Bridge IP: $bridgeIp")
 
-                val payload = JSONObject().apply {
-                    put("side", side)
-                    put("autocrop", autoCrop)
-                    put("dpi", dpi)
-                    put("doc_type", docType)
-                }.toString()
+            // 1. Fast check if PC Scanner Bridge is actively running (short timeout 350ms)
+            if (DeviceDetector.isPortOpen(bridgeIp, 8767, 350)) {
+                try {
+                    val url = java.net.URL("http://$bridgeIp:8767/api/scan")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    conn.connectTimeout = 3000
+                    conn.readTimeout = 120000
+                    conn.doOutput = true
+                    conn.doInput = true
 
-                conn.outputStream.use { os ->
-                    os.write(payload.toByteArray(Charsets.UTF_8))
+                    val payload = JSONObject().apply {
+                        put("side", side)
+                        put("autocrop", autoCrop)
+                        put("dpi", dpi)
+                        put("doc_type", docType)
+                    }.toString()
+
+                    conn.outputStream.use { os ->
+                        os.write(payload.toByteArray(Charsets.UTF_8))
+                    }
+
+                    val code = conn.responseCode
+                    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+                    val response = stream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(response)
+                    if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
+                        return response
+                    }
+                } catch (e: Exception) {
+                    Log.w("HKM_SCAN", "PC bridge scan attempt failed: ${e.message}")
                 }
-
-                val code = conn.responseCode
-                val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                val response = stream.bufferedReader().use { it.readText() }
-                val json = JSONObject(response)
-                if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
-                    return response
-                }
-            } catch (e: Exception) {
-                Log.w("HKM_SCAN", "PC bridge scan failed: ${e.message}, trying direct eSCL")
             }
 
-            // 2. Fallback: Direct eSCL scan to Epson printer IP
+            // 2. 100% STANDALONE DIRECT SCAN: Wi-Fi eSCL to Epson L3250 (No PC required!)
+            Log.i("HKM_SCAN", "Running standalone Wi-Fi eSCL scan to Epson printer at $printerIp...")
             try {
-                val directB64 = EpsonDirectScanner.scanViaEscl(dev.printerIp, dpi)
-                if (!directB64.isNullOrBlank()) {
-                    val resp = JSONObject().apply {
-                        put("success", true)
-                        put("image", "data:image/png;base64,$directB64")
-                        put("cropped", false)
-                        put("source", "epson_direct")
+                val rawBytes = EpsonDirectScanner.scanViaEscl(printerIp, dpi)
+                if (rawBytes != null && rawBytes.isNotEmpty()) {
+                    Log.i("HKM_SCAN", "Direct scan succeeded, received ${rawBytes.size} bytes from Epson L3250")
+
+                    if (autoCrop && docType != "a4") {
+                        val cropRes = CardAutoCropper.processScannedImage(rawBytes, docType)
+                        val resp = JSONObject().apply {
+                            put("success", true)
+                            put("image", cropRes.croppedImageDataUri)
+                            put("raw_image", cropRes.rawImageDataUri)
+                            put("cropped", cropRes.isCropped)
+                            put("aspect", cropRes.aspect.toDouble())
+                            put("ratio_type", cropRes.ratioType)
+                            if (cropRes.bbox != null) {
+                                put("bbox", org.json.JSONArray(cropRes.bbox))
+                            }
+                            put("source", "epson_direct_mobile")
+                        }
+                        return resp.toString()
+                    } else {
+                        val rawMime = if (rawBytes.size > 2 && rawBytes[0] == 0xFF.toByte() && rawBytes[1] == 0xD8.toByte()) "image/jpeg" else "image/png"
+                        val b64 = android.util.Base64.encodeToString(rawBytes, android.util.Base64.NO_WRAP)
+                        val dataUri = "data:$rawMime;base64,$b64"
+                        val resp = JSONObject().apply {
+                            put("success", true)
+                            put("image", dataUri)
+                            put("raw_image", dataUri)
+                            put("cropped", false)
+                            put("aspect", 0.707)
+                            put("ratio_type", "a4")
+                            put("source", "epson_direct_mobile")
+                        }
+                        return resp.toString()
                     }
-                    return resp.toString()
                 }
             } catch (e: Exception) {
-                Log.e("HKM_SCAN", "Direct eSCL scan failed: ${e.message}")
+                Log.e("HKM_SCAN", "Direct eSCL scan exception: ${e.message}", e)
             }
 
             return JSONObject().apply {
                 put("success", false)
-                put("error", "Scan failed. Ensure Epson printer (${dev.printerIp}) or PC Bridge ($bridgeIp:8767) is online.")
+                put("error", "Scan failed: Could not communicate with Epson L3250 ($printerIp). Please make sure the printer is turned on and connected to your Wi-Fi/Hotspot.")
             }.toString()
         }
 
@@ -408,8 +458,9 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun scanFromEpsonDirect(dpi: Int, docType: String): String? {
             val dev = DeviceDetector.detect(context)
-            val targetIp = dev.printerIp
-            return EpsonDirectScanner.scanViaEscl(targetIp, dpi)
+            val rawBytes = EpsonDirectScanner.scanViaEscl(dev.printerIp, dpi) ?: return null
+            val cropRes = CardAutoCropper.processScannedImage(rawBytes, docType)
+            return cropRes.croppedImageDataUri
         }
 
         @JavascriptInterface

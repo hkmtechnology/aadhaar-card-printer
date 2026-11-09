@@ -2,9 +2,8 @@ package com.hkmtech.cardprinter
 
 import android.content.Context
 import android.net.wifi.WifiManager
-import android.util.Base64
-import java.io.InputStream
-import java.io.OutputStream
+import android.util.Log
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -13,19 +12,37 @@ import java.util.Locale
 
 object EpsonDirectScanner {
 
-    fun getGatewayIp(context: Context): String {
-        try {
-            val wifiMgr = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            val dhcp = wifiMgr?.dhcpInfo
-            if (dhcp != null && dhcp.gateway != 0) {
-                val g = dhcp.gateway
-                return String.format(Locale.US, "%d.%d.%d.%d", g and 0xff, g shr 8 and 0xff, g shr 16 and 0xff, g shr 24 and 0xff)
-            }
-        } catch (_: Exception) {}
-        return "10.237.2.165"
+    private const val TAG = "HKM_DIRECT_SCAN"
+
+    @Volatile
+    private var isAbortRequested = false
+
+    @Volatile
+    private var activeJobUrl: String? = null
+
+    fun abortCurrentScan() {
+        isAbortRequested = true
+        val jobUrl = activeJobUrl
+        if (!jobUrl.isNullOrBlank()) {
+            Thread {
+                try {
+                    val conn = (URL(jobUrl).openConnection() as HttpURLConnection).apply {
+                        requestMethod = "DELETE"
+                        connectTimeout = 2000
+                        readTimeout = 2000
+                        setRequestProperty("User-Agent", "HKMTECH-CardPrinter")
+                    }
+                    conn.responseCode
+                    conn.disconnect()
+                    Log.i(TAG, "Sent DELETE to cancel eSCL job: $jobUrl")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to send DELETE for abort: ${e.message}")
+                }
+            }.start()
+        }
     }
 
-    fun isPortReachable(host: String, port: Int, timeoutMs: Int = 500): Boolean {
+    fun isPortReachable(host: String, port: Int, timeoutMs: Int = 400): Boolean {
         return try {
             val socket = Socket()
             socket.connect(InetSocketAddress(host, port), timeoutMs)
@@ -36,87 +53,214 @@ object EpsonDirectScanner {
         }
     }
 
-    fun checkPrinterOnline(context: Context): Pair<Boolean, String> {
-        val dev = DeviceDetector.detect(context)
-        val ipsToTest = listOf(dev.printerIp, "10.237.2.251", "192.168.31.223", "192.168.192.168", "192.168.223.1")
+    /**
+     * Reads /proc/net/arp and Wi-Fi DHCP info to discover connected devices on phone hotspot.
+     */
+    fun findHotspotPrinterIp(context: Context, fallbackIp: String = "10.237.2.251"): String {
+        val candidates = mutableListOf<String>()
 
-        for (ip in ipsToTest.distinct()) {
-            // Check RAW Print port 9100, HTTP port 80, or IPP port 631
-            if (isPortReachable(ip, 9100, 400) || isPortReachable(ip, 80, 400) || isPortReachable(ip, 631, 400)) {
-                return Pair(true, ip)
+        // 1. Check saved IP from SharedPreferences
+        val prefs = context.getSharedPreferences("hkm_prefs", Context.MODE_PRIVATE)
+        val saved = prefs.getString("printer_ip", null)
+        if (!saved.isNullOrBlank()) candidates.add(saved.trim())
+
+        // 2. Default & common hotspot IPs
+        candidates.add(fallbackIp)
+        candidates.add("10.237.2.251")
+        candidates.add("192.168.43.251")
+        candidates.add("192.168.43.100")
+        candidates.add("192.168.31.223")
+
+        // 3. Scan /proc/net/arp for connected hotspot clients
+        try {
+            val arp = File("/proc/net/arp")
+            if (arp.exists() && arp.canRead()) {
+                arp.forEachLine { line ->
+                    val parts = line.split("\\s+".toRegex())
+                    if (parts.size >= 4 && parts[0] != "IP") {
+                        val ip = parts[0].trim()
+                        val mac = parts[3].trim()
+                        if (mac != "00:00:00:00:00:00" && ip.matches(Regex("\\d+\\.\\d+\\.\\d+\\.\\d+"))) {
+                            candidates.add(0, ip)
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        // Test which candidate has eSCL port 80 or 8080 or RAW print 9100 open
+        for (ip in candidates.distinct()) {
+            if (isPortReachable(ip, 80, 250) || isPortReachable(ip, 8080, 250) || isPortReachable(ip, 9100, 250)) {
+                Log.i(TAG, "Found responsive Epson printer at IP: $ip")
+                prefs.edit().putString("printer_ip", ip).apply()
+                return ip
             }
         }
-        return Pair(false, dev.printerIp)
+
+        return fallbackIp
     }
 
-    fun scanViaEscl(printerIp: String, dpi: Int = 300): String? {
-        val urlsToTry = listOf(
-            "http://$printerIp/eSCL/ScanJobs",
-            "http://$printerIp:8080/eSCL/ScanJobs",
-            "http://$printerIp:80/eSCL/ScanJobs"
-        )
+    fun checkPrinterOnline(context: Context): Pair<Boolean, String> {
+        val printerIp = findHotspotPrinterIp(context)
+        val reachable = isPortReachable(printerIp, 80, 350) || isPortReachable(printerIp, 8080, 350) || isPortReachable(printerIp, 9100, 350)
+        return Pair(reachable, printerIp)
+    }
 
-        // Standard eSCL XML Scan Request for Platen (Flatbed)
-        val xmlBody = """<?xml version="1.0" encoding="UTF-8"?>
+    /**
+     * Executes direct eSCL scanning over Wi-Fi network directly with the Epson L3250.
+     * Returns raw image bytes (JPEG) or null if failed/aborted.
+     */
+    fun scanViaEscl(targetIp: String, dpi: Int = 300, colorMode: String = "RGB24"): ByteArray? {
+        isAbortRequested = false
+        activeJobUrl = null
+
+        val portsToTry = listOf(80, 8080)
+        var selectedPort = 80
+        var baseUrl = "http://$targetIp/eSCL"
+
+        // Step 1: Detect whether port 80 or 8080 responds to eSCL
+        for (p in portsToTry) {
+            val testUrl = "http://$targetIp:$p/eSCL/ScannerCapabilities"
+            var conn: HttpURLConnection? = null
+            try {
+                conn = (URL(testUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 2000
+                    readTimeout = 3000
+                    setRequestProperty("User-Agent", "HKMTECH-CardPrinter")
+                }
+                if (conn.responseCode == 200) {
+                    selectedPort = p
+                    baseUrl = "http://$targetIp:$p/eSCL"
+                    Log.i(TAG, "Epson eSCL confirmed active on port $p")
+                    break
+                }
+            } catch (_: Exception) {
+            } finally {
+                try { conn?.disconnect() } catch (_: Exception) {}
+            }
+        }
+
+        val scanJobXml = """<?xml version="1.0" encoding="UTF-8"?>
 <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03" xmlns:pwg="http://www.pwg.org/schemas/2010/12/sm">
-    <pwg:Version>2.0</pwg:Version>
-    <scan:InputSource>Platen</scan:InputSource>
-    <scan:ColorMode>RGB24</scan:ColorMode>
-    <scan:XResolution>$dpi</scan:XResolution>
-    <scan:YResolution>$dpi</scan:YResolution>
-    <scan:DocumentFormat>image/jpeg</scan:DocumentFormat>
+  <pwg:Version>2.6</pwg:Version>
+  <scan:Intent>Document</scan:Intent>
+  <pwg:ScanRegions>
+    <pwg:ScanRegion>
+      <pwg:Height>3507</pwg:Height>
+      <pwg:Width>2480</pwg:Width>
+      <pwg:XOffset>0</pwg:XOffset>
+      <pwg:YOffset>0</pwg:YOffset>
+    </pwg:ScanRegion>
+  </pwg:ScanRegions>
+  <scan:InputSource>Platen</scan:InputSource>
+  <scan:ColorMode>$colorMode</scan:ColorMode>
+  <scan:XResolution>$dpi</scan:XResolution>
+  <scan:YResolution>$dpi</scan:YResolution>
 </scan:ScanSettings>""".trimIndent()
 
-        for (postUrlStr in urlsToTry) {
-            try {
-                val url = URL(postUrlStr)
-                val conn = (url.openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    doOutput = true
-                    doInput = true
-                    connectTimeout = 3000
-                    readTimeout = 15000
-                    setRequestProperty("Content-Type", "text/xml; charset=UTF-8")
-                }
+        val postUrlStr = "$baseUrl/ScanJobs"
+        var jobLocation: String? = null
 
-                conn.outputStream.use { os ->
-                    os.write(xmlBody.toByteArray(Charsets.UTF_8))
-                }
+        try {
+            val postUrl = URL(postUrlStr)
+            val postConn = (postUrl.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                doOutput = true
+                doInput = true
+                connectTimeout = 5000
+                readTimeout = 15000
+                setRequestProperty("Content-Type", "text/xml; charset=utf-8")
+                setRequestProperty("User-Agent", "HKMTECH-CardPrinter")
+            }
 
-                val code = conn.responseCode
-                if (code == 201 || code == 200) {
-                    val location = conn.getHeaderField("Location")
-                    conn.disconnect()
+            postConn.outputStream.use { os ->
+                os.write(scanJobXml.toByteArray(Charsets.UTF_8))
+            }
 
-                    val docUrlStr = if (location != null) {
-                        if (location.startsWith("http")) location + "/NextDocument" else "http://$printerIp$location/NextDocument"
-                    } else {
-                        "http://$printerIp/eSCL/ScanJobs/NextDocument"
-                    }
+            val statusCode = postConn.responseCode
+            if (statusCode !in 200..204) {
+                Log.e(TAG, "eSCL ScanJobs POST failed with status: $statusCode")
+                postConn.disconnect()
+                return null
+            }
 
-                    // Poll for NextDocument
-                    Thread.sleep(1500)
-                    for (attempt in 1..25) {
-                        try {
-                            val docUrl = URL(docUrlStr)
-                            val docConn = (docUrl.openConnection() as HttpURLConnection).apply {
-                                connectTimeout = 4000
-                                readTimeout = 30000
-                            }
-                            if (docConn.responseCode == 200) {
-                                val bytes = docConn.inputStream.use { it.readBytes() }
-                                docConn.disconnect()
-                                if (bytes.isNotEmpty()) {
-                                    return Base64.encodeToString(bytes, Base64.NO_WRAP)
-                                }
-                            }
-                            docConn.disconnect()
-                        } catch (_: Exception) {}
-                        Thread.sleep(1000)
-                    }
-                }
-            } catch (_: Exception) {}
+            jobLocation = postConn.getHeaderField("Location")
+            postConn.disconnect()
+            Log.i(TAG, "ScanJob created successfully! Location header: $jobLocation")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to submit ScanJob: ${e.message}", e)
+            return null
         }
+
+        // Step 2: Build accurate NextDocument URL
+        val cleanLoc = (jobLocation ?: "/eSCL/ScanJobs/1").trim().trimEnd('/')
+        val jobUrlStr = if (cleanLoc.startsWith("http://") || cleanLoc.startsWith("https://")) {
+            cleanLoc
+        } else if (cleanLoc.startsWith("/")) {
+            "http://$targetIp:$selectedPort$cleanLoc"
+        } else {
+            "http://$targetIp:$selectedPort/$cleanLoc"
+        }
+        activeJobUrl = jobUrlStr
+        val docUrlStr = "$jobUrlStr/NextDocument"
+
+        Log.i(TAG, "Polling for scanned image at: $docUrlStr")
+
+        // Step 3: Wait for scanner carriage to finish and download image
+        // Allow up to 45 iterations * 1.5s = ~68 seconds (covers 150, 300, and 600 DPI scans)
+        try {
+            Thread.sleep(2000)
+        } catch (_: InterruptedException) {
+            return null
+        }
+
+        for (attempt in 1..45) {
+            if (isAbortRequested) {
+                Log.i(TAG, "Scan aborted by user during polling loop")
+                return null
+            }
+
+            var docConn: HttpURLConnection? = null
+            try {
+                val docUrl = URL(docUrlStr)
+                docConn = (docUrl.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 5000
+                    readTimeout = 40000
+                    setRequestProperty("User-Agent", "HKMTECH-CardPrinter")
+                }
+
+                val code = docConn.responseCode
+                Log.d(TAG, "Poll attempt $attempt/45 -> HTTP $code")
+
+                if (code == 200) {
+                    val bytes = docConn.inputStream.use { it.readBytes() }
+                    if (bytes.isNotEmpty()) {
+                        Log.i(TAG, "Successfully downloaded scanned document! Size: ${bytes.size} bytes")
+                        return bytes
+                    }
+                } else if (code in listOf(503, 404, 409, 204)) {
+                    // 503 Service Unavailable / 404 Not Ready / 409 Busy: scanner carriage still moving
+                    try { docConn.errorStream?.close() } catch (_: Exception) {}
+                } else {
+                    Log.w(TAG, "Unexpected HTTP code $code on NextDocument poll")
+                    try { docConn.errorStream?.close() } catch (_: Exception) {}
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Exception on poll attempt $attempt: ${e.message}")
+            } finally {
+                try { docConn?.disconnect() } catch (_: Exception) {}
+            }
+
+            try {
+                Thread.sleep(1500)
+            } catch (_: InterruptedException) {
+                return null
+            }
+        }
+
+        Log.e(TAG, "Polling timed out after 45 attempts without receiving image.")
         return null
     }
 }
