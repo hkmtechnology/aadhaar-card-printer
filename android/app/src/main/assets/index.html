@@ -119,9 +119,10 @@
     }
 
     .epson-tag.offline {
-      background: rgba(239, 68, 68, 0.18);
-      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.24);
+      color: #fecaca;
       border: 1px solid #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.22);
     }
 
     .epson-tag.checking {
@@ -1485,26 +1486,31 @@
     }
     .raw-curve-channel-tabs {
       display: flex;
+      flex-wrap: wrap;
       gap: 3px;
       background: rgba(15, 23, 42, 0.85);
       padding: 3px;
       border-radius: 6px;
       border: 1px solid rgba(148, 163, 184, 0.2);
+      max-width: 100%;
     }
     .raw-curve-tab {
       background: transparent;
       border: none;
       color: #94a3b8;
-      font-size: 0.68rem;
+      font-size: 0.66rem;
       font-weight: 700;
-      padding: 3px 7px;
+      padding: 4px 6px;
       border-radius: 4px;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 4px;
       transition: all 0.15s ease;
       user-select: none;
+      white-space: nowrap;
+      flex: 1 1 auto;
+      justify-content: center;
     }
     .raw-curve-tab:hover {
       background: rgba(255, 255, 255, 0.08);
@@ -3800,7 +3806,8 @@
       flex-shrink: 0;
     }
 
-    .device-status-badge.online {
+    .device-status-badge.online,
+    .device-status-badge.ready {
       background: rgba(16, 185, 129, 0.16);
       color: #34d399;
       border: 1px solid #059669;
@@ -6758,10 +6765,10 @@
               <span id="rawCurveModeBadge" style="font-size:0.65rem; color:#38bdf8; font-weight:700;">Parametric</span>
             </div>
             <div class="raw-accordion-body">
-              <!-- Channel Selector (Adjust: 📈 ⚪ 🔴 🟢 🔵) -->
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <!-- Channel Selector (Adjust: Parametric, RGB, Red, Green, Blue) -->
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px; margin-bottom: 6px;">
                 <span style="font-size: 0.68rem; color: #94a3b8; font-weight: 700;">Adjust:</span>
-                <div class="raw-curve-channel-tabs" role="tablist">
+                <div class="raw-curve-channel-tabs" role="tablist" style="width: 100%;">
                   <button type="button" class="raw-curve-tab active" id="tabCurveParametric" onclick="setRawCurveChannel('parametric')" title="Parametric Spline Curve">
                     <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
                       <path d="M 1 15 C 4 15, 6 10, 8 8 S 12 1, 15 1"/>
@@ -6788,8 +6795,8 @@
               </div>
 
               <!-- Interactive Curve Graph Box with Real-Time Histogram Underlay -->
-              <div style="position:relative; width:100%; height:130px; background:#070b14; border:1px solid #1e293b; border-radius:6px; overflow:hidden; margin-bottom:8px; touch-action:none;">
-                <canvas id="rawCurveCanvas" width="280" height="130" style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:crosshair;"></canvas>
+              <div style="position:relative; width:100%; height:155px; background:#070b14; border:1px solid #1e293b; border-radius:6px; overflow:hidden; margin-bottom:8px; touch-action:none;">
+                <canvas id="rawCurveCanvas" width="280" height="155" style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:crosshair; touch-action:none;"></canvas>
               </div>
 
               <!-- 1. Parametric Controls -->
@@ -9349,44 +9356,70 @@ function getApiUrl(endpoint) {
     let isScannerOnline = false;
     let isCheckingScanner = false;
 
+    function applyScannerStatusUi({ online, checking = false, badgeHtml, badgeTitle = '', docText, docColor, showOfflineNotice, devConnOnline, devConnHtml, devConnTitle }) {
+      const badge = document.getElementById('scannerBadge');
+      const docBadge = document.getElementById('docScanStatusBadge');
+      const offlineNotice = document.getElementById('scannerOfflineNotice');
+      const devConnBadge = document.getElementById('deviceConnectionBadge');
+
+      isScannerOnline = Boolean(online);
+      if (badge) {
+        badge.className = checking ? 'epson-tag checking' : (online ? 'epson-tag online' : 'epson-tag offline');
+        if (badgeHtml !== undefined) badge.innerHTML = badgeHtml;
+        if (badgeTitle) badge.title = badgeTitle;
+      }
+      if (docBadge && docText !== undefined) {
+        docBadge.innerText = docText;
+        if (docColor) docBadge.style.color = docColor;
+      }
+      if (offlineNotice && showOfflineNotice !== undefined) {
+        offlineNotice.style.display = showOfflineNotice ? 'block' : 'none';
+      }
+      if (devConnBadge && devConnHtml !== undefined) {
+        devConnBadge.className = devConnOnline ? 'epson-tag online' : 'epson-tag offline';
+        devConnBadge.innerHTML = devConnHtml;
+        if (devConnTitle) devConnBadge.title = devConnTitle;
+      }
+    }
+
+    function readAndroidBridgeDeviceState() {
+      if (!(window.AndroidBridge && typeof window.AndroidBridge.getDeviceConnectionInfo === 'function')) {
+        return null;
+      }
+      try {
+        const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
+        const ready = Boolean(dev.printer_status === 'Ready' || dev.scanner_online === true || dev.isReady === true);
+        return { dev, ready };
+      } catch (e) {
+        console.warn('AndroidBridge connection info check error:', e);
+        return null;
+      }
+    }
+
     async function checkScannerServer(force = false) {
       if (isCheckingScanner && !force) return;
       isCheckingScanner = true;
 
-      const badge = document.getElementById('scannerBadge');
-      const docBadge = document.getElementById('docScanStatusBadge');
-      const offlineNotice = document.getElementById('scannerOfflineNotice');
-
-      // Check if AndroidBridge reports Wi-Fi Direct or Ready status
-      if (window.AndroidBridge && typeof window.AndroidBridge.getDeviceConnectionInfo === 'function') {
-        try {
-          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
-          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online || dev.isReady) {
-            isScannerOnline = true;
-            if (badge) {
-              badge.className = 'epson-tag online';
-              badge.innerHTML = '🟢 ' + (dev.scanner_message || 'Epson L3250 Ready on Wi-Fi Direct');
-              badge.title = 'Connected via ' + (dev.connection_type || 'Wi-Fi Direct') + '. Click to refresh.';
-            }
-            if (docBadge) {
-              docBadge.innerText = '🟢 Ready';
-              docBadge.style.color = '#6ee7b7';
-            }
-            if (offlineNotice) offlineNotice.style.display = 'none';
-            const devConnBadge = document.getElementById('deviceConnectionBadge');
-            if (devConnBadge) {
-              devConnBadge.className = 'epson-tag online';
-              devConnBadge.innerHTML = '📶 ' + (dev.printer_name || 'EPSON L3250') + ' (Ready)';
-              devConnBadge.title = 'Ready on ' + (dev.connection_type || 'Wi-Fi Direct') + ' (' + (dev.printer_ip || '192.168.223.1') + ')';
-            }
-            isCheckingScanner = false;
-            return;
-          }
-        } catch (e) {
-          console.warn('AndroidBridge connection info check error:', e);
-        }
+      // Only treat AndroidBridge device as online when printer/scanner actually reports Ready (not merely Wi-Fi Direct subnet configured)
+      const bridgeState = readAndroidBridgeDeviceState();
+      if (bridgeState && bridgeState.ready) {
+        const { dev } = bridgeState;
+        applyScannerStatusUi({
+          online: true,
+          badgeHtml: '🟢 ' + (dev.scanner_message || 'Epson L3250 Ready'),
+          badgeTitle: 'Connected via ' + (dev.connection_type || 'Wi-Fi Direct') + '. Click to refresh.',
+          docText: '🟢 Ready',
+          docColor: '#6ee7b7',
+          showOfflineNotice: false,
+          devConnOnline: true,
+          devConnHtml: (dev.is_usb ? '🔌 ' : '📶 ') + (dev.printer_name || 'EPSON L3250') + ' (Ready)',
+          devConnTitle: 'Ready on ' + (dev.connection_type || 'Wi-Fi Direct') + ' (' + (dev.printer_ip || '192.168.223.1') + ')'
+        });
+        isCheckingScanner = false;
+        return;
       }
 
+      const badge = document.getElementById('scannerBadge');
       if (force && badge) {
         badge.className = 'epson-tag checking';
         badge.innerHTML = '⏳ Checking...';
@@ -9407,54 +9440,49 @@ function getApiUrl(endpoint) {
 
           const isUsb = (data.active_mode === 'usb');
           const isReady = Boolean(data.online || data.scanner_online || data.printer_status === 'Ready' || (isUsb && data.usb_device && data.usb_device.online) || (!isUsb && data.wifi_device && data.wifi_device.online));
+          const isPrinterReady = Boolean(data.printer_status === 'Ready' || (isUsb && data.usb_device && data.usb_device.online) || (!isUsb && data.wifi_device && data.wifi_device.online));
+          const icon = isUsb ? '🔌 ' : '📶 ';
+          const devConnHtml = icon + (data.printer_name || 'EPSON L3250 Series') + (isPrinterReady ? ' (Ready)' : ' (Offline)');
+          const devConnTitle = `Mode: ${data.active_mode ? data.active_mode.toUpperCase() : 'USB'} • Port: ${data.port || 'USB001'} • Status: ${data.printer_status || 'Ready'}. Click for settings.`;
 
           if (isScanningNow) {
-            isScannerOnline = true;
-            if (badge) {
-              badge.className = 'epson-tag checking';
-              badge.innerHTML = '🟡 ' + (data.scanner_message || data.message || 'Epson L3250 Scanning in progress...');
-              badge.title = 'Scan is actively in progress...';
-            }
-            if (docBadge) {
-              docBadge.innerText = '🟡 Scanning...';
-              docBadge.style.color = '#f59e0b';
-            }
-            if (offlineNotice) offlineNotice.style.display = 'none';
+            applyScannerStatusUi({
+              online: true,
+              checking: true,
+              badgeHtml: '🟡 ' + (data.scanner_message || data.message || 'Epson L3250 Scanning in progress...'),
+              badgeTitle: 'Scan is actively in progress...',
+              docText: '🟡 Scanning...',
+              docColor: '#f59e0b',
+              showOfflineNotice: false,
+              devConnOnline: isPrinterReady,
+              devConnHtml,
+              devConnTitle
+            });
           } else if (isReady) {
-            isScannerOnline = true;
-            if (badge) {
-              badge.className = 'epson-tag online';
-              const modeLabel = isUsb ? 'USB' : 'Wi-Fi';
-              badge.innerHTML = '🟢 ' + (data.scanner_message || data.message || `EPSON L3250 Series Ready on ${modeLabel}`);
-              badge.title = `Scanner & Printer are online & ready via ${modeLabel}. Click to re-check.`;
-            }
-            if (docBadge) {
-              docBadge.innerText = '🟢 Ready';
-              docBadge.style.color = '#6ee7b7';
-            }
-            if (offlineNotice) offlineNotice.style.display = 'none';
+            const modeLabel = isUsb ? 'USB' : 'Wi-Fi';
+            applyScannerStatusUi({
+              online: true,
+              badgeHtml: '🟢 ' + (data.scanner_message || data.message || `EPSON L3250 Series Ready on ${modeLabel}`),
+              badgeTitle: `Scanner & Printer are online & ready via ${modeLabel}. Click to re-check.`,
+              docText: '🟢 Ready',
+              docColor: '#6ee7b7',
+              showOfflineNotice: false,
+              devConnOnline: isPrinterReady,
+              devConnHtml,
+              devConnTitle
+            });
           } else {
-            isScannerOnline = false;
-            if (badge) {
-              badge.className = 'epson-tag offline';
-              badge.innerHTML = '🔴 ' + (data.message || (isUsb ? 'USB Scanner Offline' : 'Scanner Offline (Powered Off)'));
-              badge.title = (data.message || 'Scanner is powered off or disconnected.') + ' Click to refresh.';
-            }
-            if (docBadge) {
-              docBadge.innerText = '🔴 Offline (Powered Off)';
-              docBadge.style.color = '#ef4444';
-            }
-            if (offlineNotice) offlineNotice.style.display = 'block';
-          }
-
-          // Update Desktop Header Printer Connection Badge
-          const devConnBadge = document.getElementById('deviceConnectionBadge');
-          if (devConnBadge) {
-            const isPrinterReady = Boolean(data.printer_status === 'Ready' || (isUsb && data.usb_device && data.usb_device.online) || (!isUsb && data.wifi_device && data.wifi_device.online));
-            devConnBadge.className = isPrinterReady ? 'epson-tag online' : 'epson-tag offline';
-            const icon = isUsb ? '🔌 ' : '📶 ';
-            devConnBadge.innerHTML = icon + (data.printer_name || 'EPSON L3250 Series') + (isPrinterReady ? ' (Ready)' : ' (Offline)');
-            devConnBadge.title = `Mode: ${data.active_mode ? data.active_mode.toUpperCase() : 'USB'} • Port: ${data.port || 'USB001'} • Status: ${data.printer_status || 'Ready'}. Click for settings.`;
+            applyScannerStatusUi({
+              online: false,
+              badgeHtml: '🔴 ' + (data.message || (isUsb ? 'USB Scanner Offline' : 'Scanner Offline (Powered Off)')),
+              badgeTitle: (data.message || 'Scanner is powered off or disconnected.') + ' Click to refresh.',
+              docText: '🔴 Offline (Powered Off)',
+              docColor: '#ef4444',
+              showOfflineNotice: true,
+              devConnOnline: isPrinterReady,
+              devConnHtml,
+              devConnTitle
+            });
           }
         } else {
           setScannerOfflineUI();
@@ -9471,48 +9499,46 @@ function getApiUrl(endpoint) {
       const isScanningNow = state.isScanning || (window.docState && docState.isScanning) || (window.photoState && photoState.isScanning);
       if (isScanningNow) return; // Never show offline while actively scanning!
 
-      if (window.AndroidBridge && typeof window.AndroidBridge.getDeviceConnectionInfo === 'function') {
-        try {
-          const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
-          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online || dev.isReady) {
-            isScannerOnline = true;
-            const badge = document.getElementById('scannerBadge');
-            const docBadge = document.getElementById('docScanStatusBadge');
-            const offlineNotice = document.getElementById('scannerOfflineNotice');
-            if (badge) {
-              badge.className = 'epson-tag online';
-              badge.innerHTML = '🟢 ' + (dev.scanner_message || 'Epson L3250 Ready');
-            }
-            if (docBadge) {
-              docBadge.innerText = '🟢 Ready';
-              docBadge.style.color = '#6ee7b7';
-            }
-            if (offlineNotice) offlineNotice.style.display = 'none';
-            const devConnBadge = document.getElementById('deviceConnectionBadge');
-            if (devConnBadge) {
-              devConnBadge.className = 'epson-tag online';
-              devConnBadge.innerHTML = '📶 ' + (dev.printer_name || 'EPSON L3250') + ' (Ready)';
-            }
-            return;
-          }
-        } catch (e) {}
+      const bridgeState = readAndroidBridgeDeviceState();
+      if (bridgeState) {
+        const { dev, ready } = bridgeState;
+        const icon = dev.is_usb ? '🔌 ' : '📶 ';
+        if (ready) {
+          applyScannerStatusUi({
+            online: true,
+            badgeHtml: '🟢 ' + (dev.scanner_message || 'Epson L3250 Ready'),
+            badgeTitle: 'Connected via ' + (dev.connection_type || 'Wi-Fi Direct') + '. Click to refresh.',
+            docText: '🟢 Ready',
+            docColor: '#6ee7b7',
+            showOfflineNotice: false,
+            devConnOnline: true,
+            devConnHtml: icon + (dev.printer_name || 'EPSON L3250') + ' (Ready)'
+          });
+          return;
+        }
+        applyScannerStatusUi({
+          online: false,
+          badgeHtml: '🔴 ' + (dev.scanner_message || 'L3250 Offline'),
+          badgeTitle: 'Printer & Scanner offline. Turn on Epson L3250 and click to retry.',
+          docText: '🔴 Offline',
+          docColor: '#ef4444',
+          showOfflineNotice: true,
+          devConnOnline: false,
+          devConnHtml: icon + (dev.printer_name || 'EPSON L3250') + ' (Offline)'
+        });
+        return;
       }
 
-      isScannerOnline = false;
-      const badge = document.getElementById('scannerBadge');
-      const docBadge = document.getElementById('docScanStatusBadge');
-      const offlineNotice = document.getElementById('scannerOfflineNotice');
-
-      if (badge) {
-        badge.className = 'epson-tag offline';
-        badge.innerHTML = '🔴 Scanner Offline (Powered Off)';
-        badge.title = 'Cannot communicate with scanner. Turn on Epson L3250 and click to retry.';
-      }
-      if (docBadge) {
-        docBadge.innerText = '🔴 Offline';
-        docBadge.style.color = '#ef4444';
-      }
-      if (offlineNotice) offlineNotice.style.display = 'block';
+      applyScannerStatusUi({
+        online: false,
+        badgeHtml: '🔴 Scanner Offline (Powered Off)',
+        badgeTitle: 'Cannot communicate with scanner. Turn on Epson L3250 and click to retry.',
+        docText: '🔴 Offline',
+        docColor: '#ef4444',
+        showOfflineNotice: true,
+        devConnOnline: false,
+        devConnHtml: '📶 EPSON L3250 (Offline)'
+      });
     }
 
     // =========================================================================
@@ -11304,23 +11330,54 @@ function getApiUrl(endpoint) {
       ctx.restore();
     }
 
-    function exportImage() {
-      const canvas = renderHighResA4Canvas();
-      const dataUrl = canvas.toDataURL('image/png');
-      const base64Data = dataUrl.split(',')[1];
-      const fileName = 'HKMTECH_A4_Print_Ready.png';
+    function uint8ToBase64(bytes) {
+      const chunkSize = 0x8000;
+      const chunks = [];
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize)));
+      }
+      return btoa(chunks.join(''));
+    }
 
+    function saveDataUrlAsImage(dataUrl, fileName, webToastText = 'Image Downloaded!', androidToastText = 'Saving Image to Pictures: ') {
+      const base64Data = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
       if (window.AndroidBridge && typeof window.AndroidBridge.saveImage === 'function') {
-        window.AndroidBridge.saveImage(base64Data, fileName);
-        showToast('Saving Image to Pictures: ' + fileName, 'success');
-        return;
+        const ok = window.AndroidBridge.saveImage(base64Data, fileName);
+        showToast(ok ? (androidToastText + fileName) : 'Failed to save image to storage.', ok ? 'success' : 'error');
+        return Boolean(ok);
       }
 
       const a = document.createElement('a');
       a.download = fileName;
       a.href = dataUrl;
       a.click();
-      showToast('Image Downloaded!', 'success');
+      showToast(webToastText, 'success');
+      return true;
+    }
+
+    function savePdfBytesToDevice(pdfBytes, fileName, webToastText = 'PDF Downloaded!', androidToastText = 'Saving PDF to Downloads: ') {
+      if (window.AndroidBridge && typeof window.AndroidBridge.savePdf === 'function') {
+        const pdfBase64 = uint8ToBase64(pdfBytes);
+        const ok = window.AndroidBridge.savePdf(pdfBase64, fileName);
+        showToast(ok ? (androidToastText + fileName) : 'Failed to save PDF to Downloads.', ok ? 'success' : 'error');
+        return Boolean(ok);
+      }
+
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.download = fileName;
+      a.href = url;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast(webToastText, 'success');
+      return true;
+    }
+
+    function exportImage() {
+      const canvas = renderHighResA4Canvas();
+      const dataUrl = canvas.toDataURL('image/png');
+      saveDataUrlAsImage(dataUrl, 'HKMTECH_A4_Print_Ready.png');
     }
 
     function exportPDF() {
@@ -11331,29 +11388,8 @@ function getApiUrl(endpoint) {
 
       const copies = state.copies || 1;
       const pdfBytes = createA4ImagePDF(binaryImg, copies);
-
-      let binary = '';
-      const len = pdfBytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(pdfBytes[i]);
-      }
-      const pdfBase64 = btoa(binary);
       const fileName = copies === 1 ? 'HKMTECH_A4_Print_Ready.pdf' : `HKMTECH_A4_${copies}_Copies.pdf`;
-
-      if (window.AndroidBridge && typeof window.AndroidBridge.savePdf === 'function') {
-        window.AndroidBridge.savePdf(pdfBase64, fileName);
-        showToast('Saving PDF to Downloads: ' + fileName, 'success');
-        return;
-      }
-
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.download = fileName;
-      a.href = url;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('PDF Downloaded!', 'success');
+      savePdfBytesToDevice(pdfBytes, fileName);
     }
 
     function createA4ImagePDF(binaryJpeg, numCopies) {
@@ -11526,6 +11562,8 @@ function getApiUrl(endpoint) {
         requestAnimationFrame(() => {
           if (typeof autoCenterPhotoGrid === 'function') autoCenterPhotoGrid(false);
           if (typeof resetPhotoZoom === 'function') resetPhotoZoom();
+          if (typeof initCurveCanvasInteractivity === 'function') initCurveCanvasInteractivity();
+          if (typeof drawRawCurveCanvas === 'function') drawRawCurveCanvas();
         });
       }
     }
@@ -12373,28 +12411,32 @@ function getApiUrl(endpoint) {
       const dpi = docState.scanDpi || 300;
       showToast(`Generating ${dpi} DPI Multi-Page PDF...`, 'info');
 
-      try {
-        // Try server generation first for native resolution PIL PDF
-        const res = await fetch(getApiUrl('/api/print_pages'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pages: docState.pages.map(p => ({ image: p.enhancedImg, rotation: p.rotation || 0 })),
-            copies: docState.copies,
-            action: 'pdf',
-            dpi: dpi,
-            paper_width_mm: state.paperWidthMm || 210.0,
-            paper_height_mm: state.paperHeightMm || 297.0
-          })
-        });
-        const data = await res.json();
-        if (data.success && data.pdf_path) {
-          showToast(`Multi-Page (${dpi} DPI) PDF saved at:\n${data.pdf_path}`, 'success');
-          return;
-        }
-      } catch (e) {}
+      const hasNativePdfBridge = !!(window.AndroidBridge && typeof window.AndroidBridge.savePdf === 'function');
+      if (!hasNativePdfBridge) {
+        try {
+          // Desktop browser with local Flask/Python server: try server generation first
+          const res = await fetch(getApiUrl('/api/print_pages'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(2500),
+            body: JSON.stringify({
+              pages: docState.pages.map(p => ({ image: p.enhancedImg, rotation: p.rotation || 0 })),
+              copies: docState.copies,
+              action: 'pdf',
+              dpi: dpi,
+              paper_width_mm: state.paperWidthMm || 210.0,
+              paper_height_mm: state.paperHeightMm || 297.0
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.pdf_path) {
+            showToast(`Multi-Page (${dpi} DPI) PDF saved at:\n${data.pdf_path}`, 'success');
+            return;
+          }
+        } catch (e) {}
+      }
 
-      // Fallback: Client-side pure JavaScript multi-page PDF generation
+      // Client-side pure JavaScript multi-page PDF generation (Android & fallback)
       try {
         const renderedJpegs = [];
         for (let p of docState.pages) {
@@ -12403,14 +12445,8 @@ function getApiUrl(endpoint) {
         }
 
         const pdfBytes = createMultiPageDocumentPDF(renderedJpegs, docState.copies, dpi);
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.download = `HKMTECH_Document_${docState.pages.length}_Pages_${dpi}DPI.pdf`;
-        a.href = url;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast(`Multi-Page (${dpi} DPI) PDF downloaded!`, 'success');
+        const fileName = `HKMTECH_Document_${docState.pages.length}_Pages_${dpi}DPI.pdf`;
+        savePdfBytesToDevice(pdfBytes, fileName, `Multi-Page (${dpi} DPI) PDF downloaded!`, 'Saving PDF to Downloads: ');
       } catch (err) {
         alert('Failed to generate PDF: ' + err.message);
       }
@@ -12566,19 +12602,7 @@ function getApiUrl(endpoint) {
       const page = docState.pages[docState.currentIndex];
       const fileName = `HKMTECH_Page_${docState.currentIndex + 1}.png`;
       const imgData = page.enhancedImg || page.rawImg;
-      const b64 = imgData.includes(',') ? imgData.split(',')[1] : imgData;
-
-      if (window.AndroidBridge && typeof window.AndroidBridge.saveImage === 'function') {
-        window.AndroidBridge.saveImage(b64, fileName);
-        showToast('Page image saved to Pictures!', 'success');
-        return;
-      }
-
-      const a = document.createElement('a');
-      a.download = fileName;
-      a.href = imgData;
-      a.click();
-      showToast('Page image saved!', 'success');
+      saveDataUrlAsImage(imgData, fileName, 'Page image saved!', 'Saving page image to Pictures: ');
     }
 
     // =========================================================================
@@ -12589,6 +12613,7 @@ function getApiUrl(endpoint) {
       rawImg: null,
       originalRawImg: null,
       cutoutImg: null,
+      framedCutoutImg: null,
       bgColor: '#ffffff',
       framedImg: null,
       enhancedImg: null,
@@ -12712,11 +12737,13 @@ function getApiUrl(endpoint) {
       photoState.rawImg = dataUrl;
       photoState.originalRawImg = dataUrl;
       photoState.cutoutImg = null;
+      photoState.framedCutoutImg = null;
       photoState.bgColor = '#ffffff';
       photoState.rotation = 0;
       photoState.frameZoom = 1.0;
       photoState.framePanX = 0;
       photoState.framePanY = 0;
+      if (window.cameraRawState) cameraRawState._active = false;
       const restBtn = document.getElementById('btnRestoreOriginalBg');
       if (restBtn) restBtn.style.display = 'none';
       const status = document.getElementById('aiBgStatus');
@@ -12728,8 +12755,7 @@ function getApiUrl(endpoint) {
       }
     }
 
-    function rotatePhoto(deg) {
-      if (!photoState.rawImg) return;
+    function rotateDataUrl(dataUrl, deg, mimeType, quality, onDone) {
       const img = new Image();
       img.onload = function() {
         const canvas = document.createElement('canvas');
@@ -12739,10 +12765,24 @@ function getApiUrl(endpoint) {
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate((deg * Math.PI) / 180);
         ctx.drawImage(img, -img.width / 2, -img.height / 2);
-        photoState.rawImg = canvas.toDataURL('image/jpeg', 0.95);
-        updatePhotoFraming();
+        onDone(mimeType === 'image/png' ? canvas.toDataURL('image/png') : canvas.toDataURL(mimeType, quality));
       };
-      img.src = photoState.rawImg;
+      img.src = dataUrl;
+    }
+
+    function rotatePhoto(deg) {
+      if (!photoState.rawImg) return;
+      rotateDataUrl(photoState.rawImg, deg, 'image/jpeg', 0.95, rotatedRaw => {
+        photoState.rawImg = rotatedRaw;
+        if (photoState.cutoutImg) {
+          rotateDataUrl(photoState.cutoutImg, deg, 'image/png', 1.0, rotatedCutout => {
+            photoState.cutoutImg = rotatedCutout;
+            updatePhotoFraming();
+          });
+        } else {
+          updatePhotoFraming();
+        }
+      });
     }
 
     function zoomPhotoFrame(delta) {
@@ -12755,6 +12795,25 @@ function getApiUrl(endpoint) {
       photoState.framePanX = 0;
       photoState.framePanY = 0;
       updatePhotoFraming();
+    }
+
+    function compositeForegroundOnBg(fgCanvas, bgHex) {
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = fgCanvas.width;
+      outCanvas.height = fgCanvas.height;
+      const outCtx = outCanvas.getContext('2d');
+      outCtx.fillStyle = bgHex || '#ffffff';
+      outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+      outCtx.drawImage(fgCanvas, 0, 0);
+      return outCanvas;
+    }
+
+    function refreshPhotoEffectsPipeline() {
+      if (window.cameraRawState && cameraRawState._active && typeof applyCameraRawFilters === 'function') {
+        applyCameraRawFilters();
+      } else {
+        applyPhotoEnhance();
+      }
     }
 
     function updatePhotoFraming() {
@@ -12787,7 +12846,7 @@ function getApiUrl(endpoint) {
         canvas.height = targetH;
         const ctx = canvas.getContext('2d');
 
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = photoState.cutoutImg ? (photoState.bgColor || '#ffffff') : '#ffffff';
         ctx.fillRect(0, 0, targetW, targetH);
 
         const imgAspect = img.width / img.height;
@@ -12807,7 +12866,26 @@ function getApiUrl(endpoint) {
         ctx.drawImage(img, dx, dy, dw, dh);
         photoState.framedImg = canvas.toDataURL('image/jpeg', 0.95);
 
-        applyPhotoEnhance();
+        if (photoState.cutoutImg) {
+          const cImg = new Image();
+          cImg.onload = function() {
+            const cutCanvas = document.createElement('canvas');
+            cutCanvas.width = targetW;
+            cutCanvas.height = targetH;
+            const cCtx = cutCanvas.getContext('2d');
+            cCtx.drawImage(cImg, dx, dy, dw, dh);
+            photoState.framedCutoutImg = cutCanvas.toDataURL('image/png');
+            refreshPhotoEffectsPipeline();
+          };
+          cImg.onerror = function() {
+            photoState.framedCutoutImg = null;
+            refreshPhotoEffectsPipeline();
+          };
+          cImg.src = photoState.cutoutImg;
+        } else {
+          photoState.framedCutoutImg = null;
+          refreshPhotoEffectsPipeline();
+        }
       };
       img.src = photoState.rawImg;
     }
@@ -12818,8 +12896,10 @@ function getApiUrl(endpoint) {
         return;
       }
 
+      const hasCutout = !!(photoState.cutoutImg && photoState.framedCutoutImg);
       const isAndroidOffline = !!(window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp());
-      if (!isAndroidOffline) {
+      // When a foreground cutout exists, filter only the subject on-device so backdrop color stays exact.
+      if (!isAndroidOffline && !hasCutout) {
         try {
           const res = await fetch(getApiUrl('/api/photo/enhance'), {
           method: 'POST',
@@ -12845,10 +12925,10 @@ function getApiUrl(endpoint) {
 
       const img = new Image();
       img.onload = function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
+        const fgCanvas = document.createElement('canvas');
+        fgCanvas.width = img.width;
+        fgCanvas.height = img.height;
+        const ctx = fgCanvas.getContext('2d');
 
         let filters = [];
         if (photoState.preset === 'grayscale') filters.push('grayscale(1)');
@@ -12863,14 +12943,29 @@ function getApiUrl(endpoint) {
 
         ctx.filter = filters.join(' ');
         ctx.drawImage(img, 0, 0);
+        ctx.filter = 'none';
 
-        photoState.enhancedImg = canvas.toDataURL('image/jpeg', 0.95);
+        const outCanvas = hasCutout
+          ? compositeForegroundOnBg(fgCanvas, photoState.bgColor || '#ffffff')
+          : fgCanvas;
+
+        photoState.enhancedImg = outCanvas.toDataURL('image/jpeg', 0.96);
         renderPhotoGridSheet();
+
+        try {
+          const histData = ctx.getImageData(0, 0, fgCanvas.width, fgCanvas.height);
+          if (typeof drawCameraRawHistogram === 'function') {
+            drawCameraRawHistogram('rawHistogramCanvas', histData);
+            drawCameraRawHistogram('rawModalHistogramCanvas', histData);
+          }
+          if (typeof drawRawCurveCanvas === 'function') drawRawCurveCanvas();
+        } catch (e) {}
       };
-      img.src = photoState.framedImg;
+      img.src = hasCutout ? photoState.framedCutoutImg : photoState.framedImg;
     }
 
     function setPhotoPreset(preset) {
+      if (window.cameraRawState) cameraRawState._active = false;
       photoState.preset = preset;
       const names = {
         studio: '✨ Studio Portrait',
@@ -12898,6 +12993,7 @@ function getApiUrl(endpoint) {
     }
 
     function onPhotoEnhanceSliderChange() {
+      if (window.cameraRawState) cameraRawState._active = false;
       photoState.bgWhiten = parseFloat(document.getElementById('photoWhitenSlider').value);
       photoState.sharpness = parseFloat(document.getElementById('photoSharpSlider').value);
       photoState.contrast = parseFloat(document.getElementById('photoContSlider').value);
@@ -13541,12 +13637,14 @@ function getApiUrl(endpoint) {
         return;
       }
       showToast('Generating 300 DPI A4 Photo Sheet PNG...', 'info');
-      const canvas = await renderHighResPhotoCanvas();
-      const a = document.createElement('a');
-      a.download = `HKMTECH_Passport_Photos_${photoState.fillCount}_grid.png`;
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-      showToast('Photo Sheet Image Downloaded!', 'success');
+      try {
+        const canvas = await renderHighResPhotoCanvas();
+        const dataUrl = canvas.toDataURL('image/png');
+        const fileName = `HKMTECH_Passport_Photos_${photoState.fillCount}_grid.png`;
+        saveDataUrlAsImage(dataUrl, fileName, 'Photo Sheet Image Downloaded!', 'Saving PNG to Pictures/HKM_Cards: ');
+      } catch (err) {
+        showToast('Failed to export PNG: ' + err.message, 'error');
+      }
     }
 
     async function savePhotoSheetPdf() {
@@ -13556,46 +13654,48 @@ function getApiUrl(endpoint) {
       }
       showToast('Generating 300 DPI PDF...', 'info');
 
-      try {
-        const res = await fetch(getApiUrl('/api/photo/print_grid'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: photoState.enhancedImg,
-            rows: photoState.rows,
-            cols: photoState.cols,
-            photo_w_mm: photoState.photoWidthMm,
-            photo_h_mm: photoState.photoHeightMm,
-            gap_mm: photoState.gapMm,
-            top_margin_mm: photoState.topMarginMm,
-            left_margin_mm: photoState.leftMarginMm,
-            fill_count: photoState.fillCount,
-            border_style: photoState.borderStyle,
-            cut_guides: photoState.cutGuides,
-            active_indices: Array.from({length: photoState.fillCount}, (_, i) => i).filter(i => !photoState.disabledSlots.has(i)),
-            copies: photoState.copies,
-            action: 'pdf'
-          })
-        });
-        const data = await res.json();
-        if (data.success && data.pdf_path) {
-          showToast(`Photo Sheet PDF saved at:\n${data.pdf_path}`, 'success');
-          return;
-        }
-      } catch (e) {}
+      const hasNativePdfBridge = !!(window.AndroidBridge && typeof window.AndroidBridge.savePdf === 'function');
+      if (!hasNativePdfBridge) {
+        try {
+          const res = await fetch(getApiUrl('/api/photo/print_grid'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(2500),
+            body: JSON.stringify({
+              image: photoState.enhancedImg,
+              rows: photoState.rows,
+              cols: photoState.cols,
+              photo_w_mm: photoState.photoWidthMm,
+              photo_h_mm: photoState.photoHeightMm,
+              gap_mm: photoState.gapMm,
+              top_margin_mm: photoState.topMarginMm,
+              left_margin_mm: photoState.leftMarginMm,
+              fill_count: photoState.fillCount,
+              border_style: photoState.borderStyle,
+              cut_guides: photoState.cutGuides,
+              active_indices: Array.from({length: photoState.fillCount}, (_, i) => i).filter(i => !photoState.disabledSlots.has(i)),
+              copies: photoState.copies,
+              action: 'pdf'
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.pdf_path) {
+            showToast(`Photo Sheet PDF saved at:\n${data.pdf_path}`, 'success');
+            return;
+          }
+        } catch (e) {}
+      }
 
-      const canvas = await renderHighResPhotoCanvas();
-      const jpegData = canvas.toDataURL('image/jpeg', 0.95);
-      const binaryImg = atob(jpegData.split(',')[1]);
-      const pdfBytes = createMultiPageDocumentPDF([binaryImg], photoState.copies, 300);
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.download = `HKMTECH_Passport_Photos_${photoState.fillCount}_A4.pdf`;
-      a.href = url;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Photo Sheet PDF downloaded!', 'success');
+      try {
+        const canvas = await renderHighResPhotoCanvas();
+        const jpegData = canvas.toDataURL('image/jpeg', 0.95);
+        const binaryImg = atob(jpegData.split(',')[1]);
+        const pdfBytes = createMultiPageDocumentPDF([binaryImg], photoState.copies, 300);
+        const fileName = `HKMTECH_Passport_Photos_${photoState.fillCount}_A4.pdf`;
+        savePdfBytesToDevice(pdfBytes, fileName, 'Photo Sheet PDF downloaded!', 'Saving PDF to Downloads: ');
+      } catch (err) {
+        showToast('Failed to save PDF: ' + err.message, 'error');
+      }
     }
 
   
@@ -13682,7 +13782,18 @@ function getApiUrl(endpoint) {
 
     function toggleRawAccordion(accId) {
       const el = document.getElementById(accId);
-      if (el) el.classList.toggle('raw-accordion-collapsed');
+      if (!el) return;
+      el.classList.toggle('raw-accordion-collapsed');
+      if (!el.classList.contains('raw-accordion-collapsed')) {
+        requestAnimationFrame(() => {
+          if (accId === 'accRawCurve') {
+            if (typeof initCurveCanvasInteractivity === 'function') initCurveCanvasInteractivity();
+            if (typeof drawRawCurveCanvas === 'function') drawRawCurveCanvas();
+          } else if (accId === 'accRawColorGrading' && typeof initColorWheels === 'function') {
+            initColorWheels();
+          }
+        });
+      }
     }
 
     function resetRawSlider(sliderId) {
@@ -13802,7 +13913,9 @@ function getApiUrl(endpoint) {
         });
       }
 
-      onCameraRawSliderInput();
+      onCameraRawSliderInput(true);
+      if (window.cameraRawState) cameraRawState._active = false;
+      applyPhotoEnhance();
       showToast('Camera Raw filters reset', 'info');
     }
 
@@ -14026,7 +14139,8 @@ function getApiUrl(endpoint) {
       onCameraRawSliderInput();
     }
 
-    function onCameraRawSliderInput() {
+    function onCameraRawSliderInput(fromReset = false) {
+      if (!fromReset && window.cameraRawState) cameraRawState._active = true;
       const getVal = id => {
         const el = document.getElementById(id);
         return el ? parseFloat(el.value) || 0 : 0;
@@ -14158,11 +14272,10 @@ function getApiUrl(endpoint) {
       setTxt('rawRedLumVal', (cameraRawState.hslRedLum > 0 ? '+' : '') + cameraRawState.hslRedLum);
       setTxt('rawYellowSatVal', (cameraRawState.hslYellowSat > 0 ? '+' : '') + cameraRawState.hslYellowSat);
 
-      // Redraw curve canvas
-      drawRawCurveCanvas();
+      if (typeof drawRawCurveCanvas === 'function') drawRawCurveCanvas();
 
-      // Apply client-side filters
-      applyCameraRawFilters();
+      // Skip double render when reset passes through to applyPhotoEnhance
+      if (!fromReset) applyCameraRawFilters();
     }
 
     // =========================================================================
@@ -14242,54 +14355,78 @@ function getApiUrl(endpoint) {
     function drawRawCurveCanvas() {
       const cvs = document.getElementById('rawCurveCanvas');
       if (!cvs) return;
-      const ctx = cvs.getContext('2d');
-      const w = cvs.width;
-      const h = cvs.height;
+      const box = cvs.parentElement;
+      const rect = box ? box.getBoundingClientRect() : cvs.getBoundingClientRect();
+      const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+      const cssW = (rect && rect.width > 40) ? Math.round(rect.width) : 280;
+      const cssH = (rect && rect.height > 40) ? Math.round(rect.height) : 155;
+      const targetW = Math.round(cssW * dpr);
+      const targetH = Math.round(cssH * dpr);
+      if (cvs.width !== targetW || cvs.height !== targetH) {
+        cvs.width = targetW;
+        cvs.height = targetH;
+      }
 
-      // 1. Clear background
+      const ctx = cvs.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w = cssW;
+      const h = cssH;
+      const pad = 8;
+      const plotW = Math.max(20, w - pad * 2);
+      const plotH = Math.max(20, h - pad * 2);
+      const toX = v => pad + (v / 255) * plotW;
+      const toY = v => pad + plotH - (v / 255) * plotH;
+
+      // 1. Clear background & draw plot frame
       ctx.fillStyle = '#070b14';
       ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pad, pad, plotW, plotH);
 
       // 2. Draw subtle 4x4 grid (at 25%, 50%, 75%)
       ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
       ctx.lineWidth = 1;
       for (let step = 1; step <= 3; step++) {
-        const gx = Math.round((w * step) / 4);
-        const gy = Math.round((h * step) / 4);
+        const gx = Math.round(pad + (plotW * step) / 4) + 0.5;
+        const gy = Math.round(pad + (plotH * step) / 4) + 0.5;
         ctx.beginPath();
-        ctx.moveTo(gx, 0); ctx.lineTo(gx, h);
-        ctx.moveTo(0, gy); ctx.lineTo(w, gy);
+        ctx.moveTo(gx, pad); ctx.lineTo(gx, pad + plotH);
+        ctx.moveTo(pad, gy); ctx.lineTo(pad + plotW, gy);
         ctx.stroke();
       }
 
-      // 3. Draw real-time histogram underlay if available
+      // 3. Draw real-time foreground histogram underlay if available
       if (_cachedRawHist) {
         ctx.save();
-        ctx.globalAlpha = 0.32;
+        ctx.beginPath();
+        ctx.rect(pad, pad, plotW, plotH);
+        ctx.clip();
+        ctx.globalAlpha = 0.34;
         const bins = _cachedRawHist;
         const maxVal = Math.max(1, ...bins.r, ...bins.g, ...bins.b);
         ctx.fillStyle = '#475569';
         ctx.beginPath();
-        ctx.moveTo(0, h);
+        ctx.moveTo(pad, pad + plotH);
         for (let i = 0; i < 256; i++) {
-          const x = (i / 255) * w;
+          const x = toX(i);
           const lum = Math.max(bins.r[i], bins.g[i], bins.b[i]);
-          const barH = (lum / maxVal) * (h * 0.85);
-          ctx.lineTo(x, h - barH);
+          const barH = (lum / maxVal) * (plotH * 0.85);
+          ctx.lineTo(x, pad + plotH - barH);
         }
-        ctx.lineTo(w, h);
+        ctx.lineTo(pad + plotW, pad + plotH);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
       }
 
       // 4. Draw diagonal dashed baseline (0..255)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
       ctx.setLineDash([3, 3]);
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, h);
-      ctx.lineTo(w, 0);
+      ctx.moveTo(toX(0), toY(0));
+      ctx.lineTo(toX(255), toY(255));
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -14335,85 +14472,107 @@ function getApiUrl(endpoint) {
         cameraRawState.curveBlueWhites
       );
 
-      // Helper to stroke a curve
+      const isNonLinearLut = lut => {
+        for (let i = 0; i < 256; i += 8) {
+          if (Math.abs(lut[i] - i) > 1) return true;
+        }
+        return Math.abs(lut[255] - 255) > 1;
+      };
+
+      // Helper to stroke a curve inside the padded plot area
       const renderCurvePath = (lut, strokeStyle, lineWidth, isGlow) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(pad - 3, pad - 3, plotW + 6, plotH + 6);
+        ctx.clip();
         ctx.strokeStyle = strokeStyle;
         ctx.lineWidth = lineWidth;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
         if (isGlow) {
           ctx.shadowColor = strokeStyle;
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 7;
         } else {
           ctx.shadowBlur = 0;
         }
         ctx.beginPath();
         for (let i = 0; i < 256; i++) {
-          const cx = (i / 255) * w;
-          const cy = h - (lut[i] / 255) * h;
+          const cx = toX(i);
+          const cy = toY(lut[i]);
           if (i === 0) ctx.moveTo(cx, cy);
           else ctx.lineTo(cx, cy);
         }
         ctx.stroke();
         ctx.shadowBlur = 0;
+        ctx.restore();
       };
 
-      // Draw non-active channel ghost curves faintly
-      if (mode !== 'point_r') renderCurvePath(rLut, 'rgba(239, 68, 68, 0.22)', 1.2, false);
-      if (mode !== 'point_g') renderCurvePath(gLut, 'rgba(34, 197, 94, 0.22)', 1.2, false);
-      if (mode !== 'point_b') renderCurvePath(bLut, 'rgba(59, 130, 246, 0.22)', 1.2, false);
-      if (mode !== 'point_rgb') renderCurvePath(rgbLut, 'rgba(255, 255, 255, 0.22)', 1.2, false);
+      // Draw edited non-active ghost curves faintly so identical defaults don't muddy the diagonal
+      if (mode !== 'point_r' && (isNonLinearLut(rLut) || mode === 'point_rgb')) renderCurvePath(rLut, 'rgba(239, 68, 68, 0.34)', 1.25, false);
+      if (mode !== 'point_g' && (isNonLinearLut(gLut) || mode === 'point_rgb')) renderCurvePath(gLut, 'rgba(34, 197, 94, 0.34)', 1.25, false);
+      if (mode !== 'point_b' && (isNonLinearLut(bLut) || mode === 'point_rgb')) renderCurvePath(bLut, 'rgba(59, 130, 246, 0.34)', 1.25, false);
+      if (mode !== 'point_rgb' && isNonLinearLut(rgbLut)) renderCurvePath(rgbLut, 'rgba(255, 255, 255, 0.32)', 1.25, false);
+      if (mode !== 'parametric' && isNonLinearLut(paramLut)) renderCurvePath(paramLut, 'rgba(56, 189, 248, 0.28)', 1.25, false);
 
       // Draw active channel curve prominently
       let activeLut = paramLut;
       let activeColor = '#38bdf8';
+      let activeLabel = 'Parametric';
       let pts = [];
 
       if (mode === 'parametric') {
         activeLut = paramLut;
         activeColor = '#38bdf8';
+        activeLabel = 'Parametric';
       } else if (mode === 'point_rgb') {
         activeLut = rgbLut;
         activeColor = '#ffffff';
+        activeLabel = 'RGB Master';
         pts = [0, 64, 128, 192, 255];
       } else if (mode === 'point_r') {
         activeLut = rLut;
         activeColor = '#ef4444';
+        activeLabel = 'Red';
         pts = [0, 64, 128, 192, 255];
       } else if (mode === 'point_g') {
         activeLut = gLut;
         activeColor = '#22c55e';
+        activeLabel = 'Green';
         pts = [0, 64, 128, 192, 255];
       } else if (mode === 'point_b') {
         activeLut = bLut;
         activeColor = '#3b82f6';
+        activeLabel = 'Blue';
         pts = [0, 64, 128, 192, 255];
       }
 
-      renderCurvePath(activeLut, activeColor, 2.6, true);
+      renderCurvePath(activeLut, activeColor, 2.5, true);
 
-      // Draw control handles / points
+      // Draw control handles directly on active curve
+      const handlePts = (mode === 'parametric') ? [32, 96, 160, 224] : pts;
+      handlePts.forEach(p => {
+        const cx = toX(p);
+        const cy = toY(activeLut[p]);
+        ctx.fillStyle = activeColor;
+        ctx.strokeStyle = '#070b14';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, mode === 'parametric' ? 4 : 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
       if (mode === 'parametric') {
-        // Draw 3 region split dividers at bottom
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
         [64, 128, 192].forEach(val => {
-          const cx = (val / 255) * w;
-          ctx.beginPath();
-          ctx.arc(cx, h - 5, 3.5, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      } else {
-        // Draw 5 point handles on active curve
-        pts.forEach(p => {
-          const cx = (p / 255) * w;
-          const cy = h - (activeLut[p] / 255) * h;
-          ctx.fillStyle = activeColor;
-          ctx.strokeStyle = '#070b14';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
+          const cx = toX(val);
+          ctx.fillRect(cx - 0.5, pad + plotH - 4, 1, 4);
         });
       }
+
+      ctx.font = 'bold 10px Inter, system-ui, sans-serif';
+      ctx.fillStyle = activeColor;
+      ctx.fillText(activeLabel, pad + 5, pad + 12);
     }
 
     // Setup interactive mouse / touch listeners on curve canvas
@@ -14425,17 +14584,22 @@ function getApiUrl(endpoint) {
       cvs._hasCurveEvents = true;
 
       const handlePointerDown = e => {
+        if (e.cancelable && e.touches) e.preventDefault();
         _curveCanvasDragging = true;
         handlePointerMove(e);
       };
 
       const handlePointerMove = e => {
         if (!_curveCanvasDragging) return;
+        if (e.cancelable && e.touches) e.preventDefault();
         const rect = cvs.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-        const normY = Math.max(0, Math.min(1, 1.0 - (clientY - rect.top) / rect.height));
+        if (!rect.width || !rect.height) return;
+        const pad = 8;
+        const plotW = Math.max(20, rect.width - pad * 2);
+        const plotH = Math.max(20, rect.height - pad * 2);
+        const pt = e.touches ? e.touches[0] : e;
+        const normX = Math.max(0, Math.min(1, (pt.clientX - rect.left - pad) / plotW));
+        const normY = Math.max(0, Math.min(1, 1.0 - (pt.clientY - rect.top - pad) / plotH));
 
         const inLevel = Math.round(normX * 255);
         const outLevel = Math.round(normY * 255);
@@ -14480,40 +14644,59 @@ function getApiUrl(endpoint) {
     // CLIENT-SIDE HIGH PERFORMANCE FILTER ENGINE
     // =========================================================================
 
+    function processCameraRawOnActivePhoto(onRendered) {
+      if (!photoState.framedImg) return;
+      const hasCutout = !!(photoState.cutoutImg && photoState.framedCutoutImg);
+      const srcUrl = hasCutout ? photoState.framedCutoutImg : photoState.framedImg;
+
+      const fgImg = new Image();
+      fgImg.onload = () => {
+        const fgCanvas = document.createElement('canvas');
+        fgCanvas.width = fgImg.width;
+        fgCanvas.height = fgImg.height;
+        const fgCtx = fgCanvas.getContext('2d');
+        fgCtx.drawImage(fgImg, 0, 0);
+
+        const fgImgData = renderCameraRawCanvas(fgCanvas, cameraRawState);
+        const outCanvas = hasCutout
+          ? compositeForegroundOnBg(fgCanvas, photoState.bgColor || '#ffffff')
+          : fgCanvas;
+
+        if (!hasCutout) {
+          onRendered(fgImg, outCanvas, fgImgData);
+          return;
+        }
+        const beforeImg = new Image();
+        beforeImg.onload = () => onRendered(beforeImg, outCanvas, fgImgData);
+        beforeImg.onerror = () => onRendered(fgImg, outCanvas, fgImgData);
+        beforeImg.src = photoState.framedImg;
+      };
+      fgImg.src = srcUrl;
+    }
+
     function applyCameraRawFilters() {
       if (!photoState.framedImg) return;
 
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const imgData = renderCameraRawCanvas(canvas, cameraRawState);
-
-        photoState.enhancedImg = canvas.toDataURL('image/jpeg', 0.95);
+      processCameraRawOnActivePhoto((beforeImg, outCanvas, fgImgData) => {
+        photoState.enhancedImg = outCanvas.toDataURL('image/jpeg', 0.96);
         renderPhotoGridSheet();
 
-        // Draw live histograms
-        drawCameraRawHistogram('rawHistogramCanvas', imgData);
-        drawCameraRawHistogram('rawModalHistogramCanvas', imgData);
-
-        // Update modal canvas if open
-        updateCameraRawModalCanvas(img, canvas);
+        // Draw live histograms & refresh curve histogram underlay
+        drawCameraRawHistogram('rawHistogramCanvas', fgImgData);
+        drawCameraRawHistogram('rawModalHistogramCanvas', fgImgData);
+        updateCameraRawModalCanvas(beforeImg, outCanvas);
+        drawRawCurveCanvas();
 
         // Debounce sync with server /api/photo/camera_raw
         if (_cameraRawServerDebounce) clearTimeout(_cameraRawServerDebounce);
         _cameraRawServerDebounce = setTimeout(() => {
           syncCameraRawWithServer();
         }, 600);
-      };
-      img.src = photoState.framedImg;
+      });
     }
 
     async function syncCameraRawWithServer() {
-      if (!photoState.framedImg) return;
+      if (!photoState.framedImg || photoState.cutoutImg) return;
       if (window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp()) return;
       try {
         const res = await fetch(getApiUrl('/api/photo/camera_raw'), {
@@ -14692,6 +14875,7 @@ function getApiUrl(endpoint) {
 
       // Pass 1: Pixel color transformations
       for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] === 0) continue;
         let r = data[i];
         let g = data[i + 1];
         let b = data[i + 2];
@@ -14863,6 +15047,7 @@ function getApiUrl(endpoint) {
           const rowOffset = y * w * 4;
           for (let x = 0; x < w; x++) {
             const idx = rowOffset + x * 4;
+            if (copyData[idx + 3] === 0) continue;
             const cr = copyData[idx];
             const cg = copyData[idx + 1];
             const cb = copyData[idx + 2];
@@ -14878,6 +15063,7 @@ function getApiUrl(endpoint) {
                 const nx = x + dx;
                 if (nx < 0 || nx >= w) continue;
                 const nIdx = nRow + nx * 4;
+                if (copyData[nIdx + 3] < 16) continue;
                 const nr = copyData[nIdx];
                 const ng = copyData[nIdx + 1];
                 const nb = copyData[nIdx + 2];
@@ -14920,6 +15106,7 @@ function getApiUrl(endpoint) {
           const rowOffset = y * w * 4;
           for (let x = 0; x < w; x++) {
             const idx = rowOffset + x * 4;
+            if (copyData[idx + 3] === 0) continue;
             const luma = 0.299 * copyData[idx] + 0.587 * copyData[idx + 1] + 0.114 * copyData[idx + 2];
             let sumU = 0, sumV = 0, count = 0;
             for (let dy = -cnrRadius; dy <= cnrRadius; dy++) {
@@ -14930,12 +15117,14 @@ function getApiUrl(endpoint) {
                 const nx = x + dx;
                 if (nx < 0 || nx >= w) continue;
                 const nIdx = nRow + nx * 4;
+                if (copyData[nIdx + 3] < 16) continue;
                 const r = copyData[nIdx], g = copyData[nIdx + 1], b = copyData[nIdx + 2];
                 sumU += -0.14713 * r - 0.28886 * g + 0.436 * b;
                 sumV += 0.615 * r - 0.51499 * g - 0.10001 * b;
                 count++;
               }
             }
+            if (count === 0) continue;
             const avgU = sumU / count;
             const avgV = sumV / count;
             const tgtR = Math.max(0, Math.min(255, luma + 1.13983 * avgV));
@@ -14959,22 +15148,18 @@ function getApiUrl(endpoint) {
           const rowOffset = y * w * 4;
           for (let x = 1; x < w - 1; x++) {
             const idx = rowOffset + x * 4;
+            const alpha = copyData[idx + 3];
+            if (alpha === 0) continue;
             const cr = copyData[idx];
             const cg = copyData[idx + 1];
             const cb = copyData[idx + 2];
 
-            const avgR = (
-              copyData[idx - 4] + copyData[idx + 4] +
-              copyData[idx - w * 4] + copyData[idx + w * 4]
-            ) * 0.25;
-            const avgG = (
-              copyData[idx - 4 + 1] + copyData[idx + 4 + 1] +
-              copyData[idx - w * 4 + 1] + copyData[idx + w * 4 + 1]
-            ) * 0.25;
-            const avgB = (
-              copyData[idx - 4 + 2] + copyData[idx + 4 + 2] +
-              copyData[idx - w * 4 + 2] + copyData[idx + w * 4 + 2]
-            ) * 0.25;
+            // Fallback to center pixel if neighbor is outside cutout alpha to prevent dark edge halos
+            const iL = idx - 4, iR = idx + 4, iU = idx - w * 4, iD = idx + w * 4;
+            const okL = copyData[iL + 3] >= 16, okR = copyData[iR + 3] >= 16, okU = copyData[iU + 3] >= 16, okD = copyData[iD + 3] >= 16;
+            const avgR = ((okL ? copyData[iL] : cr) + (okR ? copyData[iR] : cr) + (okU ? copyData[iU] : cr) + (okD ? copyData[iD] : cr)) * 0.25;
+            const avgG = ((okL ? copyData[iL + 1] : cg) + (okR ? copyData[iR + 1] : cg) + (okU ? copyData[iU + 1] : cg) + (okD ? copyData[iD + 1] : cg)) * 0.25;
+            const avgB = ((okL ? copyData[iL + 2] : cb) + (okR ? copyData[iR + 2] : cb) + (okU ? copyData[iU + 2] : cb) + (okD ? copyData[iD + 2] : cb)) * 0.25;
 
             const deltaR = cr - avgR;
             const deltaG = cg - avgG;
@@ -14987,6 +15172,7 @@ function getApiUrl(endpoint) {
               const midWeight = Math.sin((lum / 255) * Math.PI);
               boost += clFactor * midWeight;
             }
+            boost *= (alpha / 255);
 
             data[idx] = Math.max(0, Math.min(255, cr + deltaR * boost));
             data[idx + 1] = Math.max(0, Math.min(255, cg + deltaG * boost));
@@ -14995,18 +15181,20 @@ function getApiUrl(endpoint) {
         }
       }
 
-      // 4. Grain
+      // 4. Grain (foreground-only when cutout alpha exists)
       if (grainVal > 0) {
         const grainAmt = grainVal * 0.35;
         for (let i = 0; i < data.length; i += 4) {
-          const noise = (Math.random() - 0.5) * grainAmt;
+          const alpha = data[i + 3];
+          if (alpha === 0) continue;
+          const noise = (Math.random() - 0.5) * grainAmt * (alpha / 255);
           data[i] = Math.max(0, Math.min(255, data[i] + noise));
           data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
           data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
         }
       }
 
-      // 5. Vignette
+      // 5. Vignette (foreground-only when cutout alpha exists)
       if (params.vignette && params.vignette !== 0) {
         const vig = params.vignette * 0.01;
         const cx = w / 2;
@@ -15015,8 +15203,11 @@ function getApiUrl(endpoint) {
         for (let y = 0; y < h; y++) {
           for (let x = 0; x < w; x++) {
             const idx = (y * w + x) * 4;
+            const alpha = data[idx + 3];
+            if (alpha === 0) continue;
             const dist = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / maxDist;
-            const factor = Math.max(0, Math.min(1.5, 1.0 - vig * Math.pow(dist, 2)));
+            const rawFactor = Math.max(0, Math.min(1.5, 1.0 - vig * Math.pow(dist, 2)));
+            const factor = 1.0 - (1.0 - rawFactor) * (alpha / 255);
             data[idx] = Math.min(255, data[idx] * factor);
             data[idx + 1] = Math.min(255, data[idx + 1] * factor);
             data[idx + 2] = Math.min(255, data[idx + 2] * factor);
@@ -15044,14 +15235,19 @@ function getApiUrl(endpoint) {
 
       const d = imgData.data;
       const step = Math.max(1, Math.floor(d.length / (4 * 25000)));
+      let sampled = 0;
       for (let i = 0; i < d.length; i += 4 * step) {
+        if (d[i + 3] < 16) continue;
         rBins[d[i]]++;
         gBins[d[i + 1]]++;
         bBins[d[i + 2]]++;
+        sampled++;
       }
 
-      // Cache for curve underlay
-      _cachedRawHist = { r: rBins, g: gBins, b: bBins };
+      // Cache foreground-only histogram for curve underlay
+      if (sampled > 0) {
+        _cachedRawHist = { r: rBins, g: gBins, b: bBins };
+      }
 
       let maxBin = 1;
       for (let i = 0; i < 256; i++) {
@@ -15279,6 +15475,7 @@ function getApiUrl(endpoint) {
         const el = document.getElementById('rawClipHighlights');
         if (el) el.classList.toggle('active', window.cameraRawState.clipHighlights);
       }
+      if (window.cameraRawState) cameraRawState._active = true;
       applyCameraRawFilters();
     }
 
@@ -15310,22 +15507,16 @@ function getApiUrl(endpoint) {
       setCameraRawViewMode(cameraRawState.viewMode || 'single');
       initColorWheels();
 
-      // Initialize interactive curve canvas
+      // Initialize & measure interactive curve canvas inside modal after layout
       initCurveCanvasInteractivity();
-      drawRawCurveCanvas();
+      requestAnimationFrame(() => drawRawCurveCanvas());
 
       if (photoState.framedImg) {
-        const img = new Image();
-        img.onload = () => {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = img.width;
-          tempCanvas.height = img.height;
-          const tCtx = tempCanvas.getContext('2d');
-          tCtx.drawImage(img, 0, 0);
-          renderCameraRawCanvas(tempCanvas, cameraRawState);
-          updateCameraRawModalCanvas(img, tempCanvas);
-        };
-        img.src = photoState.framedImg;
+        processCameraRawOnActivePhoto((beforeImg, outCanvas, fgImgData) => {
+          drawCameraRawHistogram('rawModalHistogramCanvas', fgImgData);
+          updateCameraRawModalCanvas(beforeImg, outCanvas);
+          drawRawCurveCanvas();
+        });
       }
     }
 
@@ -15340,6 +15531,7 @@ function getApiUrl(endpoint) {
         }
       }
       if (modal) modal.style.display = 'none';
+      requestAnimationFrame(() => drawRawCurveCanvas());
     }
 
     function applyCameraRawModalSettings() {
@@ -15398,9 +15590,10 @@ function getApiUrl(endpoint) {
       if (dim) dim.innerText = origImg.width + ' × ' + origImg.height + ' px';
     }
 
-    // Attach curve canvas event listeners on page load
+    // Attach curve canvas event listeners and render initial curve on page load
     document.addEventListener('DOMContentLoaded', () => {
       initCurveCanvasInteractivity();
+      drawRawCurveCanvas();
     });
 
     // =========================================================================
@@ -15783,6 +15976,7 @@ function getApiUrl(endpoint) {
       photoState.rawImg = croppedDataUrl;
       photoState.originalRawImg = croppedDataUrl;
       photoState.cutoutImg = null;
+      photoState.framedCutoutImg = null;
       updatePhotoFraming();
       closePassportCropModal();
       showToast('Passport photo cropped successfully!', 'success');
@@ -16274,6 +16468,7 @@ function getApiUrl(endpoint) {
       if (!photoState.originalRawImg) return;
       photoState.rawImg = photoState.originalRawImg;
       photoState.cutoutImg = null;
+      photoState.framedCutoutImg = null;
       photoState.bgColor = '#ffffff';
 
       resetPassportBgPaletteUi();
@@ -17883,6 +18078,13 @@ function getApiUrl(endpoint) {
               if (typeof resetPhotoZoom === 'function') resetPhotoZoom();
               if (typeof renderPhotoGridSheet === 'function') renderPhotoGridSheet();
             }
+          }
+        }, 60);
+      } else if (tab === 'settings') {
+        setTimeout(() => {
+          if (typeof currentAppMode !== 'undefined' && currentAppMode === 'photo') {
+            if (typeof initCurveCanvasInteractivity === 'function') initCurveCanvasInteractivity();
+            if (typeof drawRawCurveCanvas === 'function') drawRawCurveCanvas();
           }
         }, 60);
       }

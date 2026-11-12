@@ -962,10 +962,10 @@ class MainActivity : ComponentActivity() {
                         MediaStore.Downloads.EXTERNAL_CONTENT_URI
                     }
                     savedUri = context.contentResolver.insert(targetUri, values)
-                    savedUri?.let { uri ->
-                        context.contentResolver.openOutputStream(uri)?.use { os ->
-                            os.write(bytes)
-                        }
+                        ?: throw java.io.IOException("Failed to create MediaStore entry for $fileName")
+                    (context.contentResolver.openOutputStream(savedUri)
+                        ?: throw java.io.IOException("Failed to open output stream for $fileName")).use { os ->
+                        os.write(bytes)
                     }
                 } else {
                     val dir = Environment.getExternalStoragePublicDirectory(publicDir)
@@ -988,7 +988,10 @@ class MainActivity : ComponentActivity() {
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
-                            context.startActivity(Intent.createChooser(viewIntent, "Open $fileName"))
+                            val chooser = Intent.createChooser(viewIntent, "Open $fileName").apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(chooser)
                         } catch (e: Exception) {
                             Log.w("HKM_SAVE", "Chooser error: ${e.message}")
                         }
