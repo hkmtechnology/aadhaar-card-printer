@@ -1985,7 +1985,20 @@
     /* =========================================================================
        MODERN DPI SELECTOR CONTROLS & PERSISTENT SEGMENTED BUTTONS
        ========================================================================= */
-    .dpi-segmented-group,
+    .dpi-segmented-group {
+      display: grid !important;
+      grid-template-columns: repeat(7, 1fr) !important;
+      background: rgba(15, 23, 42, 0.82) !important;
+      border: 1px solid rgba(56, 189, 248, 0.28) !important;
+      border-radius: 10px !important;
+      padding: 3px !important;
+      gap: 3px !important;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+      box-sizing: border-box !important;
+      width: 100% !important;
+      margin-top: 2px !important;
+      margin-bottom: 2px !important;
+    }
     .segmented-control {
       display: grid !important;
       grid-template-columns: repeat(4, 1fr) !important;
@@ -2001,13 +2014,12 @@
       margin-bottom: 2px !important;
     }
 
-    .dpi-btn,
-    .segmented-btn {
+    .dpi-btn {
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
-      padding: 6px 4px !important;
+      padding: 5px 2px !important;
       background: rgba(30, 41, 59, 0.55) !important;
       border: 1px solid rgba(148, 163, 184, 0.15) !important;
       border-radius: 7px !important;
@@ -2016,8 +2028,28 @@
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
       user-select: none !important;
       outline: none !important;
-      min-height: 42px !important;
+      min-height: 40px !important;
       box-sizing: border-box !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+    .dpi-btn .dpi-val {
+      font-size: 0.80rem !important;
+      font-weight: 800 !important;
+      line-height: 1.1 !important;
+      color: inherit !important;
+    }
+    .dpi-btn .dpi-sub {
+      font-size: 0.56rem !important;
+      font-weight: 600 !important;
+      opacity: 0.85 !important;
+      margin-top: 1px !important;
+      line-height: 1 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      max-width: 100% !important;
+      color: inherit !important;
+    }
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
     }
 
@@ -5039,29 +5071,44 @@
               <span id="dpiHint" style="font-size: 0.7rem; color: #6ee7b7; font-weight: 600;">300 DPI Recommended</span>
             </div>
             <div class="dpi-segmented-group" id="cardDpiGroup">
-              <button type="button" class="dpi-btn" id="btnCardDpi150" onclick="setAppDpi(150)" title="150 DPI Fast Draft (~10 sec)">
+              <button type="button" class="dpi-btn" id="btnCardDpi75" onclick="setAppDpi(75)" title="75 DPI Super Fast Preview (~4 sec)">
+                <span class="dpi-val">75</span>
+                <span class="dpi-sub">Fast</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnCardDpi100" onclick="setAppDpi(100)" title="100 DPI Quick Draft (~6 sec)">
+                <span class="dpi-val">100</span>
+                <span class="dpi-sub">Quick</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnCardDpi150" onclick="setAppDpi(150)" title="150 DPI Fast Draft (~9 sec)">
                 <span class="dpi-val">150</span>
                 <span class="dpi-sub">Draft</span>
               </button>
-              <button type="button" class="dpi-btn" id="btnCardDpi200" onclick="setAppDpi(200)" title="200 DPI Balanced Standard (~15 sec)">
+              <button type="button" class="dpi-btn" id="btnCardDpi200" onclick="setAppDpi(200)" title="200 DPI Balanced Standard (~12 sec)">
                 <span class="dpi-val">200</span>
-                <span class="dpi-sub">Standard</span>
+                <span class="dpi-sub">Std</span>
               </button>
-              <button type="button" class="dpi-btn active" id="btnCardDpi300" onclick="setAppDpi(300)" title="300 DPI High Quality (Sharp text & QR)">
+              <button type="button" class="dpi-btn active" id="btnCardDpi300" onclick="setAppDpi(300)" title="300 DPI High Quality (Sharp Text & QR ★ Recommended)">
                 <span class="dpi-val">300</span>
                 <span class="dpi-sub">Sharp ★</span>
               </button>
-              <button type="button" class="dpi-btn" id="btnCardDpi600" onclick="setAppDpi(600)" title="600 DPI Ultra HD Fine Microprint (~45 sec)">
+              <button type="button" class="dpi-btn" id="btnCardDpi600" onclick="setAppDpi(600)" title="600 DPI Ultra HD Fine Microprint (~38 sec)">
                 <span class="dpi-val">600</span>
-                <span class="dpi-sub">Ultra HD</span>
+                <span class="dpi-sub">Ultra</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnCardDpi1200" onclick="setAppDpi(1200)" title="1200 DPI Max Optical Hardware Resolution (~70 sec)">
+                <span class="dpi-val">1200</span>
+                <span class="dpi-sub">Max</span>
               </button>
             </div>
             <!-- Hidden native select for backward-compatibility with external DOM queries -->
             <select id="dpiSelect" style="display: none;" onchange="setAppDpi(this.value)">
+              <option value="75">75 DPI — Fast Preview</option>
+              <option value="100">100 DPI — Quick Draft</option>
               <option value="150">150 DPI — Fast Draft</option>
               <option value="200">200 DPI — Balanced Standard</option>
               <option value="300" selected>300 DPI — High Quality [Default]</option>
               <option value="600">600 DPI — Ultra HD</option>
+              <option value="1200">1200 DPI — Max Hardware Resolution</option>
             </select>
           </div>
         </div>
@@ -5744,21 +5791,33 @@
               <span id="docDpiHint" style="font-size: 0.7rem; color: #6ee7b7; font-weight: 600;">300 DPI Recommended</span>
             </div>
             <div class="dpi-segmented-group" id="docDpiGroup">
-              <button type="button" class="dpi-btn" id="btnDocDpi150" onclick="setAppDpi(150)" title="150 DPI Fast Draft (~10 sec)">
+              <button type="button" class="dpi-btn" id="btnDocDpi75" onclick="setAppDpi(75)" title="75 DPI Super Fast Preview (~4 sec)">
+                <span class="dpi-val">75</span>
+                <span class="dpi-sub">Fast</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnDocDpi100" onclick="setAppDpi(100)" title="100 DPI Quick Draft (~6 sec)">
+                <span class="dpi-val">100</span>
+                <span class="dpi-sub">Quick</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnDocDpi150" onclick="setAppDpi(150)" title="150 DPI Fast Draft (~9 sec)">
                 <span class="dpi-val">150</span>
                 <span class="dpi-sub">Draft</span>
               </button>
-              <button type="button" class="dpi-btn" id="btnDocDpi200" onclick="setAppDpi(200)" title="200 DPI Balanced Speed (~15 sec)">
+              <button type="button" class="dpi-btn" id="btnDocDpi200" onclick="setAppDpi(200)" title="200 DPI Balanced Speed (~12 sec)">
                 <span class="dpi-val">200</span>
-                <span class="dpi-sub">Standard</span>
+                <span class="dpi-sub">Std</span>
               </button>
-              <button type="button" class="dpi-btn active" id="btnDocDpi300" onclick="setAppDpi(300)" title="300 DPI High Quality (Sharp Text & QR)">
+              <button type="button" class="dpi-btn active" id="btnDocDpi300" onclick="setAppDpi(300)" title="300 DPI High Quality (Sharp Text & QR ★ Recommended)">
                 <span class="dpi-val">300</span>
                 <span class="dpi-sub">Sharp ★</span>
               </button>
-              <button type="button" class="dpi-btn" id="btnDocDpi600" onclick="setAppDpi(600)" title="600 DPI Ultra HD Detail (~45 sec)">
+              <button type="button" class="dpi-btn" id="btnDocDpi600" onclick="setAppDpi(600)" title="600 DPI Ultra HD Detail (~38 sec)">
                 <span class="dpi-val">600</span>
-                <span class="dpi-sub">Ultra HD</span>
+                <span class="dpi-sub">Ultra</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnDocDpi1200" onclick="setAppDpi(1200)" title="1200 DPI Max Optical Detail (~70 sec)">
+                <span class="dpi-val">1200</span>
+                <span class="dpi-sub">Max</span>
               </button>
             </div>
           </div>
@@ -5961,13 +6020,21 @@
               <span id="docExportDpiHint" style="font-size: 0.7rem; color: #6ee7b7; font-weight: 600;">300 DPI Recommended</span>
             </div>
             <div class="dpi-segmented-group" id="docExportDpiGroup">
+              <button type="button" class="dpi-btn" id="btnExportDpi75" onclick="setAppDpi(75)" title="75 DPI Super Fast Preview PDF">
+                <span class="dpi-val">75</span>
+                <span class="dpi-sub">Fast</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnExportDpi100" onclick="setAppDpi(100)" title="100 DPI Small PDF">
+                <span class="dpi-val">100</span>
+                <span class="dpi-sub">Quick</span>
+              </button>
               <button type="button" class="dpi-btn" id="btnExportDpi150" onclick="setAppDpi(150)" title="150 DPI Compact PDF">
                 <span class="dpi-val">150</span>
-                <span class="dpi-sub">Compact</span>
+                <span class="dpi-sub">Draft</span>
               </button>
               <button type="button" class="dpi-btn" id="btnExportDpi200" onclick="setAppDpi(200)" title="200 DPI Standard PDF">
                 <span class="dpi-val">200</span>
-                <span class="dpi-sub">Standard</span>
+                <span class="dpi-sub">Std</span>
               </button>
               <button type="button" class="dpi-btn active" id="btnExportDpi300" onclick="setAppDpi(300)" title="300 DPI Crisp High Quality PDF">
                 <span class="dpi-val">300</span>
@@ -5975,7 +6042,11 @@
               </button>
               <button type="button" class="dpi-btn" id="btnExportDpi600" onclick="setAppDpi(600)" title="600 DPI Ultra HD Detail PDF">
                 <span class="dpi-val">600</span>
-                <span class="dpi-sub">Ultra HD</span>
+                <span class="dpi-sub">Ultra</span>
+              </button>
+              <button type="button" class="dpi-btn" id="btnExportDpi1200" onclick="setAppDpi(1200)" title="1200 DPI Archival Resolution PDF">
+                <span class="dpi-val">1200</span>
+                <span class="dpi-sub">Max</span>
               </button>
             </div>
           </div>
@@ -7649,7 +7720,8 @@
         await fetch(getApiUrl('/api/connection'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(600)
         });
       } catch (e) {
         console.warn('Failed to post connection mode:', e);
@@ -7683,7 +7755,10 @@
       const scannerBadge = document.getElementById('tileScannerBadge');
       const inputIp = document.getElementById('inputScannerBridgeIp');
       const bridgeStatusTag = document.getElementById('bridgeStatusTag');
+      const directIpInput = document.getElementById('inputDirectPrinterIp');
+      const directTag = document.getElementById('directPrinterStatusTag');
 
+      if (directIpInput) directIpInput.value = getDirectPrinterIp();
       if (inputIp) inputIp.value = getScannerBridgeHost();
 
       try {
@@ -7695,8 +7770,12 @@
         }
 
         if (!info || !info.printer_name) {
-          const resp = await fetch(getApiUrl(`/api/connection${force ? '?force=1' : ''}`));
-          info = await resp.json();
+          try {
+            const resp = await fetch(getApiUrl(`/api/connection${force ? '?force=1' : ''}`), {
+              signal: AbortSignal.timeout(600)
+            });
+            if (resp.ok) info = await resp.json();
+          } catch (_) {}
         }
 
         if (info) {
@@ -7740,9 +7819,22 @@
             scannerBadge.innerText = isScannerReady ? 'Ready' : 'Offline';
           }
 
+          if (directIpInput && info.printer_ip) {
+            directIpInput.value = info.printer_ip;
+          }
+          if (directTag) {
+            if (isPrinterReady) {
+              directTag.innerText = 'Ready (' + (info.printer_ip || 'Direct') + ')';
+              directTag.style.color = '#34d399';
+            } else {
+              directTag.innerText = 'Offline';
+              directTag.style.color = '#f87171';
+            }
+          }
           if (bridgeStatusTag) {
-            bridgeStatusTag.innerText = 'Online';
-            bridgeStatusTag.style.color = '#34d399';
+            const isBridgeOnline = info && (info.bridge_online || info.bridge_status === 'Online');
+            bridgeStatusTag.innerText = isBridgeOnline ? 'Online' : 'Offline';
+            bridgeStatusTag.style.color = isBridgeOnline ? '#34d399' : '#94a3b8';
           }
         }
       } catch (err) {
@@ -7752,6 +7844,59 @@
           bridgeStatusTag.style.color = '#f87171';
         }
       }
+    }
+
+    function getDirectPrinterIp() {
+      if (window.AndroidBridge && typeof window.AndroidBridge.getPrinterIp === 'function') {
+        try {
+          const ip = window.AndroidBridge.getPrinterIp();
+          if (ip && ip.trim()) return ip.trim();
+        } catch (e) {}
+      }
+      return localStorage.getItem('hkm_direct_printer_ip') || '10.237.2.251';
+    }
+
+    function saveDirectPrinterIp() {
+      const input = document.getElementById('inputDirectPrinterIp');
+      const tag = document.getElementById('directPrinterStatusTag');
+      if (!input || !input.value.trim()) return;
+      const ip = input.value.trim().replace(/^https?:\/\//, '').replace(/:\d+$/, '');
+      localStorage.setItem('hkm_direct_printer_ip', ip);
+      if (window.AndroidBridge && typeof window.AndroidBridge.setPrinterIp === 'function') {
+        try { window.AndroidBridge.setPrinterIp(ip); } catch (e) {}
+      }
+      if (tag) { tag.innerText = 'Saved (' + ip + ')'; tag.style.color = '#38bdf8'; }
+      showToast('Epson printer IP saved: ' + ip, 'success');
+      runDeviceDetection(true);
+      checkScannerServer(true);
+    }
+
+    function autoDetectDirectPrinter() {
+      const input = document.getElementById('inputDirectPrinterIp');
+      const tag = document.getElementById('directPrinterStatusTag');
+      if (tag) { tag.innerText = 'Probing...'; tag.style.color = '#f59e0b'; }
+      showToast('🔍 Scanning subnet for Epson L3250...', 'info');
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.autoDetectPrinterIp === 'function') {
+        try {
+          const res = JSON.parse(window.AndroidBridge.autoDetectPrinterIp() || '{}');
+          if (res.ip) {
+            if (input) input.value = res.ip;
+            localStorage.setItem('hkm_direct_printer_ip', res.ip);
+            if (tag) {
+              tag.innerText = res.success ? ('Ready (' + res.ip + ')') : ('Found (' + res.ip + ')');
+              tag.style.color = res.success ? '#34d399' : '#f59e0b';
+            }
+            showToast(res.success ? `Found Epson L3250 at ${res.ip} (${res.mode})!` : `Candidate IP: ${res.ip}`, res.success ? 'success' : 'info');
+            runDeviceDetection(true);
+            checkScannerServer(true);
+            return;
+          }
+        } catch (e) {
+          console.warn('Auto-detect error:', e);
+        }
+      }
+      showToast('Auto-detection finished.', 'info');
     }
 
     async function testBridgeIpConnection() {
@@ -7791,28 +7936,76 @@
 // =========================================================================
 // UNIFIED SCAN & PRINT ENGINE (NATIVE ANDROID BRIDGE + HTTP FETCH)
 // =========================================================================
+function callNativeScanBridgeAsync(payload) {
+  return new Promise((resolve) => {
+    const callbackId = 'scan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    if (!window.__scanBridgeCallbacks) window.__scanBridgeCallbacks = {};
+    window.__scanBridgeCallbacks[callbackId] = (result) => {
+      resolve(result);
+    };
+
+    const side = payload.side || 'front';
+    const autoCrop = payload.autocrop !== false;
+    const dpi = payload.dpi || 300;
+    const docType = payload.doc_type || 'id_card';
+    const colorMode = payload.color_mode || (window.state && state.colorMode) || 'color';
+
+    if (window.AndroidBridge && typeof window.AndroidBridge.scanDirectOrBridgeAsync === 'function') {
+      window.AndroidBridge.scanDirectOrBridgeAsync(side, autoCrop, dpi, docType, colorMode, callbackId);
+    } else if (window.AndroidBridge && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
+      // Background fallback
+      setTimeout(() => {
+        try {
+          const resp = window.AndroidBridge.scanDirectOrBridge(side, autoCrop, dpi, docType, colorMode);
+          resolve(resp ? JSON.parse(resp) : { success: false, error: 'Empty scan result' });
+        } catch (e) {
+          resolve({ success: false, error: e.message });
+        }
+      }, 50);
+    } else {
+      resolve({ success: false, error: 'Android scanner bridge not available' });
+    }
+  });
+}
+
+window.__onScanBridgeResult = function(callbackId, jsonStr) {
+  if (window.__scanBridgeCallbacks && window.__scanBridgeCallbacks[callbackId]) {
+    const cb = window.__scanBridgeCallbacks[callbackId];
+    delete window.__scanBridgeCallbacks[callbackId];
+    try {
+      cb(typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr);
+    } catch (e) {
+      cb({ success: false, error: 'Parse error: ' + e.message });
+    }
+  }
+};
+
 async function performUnifiedScan(payload) {
   const isAndroid = !!(window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp());
 
-  // 1. If running in Android App without PC bridge, execute standalone direct Wi-Fi scan immediately (No PC needed!)
-  if (isAndroid && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
-    const bridgeHost = getScannerBridgeHost();
+  // 1. If running in Android App, check if Wi-Fi Direct or direct scan should run immediately
+  if (isAndroid && (typeof window.AndroidBridge.scanDirectOrBridgeAsync === 'function' || typeof window.AndroidBridge.scanDirectOrBridge === 'function')) {
+    let devInfo = null;
+    if (typeof window.AndroidBridge.getDeviceConnectionInfo === 'function') {
+      try { devInfo = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}'); } catch (_) {}
+    }
+    const isDirectOnly = devInfo && (devInfo.is_wifi_direct || (devInfo.printer_ip && devInfo.printer_ip.startsWith('192.168.223.')));
+
     let pcBridgeOnline = false;
-    try {
-      const probe = await fetch(`http://${bridgeHost}:8767/api/status`, { signal: AbortSignal.timeout(350) });
-      if (probe.ok) pcBridgeOnline = true;
-    } catch (_) {}
+    if (!isDirectOnly) {
+      const bridgeHost = getScannerBridgeHost();
+      try {
+        const probe = await fetch(`http://${bridgeHost}:8767/api/status`, { signal: AbortSignal.timeout(200) });
+        if (probe.ok) pcBridgeOnline = true;
+      } catch (_) {}
+    }
 
     if (!pcBridgeOnline) {
-      console.log('Standalone mode: Scanning directly from Epson L3250 over Wi-Fi/Hotspot...');
+      console.log('Standalone mode: Scanning directly from Epson L3250 over Wi-Fi/Hotspot (Async)...');
+      showToast('📱 Scanning directly from Epson L3250 over Wi-Fi (No PC needed)...', 'info');
       try {
-        const respStr = window.AndroidBridge.scanDirectOrBridge(
-          payload.side || 'front',
-          payload.autocrop !== false,
-          payload.dpi || 300,
-          payload.doc_type || 'id_card'
-        );
-        if (respStr) return JSON.parse(respStr);
+        const result = await callNativeScanBridgeAsync(payload);
+        if (result) return result;
       } catch (nativeErr) {
         console.warn('Standalone native scan error:', nativeErr);
       }
@@ -7836,15 +8029,10 @@ async function performUnifiedScan(payload) {
       return { success: false, aborted: true, message: 'Scan aborted by user' };
     }
     // Fallback to native Android Bridge if fetch fails and not aborted
-    if (isAndroid && typeof window.AndroidBridge.scanDirectOrBridge === 'function') {
+    if (isAndroid && (typeof window.AndroidBridge.scanDirectOrBridgeAsync === 'function' || typeof window.AndroidBridge.scanDirectOrBridge === 'function')) {
       try {
-        const respStr = window.AndroidBridge.scanDirectOrBridge(
-          payload.side || 'front',
-          payload.autocrop !== false,
-          payload.dpi || 300,
-          payload.doc_type || 'id_card'
-        );
-        if (respStr) return JSON.parse(respStr);
+        const result = await callNativeScanBridgeAsync(payload);
+        if (result) return result;
       } catch (e) {
         console.warn('Native scan error:', e);
       }
@@ -7853,20 +8041,25 @@ async function performUnifiedScan(payload) {
   }
 }
 
-function triggerUnifiedPrint() {
+function triggerUnifiedPrint(customCanvas, copies = 1, title = "HKM_Document_Print") {
   if (window.AndroidBridge && typeof window.AndroidBridge.printPdfSystem === 'function') {
     try {
-      const canvas = renderHighResA4Canvas();
+      const canvas = customCanvas || renderHighResA4Canvas();
       const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
       const binaryImg = atob(jpegDataUrl.split(',')[1]);
-      const pdfBytes = createA4ImagePDF(binaryImg, 1);
+      const pdfBytes = createA4ImagePDF(binaryImg, copies);
       let binaryStr = '';
       const bytes = new Uint8Array(pdfBytes);
       for (let i = 0; i < bytes.length; i++) binaryStr += String.fromCharCode(bytes[i]);
-      window.AndroidBridge.printPdfSystem(btoa(binaryStr), "HKM_Document_Print");
+      window.AndroidBridge.printPdfSystem(btoa(binaryStr), title);
       return;
     } catch (e) {
-      console.warn('Native printPdfSystem error:', e);
+      console.warn('Native printPdfSystem error, falling back to direct canvas image:', e);
+      try {
+        const canvas = customCanvas || renderHighResA4Canvas();
+        window.AndroidBridge.printPdfSystem(canvas.toDataURL('image/jpeg', 0.95), title);
+        return;
+      } catch (e2) {}
     }
   }
   window.print();
@@ -8402,7 +8595,7 @@ function getApiUrl(endpoint) {
 
       // 1. Try server endpoint
       try {
-        const res = await fetch(getApiUrl('/api/settings'));
+        const res = await fetch(getApiUrl('/api/settings'), { signal: AbortSignal.timeout(600) });
         if (res.ok) {
           const data = await res.json();
           if (data && typeof data === 'object') {
@@ -8435,7 +8628,8 @@ function getApiUrl(endpoint) {
         const res = await fetch(getApiUrl('/api/settings'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(s)
+          body: JSON.stringify(s),
+          signal: AbortSignal.timeout(600)
         });
         if (res.ok) {
           const badge = document.getElementById('saveStatusIndicator');
@@ -8469,7 +8663,7 @@ function getApiUrl(endpoint) {
       } catch (e) {}
 
       try {
-        const res = await fetch(getApiUrl('/api/settings/reset'), { method: 'POST' });
+        const res = await fetch(getApiUrl('/api/settings/reset'), { method: 'POST', signal: AbortSignal.timeout(600) });
         if (res.ok) {
           const data = await res.json();
           if (data.settings) {
@@ -8896,17 +9090,18 @@ function getApiUrl(endpoint) {
       if (!img) return;
       const rawW = img.naturalWidth || img.width || 85.6;
       const rawH = img.naturalHeight || img.height || 54.0;
-      const rawAspect = (rawW > 0 && rawH > 0) ? (rawW / rawH) : (serverAspect || (85.6 / 54.0));
+      let rawAspect = (rawW > 0 && rawH > 0) ? (rawW / rawH) : (serverAspect || (85.6 / 54.0));
 
-      // Always show scanned image at 100% original ratio in simulations without distortion
-      const ratio = rawAspect;
+      let ratio = rawAspect;
       let name = `${rawAspect.toFixed(2)}:1 Original`;
-      if (Math.abs(rawAspect - (85.6 / 54.0)) < 0.12) {
-        name = 'Standard ID (85.6×54)';
-      } else if (rawAspect >= 1.25 && rawAspect <= 1.40) {
-        name = '4:3 Landscape';
-      } else if (rawAspect >= 0.70 && rawAspect <= 0.80) {
-        name = '3:4 Portrait';
+      if (rawAspect < 0.96 || (serverRatioType === 'standard_portrait' && rawAspect <= 1.04)) {
+        ratio = rawAspect;
+        name = 'Standard ID Portrait (54×85.6)';
+      } else if (rawAspect > 1.04 || serverRatioType === 'standard_landscape') {
+        ratio = rawAspect;
+        name = 'Standard ID Landscape (85.6×54)';
+      } else if (rawAspect >= 0.96 && rawAspect <= 1.04) {
+        name = 'Square / Document';
       }
 
       state[side].aspectRatio = ratio;
@@ -9017,7 +9212,7 @@ function getApiUrl(endpoint) {
       if (window.AndroidBridge && typeof window.AndroidBridge.getDeviceConnectionInfo === 'function') {
         try {
           const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
-          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online) {
+          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online || dev.isReady) {
             isScannerOnline = true;
             if (badge) {
               badge.className = 'epson-tag online';
@@ -9029,6 +9224,12 @@ function getApiUrl(endpoint) {
               docBadge.style.color = '#6ee7b7';
             }
             if (offlineNotice) offlineNotice.style.display = 'none';
+            const devConnBadge = document.getElementById('deviceConnectionBadge');
+            if (devConnBadge) {
+              devConnBadge.className = 'epson-tag online';
+              devConnBadge.innerHTML = '📶 ' + (dev.printer_name || 'EPSON L3250') + ' (Ready)';
+              devConnBadge.title = 'Ready on ' + (dev.connection_type || 'Wi-Fi Direct') + ' (' + (dev.printer_ip || '192.168.223.1') + ')';
+            }
             isCheckingScanner = false;
             return;
           }
@@ -9043,7 +9244,9 @@ function getApiUrl(endpoint) {
       }
 
       try {
-        const res = await fetch(getApiUrl(`/api/connection${force ? '?force=1' : ''}`));
+        const res = await fetch(getApiUrl(`/api/connection${force ? '?force=1' : ''}`), {
+          signal: AbortSignal.timeout(600)
+        });
         if (res.ok) {
           const data = await res.json();
           const isScanningNow = state.isScanning || (window.docState && docState.isScanning) || (window.photoState && photoState.isScanning) || data.scanning || data.busy;
@@ -9122,7 +9325,7 @@ function getApiUrl(endpoint) {
       if (window.AndroidBridge && typeof window.AndroidBridge.getDeviceConnectionInfo === 'function') {
         try {
           const dev = JSON.parse(window.AndroidBridge.getDeviceConnectionInfo() || '{}');
-          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online) {
+          if (dev.is_wifi_direct || dev.printer_status === 'Ready' || dev.scanner_online || dev.isReady) {
             isScannerOnline = true;
             const badge = document.getElementById('scannerBadge');
             const docBadge = document.getElementById('docScanStatusBadge');
@@ -9136,6 +9339,11 @@ function getApiUrl(endpoint) {
               docBadge.style.color = '#6ee7b7';
             }
             if (offlineNotice) offlineNotice.style.display = 'none';
+            const devConnBadge = document.getElementById('deviceConnectionBadge');
+            if (devConnBadge) {
+              devConnBadge.className = 'epson-tag online';
+              devConnBadge.innerHTML = '📶 ' + (dev.printer_name || 'EPSON L3250') + ' (Ready)';
+            }
             return;
           }
         } catch (e) {}
@@ -9161,26 +9369,171 @@ function getApiUrl(endpoint) {
     // =========================================================================
     // UNIFIED PERSISTENT DPI ENGINE (REMEMBERS LAST CHOICE ACROSS ALL MODES)
     // =========================================================================
-// Ensure all 2-in-1 ID cards are placed horizontally (Landscape 85.6x54)
-    // If a card is scanned or placed at 90 degrees (height > width), auto-rotate horizontally!
+    // Automatically detect and trim any excess white flatbed scanner background around the card
+    // Ensures the 4 corner resize handles (blue dots) are tightly attached directly to the photo edges!
+    function autoTrimCardWhiteBorders(img, onTrimmed) {
+      if (!img || !img.naturalWidth || !img.naturalHeight) {
+        if (onTrimmed) onTrimmed(img, false);
+        return;
+      }
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (w < 40 || h < 40) {
+        if (onTrimmed) onTrimmed(img, false);
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      let imgData;
+      try {
+        imgData = ctx.getImageData(0, 0, w, h);
+      } catch (e) {
+        if (onTrimmed) onTrimmed(img, false);
+        return;
+      }
+      const data = imgData.data;
+
+      // 1. Sample background from outer 4 corners
+      let bgR = 0, bgG = 0, bgB = 0, bgCount = 0;
+      const cornerW = Math.max(2, Math.floor(w * 0.04));
+      const cornerH = Math.max(2, Math.floor(h * 0.04));
+
+      for (let y = 0; y < h; y += 2) {
+        for (let x = 0; x < w; x += 2) {
+          if ((x < cornerW || x >= w - cornerW) && (y < cornerH || y >= h - cornerH)) {
+            const idx = (y * w + x) * 4;
+            bgR += data[idx];
+            bgG += data[idx + 1];
+            bgB += data[idx + 2];
+            bgCount++;
+          }
+        }
+      }
+
+      if (bgCount > 10) {
+        bgR = Math.round(bgR / bgCount);
+        bgG = Math.round(bgG / bgCount);
+        bgB = Math.round(bgB / bgCount);
+      } else {
+        bgR = 250; bgG = 250; bgB = 250;
+      }
+      const bgBright = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
+
+      // 2. Count non-background pixels across rows and columns
+      const colHits = new Int32Array(w);
+      const rowHits = new Int32Array(h);
+
+      for (let y = 0; y < h; y++) {
+        const rowOffset = y * w;
+        for (let x = 0; x < w; x++) {
+          const idx = (rowOffset + x) * 4;
+          const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+          const bright = 0.299 * r + 0.587 * g + 0.114 * b;
+          const brightDiff = Math.abs(bright - bgBright);
+          const colorDiff = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+
+          if (brightDiff > 18 || colorDiff > 28) {
+            colHits[x]++;
+            rowHits[y]++;
+          }
+        }
+      }
+
+      // Helper: Find largest-mass contiguous run so thin detached black scanner bezel lines
+      // or outer lid specks cannot trap the crop bounds!
+      function findDominantCoreSpan(hits, totalLen, minVal, gapAllow) {
+        let bestStart = -1, bestEnd = -1, bestMass = -1;
+        let curStart = -1, curEnd = -1, curMass = 0, gap = 0;
+
+        for (let i = 0; i < totalLen; i++) {
+          if (hits[i] >= minVal) {
+            if (curStart === -1) {
+              curStart = i;
+              curMass = 0;
+            }
+            curEnd = i;
+            curMass += hits[i];
+            gap = 0;
+          } else if (curStart !== -1) {
+            gap++;
+            if (gap > gapAllow) {
+              if (curMass > bestMass) {
+                bestMass = curMass;
+                bestStart = curStart;
+                bestEnd = curEnd;
+              }
+              curStart = -1;
+            }
+          }
+        }
+        if (curStart !== -1 && curMass > bestMass) {
+          bestMass = curMass;
+          bestStart = curStart;
+          bestEnd = curEnd;
+        }
+        return bestStart !== -1 ? [bestStart, bestEnd] : null;
+      }
+
+      // 3. Threshold to find primary card boundaries (at least 6% of span, ignoring thin isolated edge lines)
+      const threshCol = Math.max(6, Math.floor(h * 0.06));
+      const threshRow = Math.max(6, Math.floor(w * 0.06));
+      const gapX = Math.max(3, Math.floor(w * 0.025));
+      const gapY = Math.max(3, Math.floor(h * 0.025));
+
+      const spanX = findDominantCoreSpan(colHits, w, threshCol, gapX);
+      const spanY = findDominantCoreSpan(rowHits, h, threshRow, gapY);
+
+      if (!spanX || !spanY) {
+        if (onTrimmed) onTrimmed(img, false);
+        return;
+      }
+
+      let minX = spanX[0];
+      let maxX = spanX[1];
+      let minY = spanY[0];
+      let maxY = spanY[1];
+
+      const trimW = maxX - minX + 1;
+      const trimH = maxY - minY + 1;
+
+      // Trim if excess margin or detached bezel artifact is detected (> 2% of width or height)
+      if (minX > w * 0.02 || (w - 1 - maxX) > w * 0.02 || minY > h * 0.02 || (h - 1 - maxY) > h * 0.02) {
+        if (trimW >= 40 && trimH >= 40) {
+          const cropLeft = Math.max(0, minX - 1);
+          const cropTop = Math.max(0, minY - 1);
+          const cropRight = Math.min(w - 1, maxX + 1);
+          const cropBottom = Math.min(h - 1, maxY + 1);
+          const finalW = cropRight - cropLeft + 1;
+          const finalH = cropBottom - cropTop + 1;
+
+          const trimCanvas = document.createElement('canvas');
+          trimCanvas.width = finalW;
+          trimCanvas.height = finalH;
+          const trimCtx = trimCanvas.getContext('2d');
+          trimCtx.drawImage(img, cropLeft, cropTop, finalW, finalH, 0, 0, finalW, finalH);
+
+          const trimmedImg = new Image();
+          trimmedImg.onload = () => {
+            if (onTrimmed) onTrimmed(trimmedImg, true);
+          };
+          trimmedImg.src = trimCanvas.toDataURL('image/jpeg', 0.96);
+          return;
+        }
+      }
+
+      if (onTrimmed) onTrimmed(img, false);
+    }
+
     function normalizeCardHorizontal(img, onReady) {
       if (!img) { onReady(img); return; }
-      const w = img.naturalWidth || img.width;
-      const h = img.naturalHeight || img.height;
-      if (h > w) {
-        const canvas = document.createElement('canvas');
-        canvas.width = h;
-        canvas.height = w;
-        const ctx = canvas.getContext('2d');
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((90 * Math.PI) / 180);
-        ctx.drawImage(img, -w / 2, -h / 2);
-        const rot = new Image();
-        rot.onload = () => onReady(rot);
-        rot.src = canvas.toDataURL('image/png');
-      } else {
-        onReady(img);
-      }
+      autoTrimCardWhiteBorders(img, (trimmedImg) => {
+        onReady(trimmedImg);
+      });
     }
 
     function setAppDpi(dpi, triggerSave = true) {
@@ -9191,7 +9544,7 @@ function getApiUrl(endpoint) {
       }
 
       // 1. Synchronize All Segmented Buttons (Card Mode, Multi-Doc, and PDF Export)
-      [150, 200, 300, 600].forEach(d => {
+      [75, 100, 150, 200, 300, 600, 1200].forEach(d => {
         const cardBtn = document.getElementById('btnCardDpi' + d);
         if (cardBtn) cardBtn.classList.toggle('active', d === chosenDpi);
         const docBtn = document.getElementById('btnDocDpi' + d);
@@ -9205,25 +9558,37 @@ function getApiUrl(endpoint) {
       if (dpiSel) dpiSel.value = String(chosenDpi);
 
       // 3. Update Status Hints
-      let cardText = '300 DPI Recommended';
+      let cardText = '300 DPI Recommended ★';
       let docText = '300 DPI Recommended (High Quality)';
       let expText = '300 DPI Crisp High Quality';
-      if (chosenDpi === 150) {
-        cardText = 'Fastest Draft (~10s)';
-        docText = 'Fast Draft (~10s / Compact PDF)';
+      if (chosenDpi === 75) {
+        cardText = '⚡ Lightning Preview (~4s)';
+        docText = '⚡ Lightning Preview (~4s)';
+        expText = '75 DPI Preview';
+      } else if (chosenDpi === 100) {
+        cardText = '🚀 Quick Draft (~6s)';
+        docText = '🚀 Fast Draft (~6s / Small File)';
+        expText = '100 DPI Quick Draft';
+      } else if (chosenDpi === 150) {
+        cardText = 'Draft Speed (~9s)';
+        docText = 'Draft Speed (~9s / Compact PDF)';
         expText = 'Fast / Small File (150 DPI)';
       } else if (chosenDpi === 200) {
-        cardText = 'Balanced Standard (~15s)';
-        docText = 'Balanced Speed (~15s / Standard PDF)';
+        cardText = 'Balanced Standard (~12s)';
+        docText = 'Balanced Speed (~12s / Standard PDF)';
         expText = 'Standard Quality (200 DPI)';
       } else if (chosenDpi === 300) {
-        cardText = '300 DPI Recommended';
+        cardText = '300 DPI Recommended ★';
         docText = '300 DPI Recommended (High Quality)';
         expText = '300 DPI Crisp High Quality';
       } else if (chosenDpi === 600) {
-        cardText = 'Ultra HD / Fine Microprint (~45s)';
-        docText = 'Ultra HD (~45s / Maximum Detail)';
+        cardText = 'Ultra HD Fine Microprint (~38s)';
+        docText = 'Ultra HD (~38s / Maximum Detail)';
         expText = '600 DPI Ultra HD Detail';
+      } else if (chosenDpi === 1200) {
+        cardText = '1200 DPI Max Optical Archival (~70s)';
+        docText = '1200 DPI Maximum Hardware Optical';
+        expText = '1200 DPI Archival Resolution';
       }
 
       const dpiHint = document.getElementById('dpiHint');
@@ -9337,42 +9702,55 @@ function getApiUrl(endpoint) {
           state[side].croppedImg = img;
           state[side].rotation = 0;
 
-          // Auto-crop if enabled
+          // Auto-crop if enabled (use native Google ML Kit + OpenCV on Android or PC backend)
           const autoCrop = (document.getElementById('autoCropToggle') || {}).checked !== false;
           if (autoCrop) {
-            try {
-              document.getElementById(side + 'Label').innerText = `Cropping ${file.name}...`;
-              const cropRes = await fetch(getApiUrl('/api/crop'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  image: rawDataUrl,
-                  corner_curve_mm: state.cornerCurveMm !== undefined ? state.cornerCurveMm : 3.18,
-                  doc_type: 'id_card'
-                })
-              });
-              if (cropRes.ok) {
-                const cropData = await cropRes.json();
-                if (cropData.success && cropData.image) {
-                  const croppedImg = new Image();
-                  croppedImg.onload = () => {
-                    normalizeCardHorizontal(croppedImg, (finalImg) => {
-                      state[side].cropBBox = cropData.bbox || null;
-                      state[side].cropCorners = cropData.corners || null;
-                      state[side].croppedImg = finalImg;
-                      detectAndApplyAspect(side, finalImg, cropData.ratio_type, cropData.aspect);
-                      updateSheetLayout();
-                      renderSlot(side);
-                      document.getElementById(side + 'Controls').style.display = 'flex';
-                      document.getElementById(side + 'Label').innerText = `${file.name} (Auto-Cropped)`;
-                    });
-                  };
-                  croppedImg.src = cropData.image;
-                  return;
-                }
+            let cropData = null;
+            if (window.AndroidBridge && typeof window.AndroidBridge.autoCropBase64 === 'function') {
+              try {
+                document.getElementById(side + 'Label').innerText = `Cropping ${file.name} (ML Kit + OpenCV)...`;
+                const nativeJson = window.AndroidBridge.autoCropBase64(rawDataUrl);
+                cropData = JSON.parse(nativeJson);
+              } catch (nativeCropErr) {
+                console.warn('Native OpenCV+MLKit crop error, trying backend:', nativeCropErr);
               }
-            } catch (cropErr) {
-              console.warn('Auto-crop service offline or failed, using raw upload:', cropErr);
+            }
+            if (!cropData || !cropData.success || !cropData.image) {
+              try {
+                document.getElementById(side + 'Label').innerText = `Cropping ${file.name}...`;
+                const cropRes = await fetch(getApiUrl('/api/crop'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    image: rawDataUrl,
+                    corner_curve_mm: state.cornerCurveMm !== undefined ? state.cornerCurveMm : 3.18,
+                    doc_type: 'id_card'
+                  })
+                });
+                if (cropRes.ok) {
+                  cropData = await cropRes.json();
+                }
+              } catch (cropErr) {
+                console.warn('Auto-crop service offline or failed, using raw upload:', cropErr);
+              }
+            }
+            if (cropData && cropData.success && cropData.image) {
+              const croppedImg = new Image();
+              croppedImg.onload = () => {
+                normalizeCardHorizontal(croppedImg, (finalImg) => {
+                  state[side]._hasAutoTrimmed = false;
+                  state[side].cropBBox = cropData.bbox || null;
+                  state[side].cropCorners = cropData.corners || null;
+                  state[side].croppedImg = finalImg;
+                  detectAndApplyAspect(side, finalImg, cropData.ratio_type, cropData.aspect);
+                  updateSheetLayout();
+                  renderSlot(side);
+                  document.getElementById(side + 'Controls').style.display = 'flex';
+                  document.getElementById(side + 'Label').innerText = `${file.name} (Auto-Cropped)`;
+                });
+              };
+              croppedImg.src = cropData.image;
+              return;
             }
           }
 
@@ -9467,6 +9845,9 @@ function getApiUrl(endpoint) {
       state.abortController = new AbortController();
       setScanningState(true);
 
+      // Yield briefly so Chromium renders the modal, spinner & progress bar immediately
+      await new Promise(r => setTimeout(r, 60));
+
       try {
         const data = await performUnifiedScan({ side: side, autocrop: autoCrop, dpi: state.scanDpi });
 
@@ -9491,7 +9872,9 @@ function getApiUrl(endpoint) {
                 rImg.src = data.raw_image;
               }
               state[side].rotation = 0;
+              state[side].canvasAngle = 0; // Reset angle so horizontal card displays cleanly
               detectAndApplyAspect(side, finalImg, data.ratio_type, data.aspect);
+              updateSheetLayout();
               autoCenterSlot(side);
               renderSlot(side);
               document.getElementById(side + 'Controls').style.display = 'flex';
@@ -9499,6 +9882,9 @@ function getApiUrl(endpoint) {
               setTimeout(() => {
                 setScanningState(false);
                 closeScanModal();
+                if (typeof switchMobileTab === 'function') {
+                  switchMobileTab('preview'); // Automatically view Live Sheet (Tab 2)
+                }
               }, 600);
             });
           };
@@ -9512,7 +9898,7 @@ function getApiUrl(endpoint) {
         if (err.name === 'AbortError') {
           // Handled by triggerAbortScan
         } else {
-          alert('Scanner service is offline. Please launch via Start_App.bat.');
+          alert(window.AndroidBridge ? 'Scanner connection error: Could not reach Epson L3250. Please check Hotspot / Wi-Fi Direct connection.' : 'Scanner service is offline. Please launch via Start_App.bat.');
         }
         setScanningState(false);
         closeScanModal();
@@ -9549,12 +9935,21 @@ function getApiUrl(endpoint) {
       btn.style.display = 'none';
       document.getElementById('scanAnim').style.display = 'block';
 
+      const progBox = document.getElementById('scanProgressSection');
+      if (progBox) progBox.style.display = 'block';
+      const abortBtn = document.getElementById('btnAbortScan');
+      if (abortBtn) abortBtn.style.display = 'inline-flex';
+
       state.abortController = new AbortController();
       setScanningState(true);
 
       if (state.wizardStep === 1) {
         document.getElementById('scanStepTitle').innerText = `Scanning Front (${state.scanDpi} DPI) from Epson L3250...`;
         document.getElementById('scanStepDesc').innerText = 'The scanner is moving and auto-detecting card borders... Click Abort if needed.';
+        startScanProgressBar('Scanning Front Side', state.scanDpi || 150);
+
+        // Yield briefly so UI renders modal, spinner & progress animation
+        await new Promise(r => setTimeout(r, 60));
 
         try {
           const data = await performUnifiedScan({ side: 'front', autocrop: autoCrop, dpi: state.scanDpi });
@@ -9579,7 +9974,10 @@ function getApiUrl(endpoint) {
                   rImg.src = data.raw_image;
                 }
                 state.front.rotation = 0;
+                state.front.canvasAngle = 0;
                 detectAndApplyAspect('front', finalImg, data.ratio_type, data.aspect);
+                updateSheetLayout();
+                autoCenterSlot('front');
                 renderSlot('front');
                 document.getElementById('frontControls').style.display = 'flex';
                 document.getElementById('frontLabel').innerText = 'Scanned Front Side';
@@ -9605,7 +10003,7 @@ function getApiUrl(endpoint) {
           }
         } catch (e) {
           if (e.name !== 'AbortError') {
-            alert('Could not connect to scanner bridge. Please run Start_App.bat.');
+            alert(window.AndroidBridge ? 'Scanner connection error: Could not reach Epson L3250. Please check Hotspot / Wi-Fi Direct connection.' : 'Could not connect to scanner bridge. Please run Start_App.bat.');
           }
           setScanningState(false);
           closeScanModal();
@@ -9613,6 +10011,10 @@ function getApiUrl(endpoint) {
       } else if (state.wizardStep === 2) {
         document.getElementById('scanStepTitle').innerText = `Scanning Back (${state.scanDpi} DPI) from Epson L3250...`;
         document.getElementById('scanStepDesc').innerText = 'The scanner is moving and auto-detecting card borders... Click Abort if needed.';
+        startScanProgressBar('Scanning Back Side', state.scanDpi || 150);
+
+        // Yield briefly so UI renders modal, spinner & progress animation
+        await new Promise(r => setTimeout(r, 60));
 
         try {
           const data = await performUnifiedScan({ side: 'back', autocrop: autoCrop, dpi: state.scanDpi });
@@ -9637,7 +10039,10 @@ function getApiUrl(endpoint) {
                   rImg.src = data.raw_image;
                 }
                 state.back.rotation = 0;
+                state.back.canvasAngle = 0;
                 detectAndApplyAspect('back', finalImg, data.ratio_type, data.aspect);
+                updateSheetLayout();
+                autoCenterSlot('back');
                 renderSlot('back');
                 document.getElementById('backControls').style.display = 'flex';
                 document.getElementById('backLabel').innerText = 'Scanned Back Side';
@@ -9646,6 +10051,9 @@ function getApiUrl(endpoint) {
                 setTimeout(() => {
                   setScanningState(false);
                   closeScanModal();
+                  if (typeof switchMobileTab === 'function') {
+                    switchMobileTab('preview'); // Automatically view Live Sheet (Tab 2)
+                  }
                   alert('🎉 Both sides scanned successfully!\nFront is on the top half and Back is on the bottom half of A4.\nClick "Print to Epson L3250" whenever you are ready!');
                 }, 600);
               });
@@ -9658,7 +10066,7 @@ function getApiUrl(endpoint) {
           }
         } catch (e) {
           if (e.name !== 'AbortError') {
-            alert('Could not connect to scanner bridge.');
+            alert(window.AndroidBridge ? 'Scanner connection error: Could not reach Epson L3250.' : 'Could not connect to scanner bridge.');
           }
           setScanningState(false);
           closeScanModal();
@@ -9694,7 +10102,7 @@ function getApiUrl(endpoint) {
       if (scanProgressInterval) clearInterval(scanProgressInterval);
 
       scanProgressStartTime = Date.now();
-      const estDurationMs = dpi >= 600 ? 36000 : (dpi >= 300 ? 18000 : 9500);
+      const estDurationMs = dpi >= 1200 ? 65000 : (dpi >= 600 ? 35000 : (dpi >= 300 ? 17000 : (dpi >= 200 ? 11000 : (dpi >= 150 ? 8500 : (dpi >= 100 ? 5500 : 3800)))));
 
       scanProgressInterval = setInterval(() => {
         const elapsed = Date.now() - scanProgressStartTime;
@@ -9941,6 +10349,17 @@ function getApiUrl(endpoint) {
       if (actionsBar) actionsBar.style.display = 'flex';
 
       if (targetImg) {
+        if (!state[side]._hasAutoTrimmed && !isOrig) {
+          state[side]._hasAutoTrimmed = true;
+          autoTrimCardWhiteBorders(targetImg, (trimmedImg, didTrim) => {
+            if (didTrim) {
+              state[side].croppedImg = trimmedImg;
+              detectAndApplyAspect(side, trimmedImg);
+              updateSheetLayout();
+              renderSlot(side);
+            }
+          });
+        }
         imgElem.src = targetImg.src;
         imgElem.style.display = 'block';
         emptyElem.style.display = 'none';
@@ -10525,27 +10944,22 @@ function getApiUrl(endpoint) {
 
     async function doPrint() {
       const copies = state.copies || 1;
-      showToast(`🖨️ Printing ${copies} copy to Epson L3250...`, 'info');
+      const isAndroid = !!(window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp());
 
+      // 1. On Android Mobile App: ALWAYS open phone's default printing dialog directly on the phone!
+      if (isAndroid) {
+        showToast(`📱 Opening phone print dialog (${copies} copy)...`, 'info');
+        triggerUnifiedPrint(null, copies, `Aadhaar_Card_${copies}_Copies`);
+        return;
+      }
+
+      // 2. On PC Desktop: send to PC silent print bridge
+      showToast(`🖨️ Printing ${copies} copy to Epson L3250...`, 'info');
       try {
         const canvas = renderHighResA4Canvas();
         const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
-        // 1. If on Android with native bridge, call printDirect
-        if (window.AndroidBridge && typeof window.AndroidBridge.printDirect === 'function') {
-          try {
-            const resp = window.AndroidBridge.printDirect(jpegDataUrl, copies, "Aadhaar_Card_A4_Print");
-            const data = JSON.parse(resp);
-            if (data.success) {
-              showToast(`✅ ${data.message || 'Document printed directly to Epson L3250!'}`, 'success');
-              return;
-            }
-          } catch(e) {
-            console.warn("AndroidBridge printDirect failed:", e);
-          }
-        }
-
-        // 2. Direct HTTP call to /api/print_silent (works in app via ADB reverse or Wi-Fi, and in desktop browser)
+        // Direct HTTP call to /api/print_silent (desktop browser)
         const res = await fetch(getApiUrl('/api/print_silent'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -11458,6 +11872,28 @@ function getApiUrl(endpoint) {
       if (docState.pages.length === 0) {
         alert('Please scan or upload at least one page before printing.');
         return;
+      }
+
+      const isAndroid = !!(window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp());
+
+      // On Android Mobile App: ALWAYS open phone's default printing dialog!
+      if (isAndroid) {
+        showToast(`📱 Opening phone print dialog for ${docState.pages.length} page(s)...`, 'info');
+        try {
+          const renderedJpegs = [];
+          for (let p of docState.pages) {
+            const jData = await renderDocPageToJpeg(p);
+            renderedJpegs.push(jData);
+          }
+          const pdfBytes = createMultiPageDocumentPDF(renderedJpegs, docState.copies || 1, docState.scanDpi || 300);
+          let binaryStr = '';
+          const bytes = new Uint8Array(pdfBytes);
+          for (let i = 0; i < bytes.length; i++) binaryStr += String.fromCharCode(bytes[i]);
+          window.AndroidBridge.printPdfSystem(btoa(binaryStr), `Doc_${docState.pages.length}_Pages`);
+          return;
+        } catch (e) {
+          console.warn('Native doc print error:', e);
+        }
       }
 
       showToast(`🖨️ Printing ${docState.pages.length} page(s) (${docState.copies} copies) to Epson L3250...`, 'info');
@@ -12474,6 +12910,20 @@ function getApiUrl(endpoint) {
       if (!photoState.enhancedImg) {
         alert('Please scan or upload a photo first.');
         return;
+      }
+
+      const isAndroid = !!(window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp());
+
+      // On Android Mobile App: ALWAYS open phone's default printing dialog!
+      if (isAndroid) {
+        showToast(`📱 Opening phone print dialog for photo sheet...`, 'info');
+        try {
+          const canvas = await renderHighResPhotoCanvas();
+          triggerUnifiedPrint(canvas, photoState.copies || 1, 'Passport_Photos_A4');
+          return;
+        } catch (e) {
+          console.warn('Native photo print error:', e);
+        }
       }
 
       showToast(`🖨️ Printing Photo Sheet (${photoState.copies} copies) to Epson L3250...`, 'info');
@@ -15854,9 +16304,193 @@ function getApiUrl(endpoint) {
       updateCropBoxDOM();
     }
 
+    function clientSideAutoDetectCrop(targetImg) {
+      if (!targetImg || !targetImg.naturalWidth || !targetImg.naturalHeight) return null;
+      const nw = targetImg.naturalWidth;
+      const nh = targetImg.naturalHeight;
+      if (nw < 40 || nh < 40) return null;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = nw;
+      canvas.height = nh;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(targetImg, 0, 0);
+
+      let imgData;
+      try {
+        imgData = ctx.getImageData(0, 0, nw, nh);
+      } catch (e) {
+        return null;
+      }
+      const data = imgData.data;
+
+      // 1. Sample background from 4 outer corners
+      let bgR = 0, bgG = 0, bgB = 0, bgCount = 0;
+      const cW = Math.max(2, Math.floor(nw * 0.04));
+      const cH = Math.max(2, Math.floor(nh * 0.04));
+
+      for (let y = 0; y < nh; y += 2) {
+        for (let x = 0; x < nw; x += 2) {
+          if ((x < cW || x >= nw - cW) && (y < cH || y >= nh - cH)) {
+            const idx = (y * nw + x) * 4;
+            bgR += data[idx];
+            bgG += data[idx + 1];
+            bgB += data[idx + 2];
+            bgCount++;
+          }
+        }
+      }
+
+      if (bgCount > 10) {
+        bgR = Math.round(bgR / bgCount);
+        bgG = Math.round(bgG / bgCount);
+        bgB = Math.round(bgB / bgCount);
+      } else {
+        bgR = 250; bgG = 250; bgB = 250;
+      }
+      const bgBright = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
+
+      // 2. Count non-background pixels across rows and columns
+      const colHits = new Int32Array(nw);
+      const rowHits = new Int32Array(nh);
+      let totalHits = 0;
+
+      for (let y = 0; y < nh; y++) {
+        const rowOffset = y * nw;
+        for (let x = 0; x < nw; x++) {
+          const idx = (rowOffset + x) * 4;
+          const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+          const bright = 0.299 * r + 0.587 * g + 0.114 * b;
+          const brightDiff = Math.abs(bright - bgBright);
+          const colorDiff = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+
+          if (brightDiff > 16 || colorDiff > 24) {
+            colHits[x]++;
+            rowHits[y]++;
+            totalHits++;
+          }
+        }
+      }
+
+      if (totalHits < (nw * nh * 0.008)) return null;
+
+      // 3. Find primary contiguous card boundaries (ignoring thin detached edge lines/specks)
+      const threshCol = Math.max(4, Math.floor(nh * 0.05));
+      const threshRow = Math.max(4, Math.floor(nw * 0.05));
+      const gapX = Math.max(3, Math.floor(nw * 0.025));
+      const gapY = Math.max(3, Math.floor(nh * 0.025));
+
+      function findCoreSpan(hits, len, minV, maxGap) {
+        let bestS = -1, bestE = -1, bestM = -1;
+        let curS = -1, curE = -1, curM = 0, g = 0;
+        for (let i = 0; i < len; i++) {
+          if (hits[i] >= minV) {
+            if (curS === -1) { curS = i; curM = 0; }
+            curE = i; curM += hits[i]; g = 0;
+          } else if (curS !== -1) {
+            if (++g > maxGap) {
+              if (curM > bestM) { bestM = curM; bestS = curS; bestE = curE; }
+              curS = -1;
+            }
+          }
+        }
+        if (curS !== -1 && curM > bestM) { bestM = curM; bestS = curS; bestE = curE; }
+        return bestS !== -1 ? [bestS, bestE] : null;
+      }
+
+      const spanX = findCoreSpan(colHits, nw, threshCol, gapX);
+      const spanY = findCoreSpan(rowHits, nh, threshRow, gapY);
+      if (!spanX || !spanY) return null;
+
+      const minX = spanX[0], maxX = spanX[1];
+      const minY = spanY[0], maxY = spanY[1];
+
+      if (maxX <= minX + 20 || maxY <= minY + 20) return null;
+
+      return {
+        minX: Math.max(0, minX - 2),
+        minY: Math.max(0, minY - 2),
+        maxX: Math.min(nw - 1, maxX + 2),
+        maxY: Math.min(nh - 1, maxY + 2),
+        naturalW: nw,
+        naturalH: nh
+      };
+    }
+
     async function autoDetectCropBox() {
       const targetImg = document.getElementById('cropTargetImage');
       if (!targetImg || cropState.displayW <= 0) return;
+
+      // 1. Prefer native Google ML Kit + OpenCV card detection on Android
+      if (window.AndroidBridge && typeof window.AndroidBridge.detectCardBoundsBase64 === 'function') {
+        try {
+          showToast('✨ Detecting card edges with Google ML Kit + OpenCV...', 'info');
+          const nativeResStr = window.AndroidBridge.detectCardBoundsBase64(targetImg.src);
+          const data = JSON.parse(nativeResStr);
+          if (data.success && (data.corners || data.bbox)) {
+            const scaleX = cropState.displayW / (data.naturalW || cropState.naturalW);
+            const scaleY = cropState.displayH / (data.naturalH || cropState.naturalH);
+
+            if (data.corners && data.corners.length === 4) {
+              cropState.quad = data.corners.map(pt => ({
+                x: Math.max(0, Math.min(cropState.displayW, pt[0] * scaleX)),
+                y: Math.max(0, Math.min(cropState.displayH, pt[1] * scaleY))
+              }));
+            }
+            if (data.bbox && data.bbox.length === 4) {
+              const bX = Math.max(0, Math.min(cropState.displayW - 20, data.bbox[0] * scaleX));
+              const bY = Math.max(0, Math.min(cropState.displayH - 20, data.bbox[1] * scaleY));
+              const bW = Math.max(20, Math.min(cropState.displayW - bX, data.bbox[2] * scaleX));
+              const bH = Math.max(20, Math.min(cropState.displayH - bY, data.bbox[3] * scaleY));
+              cropState.box = { x: bX, y: bY, w: bW, h: bH };
+            }
+
+            if ((data.aspect || (cropState.box.w / Math.max(1, cropState.box.h))) >= 1.0) {
+              setCropRatio('id_landscape', false);
+            } else {
+              setCropRatio('id_portrait', false);
+            }
+            updateCropBoxDOM();
+            updateCropQuadDOM();
+            showToast('✨ Card edges detected with ML Kit + OpenCV!', 'success');
+            return;
+          }
+        } catch (nativeErr) {
+          console.warn('Native MLKit+OpenCV detectCardBounds error, falling back:', nativeErr);
+        }
+      }
+
+      // 2. Fallback: hardened client-side contiguous core detection (100% offline)
+      const detected = clientSideAutoDetectCrop(targetImg);
+      if (detected) {
+        const scaleX = cropState.displayW / detected.naturalW;
+        const scaleY = cropState.displayH / detected.naturalH;
+
+        const bX = Math.round(detected.minX * scaleX);
+        const bY = Math.round(detected.minY * scaleY);
+        const bW = Math.round((detected.maxX - detected.minX + 1) * scaleX);
+        const bH = Math.round((detected.maxY - detected.minY + 1) * scaleY);
+
+        cropState.box = { x: bX, y: bY, w: bW, h: bH };
+        cropState.quad = [
+          { x: bX, y: bY },
+          { x: bX + bW, y: bY },
+          { x: bX + bW, y: bY + bH },
+          { x: bX, y: bY + bH }
+        ];
+
+        const aspect = bW / bH;
+        if (aspect >= 1.05) {
+          setCropRatio('id_landscape', false);
+        } else {
+          setCropRatio('id_portrait', false);
+        }
+
+        updateCropBoxDOM();
+        updateCropQuadDOM();
+        showToast('✨ Blue dots tightly attached to photo edges!', 'success');
+        return;
+      }
 
       try {
         showToast('✨ Analyzing card borders with CamScanner auto-detection...', 'info');
@@ -15981,47 +16615,56 @@ function getApiUrl(endpoint) {
           Math.round(p.y * scaleY)
         ]);
 
-        try {
-          const res = await fetch(getApiUrl('/api/crop'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image: targetImg.src,
-              points: natPoints,
-              corner_curve_mm: curveMm
-            })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.image) {
-              const newCroppedImg = new Image();
-              newCroppedImg.onload = () => {
-                normalizeCardHorizontal(newCroppedImg, (finalImg) => {
-                  if (!state[side].rawImg) {
-                    state[side].rawImg = targetImg;
-                  }
-                  state[side].croppedImg = finalImg;
-                  state[side].cropBBox = data.bbox || null;
-                  state[side].cropCorners = natPoints;
-
-                  const aspect = finalImg.naturalWidth / finalImg.naturalHeight;
-                  state[side].aspectRatio = aspect;
-                  state[side].ratioName = 'Standard ID (85.6×54)';
-
-                  updateSheetLayout();
-                  renderSlot(side);
-                  document.getElementById(side + 'Controls').style.display = 'flex';
-                  document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Quad Cropped)`;
-                  closeManualCropModal();
-                  showToast(`Free-Form Quad crop applied with 100% precision!`, 'success');
-                });
-              };
-              newCroppedImg.src = data.image;
-              return;
-            }
+        let data = null;
+        if (window.AndroidBridge && typeof window.AndroidBridge.warpQuadBase64 === 'function') {
+          try {
+            const nativeWarp = window.AndroidBridge.warpQuadBase64(targetImg.src, JSON.stringify(natPoints));
+            data = JSON.parse(nativeWarp);
+          } catch (nativeErr) {
+            console.warn('Native OpenCV quad warp failed:', nativeErr);
           }
-        } catch (err) {
-          console.warn('Backend quad warp failed, falling back to bounding box:', err);
+        }
+        if (!data || !data.success || !data.image) {
+          try {
+            const res = await fetch(getApiUrl('/api/crop'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image: targetImg.src,
+                points: natPoints,
+                corner_curve_mm: curveMm
+              })
+            });
+            if (res.ok) {
+              data = await res.json();
+            }
+          } catch (err) {
+            console.warn('Backend quad warp failed, falling back to bounding box:', err);
+          }
+        }
+        if (data && data.success && data.image) {
+          const newCroppedImg = new Image();
+          newCroppedImg.onload = () => {
+            normalizeCardHorizontal(newCroppedImg, (finalImg) => {
+              if (!state[side].rawImg) {
+                state[side].rawImg = targetImg;
+              }
+              state[side]._hasAutoTrimmed = false;
+              state[side].croppedImg = finalImg;
+              state[side].cropBBox = data.bbox || null;
+              state[side].cropCorners = natPoints;
+
+              detectAndApplyAspect(side, finalImg, data.ratio_type, data.aspect);
+              updateSheetLayout();
+              renderSlot(side);
+              document.getElementById(side + 'Controls').style.display = 'flex';
+              document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Quad Cropped)`;
+              closeManualCropModal();
+              showToast(`Free-Form Quad crop applied with OpenCV precision!`, 'success');
+            });
+          };
+          newCroppedImg.src = data.image;
+          return;
         }
       }
 
@@ -16066,6 +16709,7 @@ function getApiUrl(endpoint) {
           if (!state[side].rawImg) {
             state[side].rawImg = targetImg;
           }
+          state[side]._hasAutoTrimmed = false;
           state[side].croppedImg = finalImg;
           state[side].cropBBox = [natX, natY, natW, natH];
           state[side].cropCorners = [
@@ -16075,10 +16719,7 @@ function getApiUrl(endpoint) {
             [natX, natY + natH]
           ];
 
-          const aspect = finalImg.naturalWidth / parseFloat(finalImg.naturalHeight);
-          state[side].aspectRatio = aspect;
-          state[side].ratioName = 'Standard ID (85.6×54)';
-
+          detectAndApplyAspect(side, finalImg);
           updateSheetLayout();
           renderSlot(side);
           document.getElementById(side + 'Controls').style.display = 'flex';
@@ -16214,6 +16855,11 @@ function getApiUrl(endpoint) {
       if (tab === 'preview') {
         setTimeout(() => {
           if (typeof autoFitZoom === 'function') autoFitZoom();
+          if (typeof updateSheetLayout === 'function') updateSheetLayout();
+          if (typeof renderSlot === 'function') {
+            renderSlot('front');
+            renderSlot('back');
+          }
           if (typeof drawCanvas === 'function') drawCanvas();
           if (typeof currentAppMode !== 'undefined') {
             if (currentAppMode === 'doc' && typeof renderCurrentDocPage === 'function') renderCurrentDocPage();
@@ -16298,6 +16944,24 @@ function getApiUrl(endpoint) {
         </div>
 
         
+        <!-- STANDALONE DIRECT EPSON MOBILE SCANNER (NO PC NEEDED) -->
+        <div style="background: rgba(16, 185, 129, 0.09); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 0.76rem; font-weight: 700; color: #34d399; text-transform: uppercase;">📱 Standalone Direct Mobile Scanning (No PC Needed)</span>
+            <span id="directPrinterStatusTag" style="font-size: 0.7rem; font-weight: 700; color: #34d399;">Direct ESC/I Ready</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="inputDirectPrinterIp" placeholder="10.237.2.251" style="flex: 1; background: #0b1329; border: 1px solid #10b981; border-radius: 8px; color: #ffffff; padding: 7px 10px; font-size: 0.85rem; font-weight: 600;">
+            <button class="mini-btn" onclick="autoDetectDirectPrinter()" style="background: linear-gradient(135deg, #059669, #047857); color: #ffffff; border: 1px solid #10b981; font-weight: 700; padding: 0 10px; border-radius: 8px;" title="Scan network to find Epson L3250">🔍 Auto-Detect</button>
+            <button class="mini-btn" onclick="saveDirectPrinterIp()" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; border: 1px solid #38bdf8; font-weight: 700; padding: 0 10px; border-radius: 8px;" title="Save IP">Save</button>
+          </div>
+          <div style="font-size: 0.72rem; color: #cbd5e1; margin-top: 6px; line-height: 1.4;">
+            • <strong>Mobile Hotspot:</strong> Keep Phone Hotspot ON (SSID: <code>HKMTECH</code>). Printer IP: <code>10.237.2.251</code>.<br>
+            • <strong>Wi-Fi Direct:</strong> Connect phone to <code>DIRECT-xx-EPSON-L3250</code> (IP: <code>192.168.223.1</code>).<br>
+            • <em>Works 100% autonomously on your Android phone without PC or USB cable!</em>
+          </div>
+        </div>
+
         <!-- SCANNER BRIDGE WI-FI IP CONFIGURATION -->
         <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">

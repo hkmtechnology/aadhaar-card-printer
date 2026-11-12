@@ -66,4 +66,9 @@ dependencies {
   implementation(libs.androidx.navigation3.ui)
   implementation(libs.androidx.navigation3.runtime)
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+
+  // Google ML Kit + OpenCV for Precision Card Detection & Cropping
+  implementation("com.google.mlkit:object-detection:17.0.2")
+  implementation("com.google.mlkit:text-recognition:16.0.1")
+  implementation("org.opencv:opencv:4.11.0")
 }

@@ -1,6 +1,10 @@
 package com.hkmtech.cardprinter
 
 import android.Manifest
+import android.graphics.BitmapFactory
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.pdf.PdfDocument
 import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
@@ -127,6 +131,7 @@ class MainActivity : ComponentActivity() {
 
         setupWebView()
         webView.loadUrl("file:///android_asset/index.html")
+        Thread { CardAutoCropper.ensureOpenCV() }.start()
         val filter = android.content.IntentFilter().apply {
             addAction("com.hkmtech.cardprinter.SWITCH_TAB")
             addAction("com.hkmtech.cardprinter.SWITCH_MODE")
@@ -303,6 +308,73 @@ class MainActivity : ComponentActivity() {
         fun isAndroidApp(): Boolean = true
 
         @JavascriptInterface
+        fun autoCropBase64(base64Data: String): String {
+            try {
+                val clean = if (base64Data.contains("base64,")) base64Data.substringAfter("base64,") else base64Data
+                val bytes = Base64.decode(clean, Base64.DEFAULT)
+                val res = CardAutoCropper.processScannedImage(bytes, "id_card", isPlatenScan = false)
+                val json = JSONObject().apply {
+                    put("success", res.success)
+                    put("cropped", res.isCropped)
+                    put("image", res.croppedImageDataUri)
+                    put("aspect", res.aspect.toDouble())
+                    put("ratio_type", res.ratioType)
+                    if (res.bbox != null) put("bbox", JSONArray(res.bbox))
+                    if (res.corners != null) {
+                        val cArr = JSONArray()
+                        res.corners.forEach { pt -> cArr.put(JSONArray().apply { put(pt[0]); put(pt[1]) }) }
+                        put("corners", cArr)
+                    }
+                    put("angle", res.angle.toDouble())
+                }
+                return json.toString()
+            } catch (e: Exception) {
+                return JSONObject().apply {
+                    put("success", false)
+                    put("error", e.message ?: "Crop failed")
+                }.toString()
+            }
+        }
+
+        @JavascriptInterface
+        fun detectCardBoundsBase64(base64Data: String): String {
+            return try {
+                val clean = if (base64Data.contains("base64,")) base64Data.substringAfter("base64,") else base64Data
+                val bytes = Base64.decode(clean, Base64.DEFAULT)
+                CardAutoCropper.detectCardBoundsJson(bytes)
+            } catch (e: Exception) {
+                JSONObject().apply {
+                    put("success", false)
+                    put("error", e.message ?: "Detect bounds failed")
+                }.toString()
+            }
+        }
+
+        @JavascriptInterface
+        fun warpQuadBase64(base64Data: String, pointsJson: String): String {
+            return try {
+                val clean = if (base64Data.contains("base64,")) base64Data.substringAfter("base64,") else base64Data
+                val bytes = Base64.decode(clean, Base64.DEFAULT)
+                val res = CardAutoCropper.warpQuadBase64(bytes, pointsJson)
+                if (res != null) {
+                    JSONObject().apply {
+                        put("success", true)
+                        put("image", res.croppedImageDataUri)
+                        put("aspect", res.aspect.toDouble())
+                        put("ratio_type", res.ratioType)
+                    }.toString()
+                } else {
+                    JSONObject().put("success", false).put("error", "Quad warp failed").toString()
+                }
+            } catch (e: Exception) {
+                JSONObject().apply {
+                    put("success", false)
+                    put("error", e.message ?: "Quad warp error")
+                }.toString()
+            }
+        }
+
+        @JavascriptInterface
         fun showToast(message: String) {
             runOnUiThread {
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -347,95 +419,152 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
-        fun scanDirectOrBridge(side: String, autoCrop: Boolean, dpi: Int, docType: String = "id_card"): String {
-            val dev = DeviceDetector.detect(context)
-            val printerIp = dev.printerIp
-            val candidates = DeviceDetector.getCandidateBridgeIps(context)
+        fun autoDetectPrinterIp(): String {
+            val foundIp = EpsonDirectScanner.findHotspotPrinterIp(context)
+            val reachable = EpsonDirectScanner.isPrinterOnlineQuick(foundIp)
+            DeviceDetector.setPrinterIp(foundIp)
+            val json = org.json.JSONObject().apply {
+                put("success", reachable)
+                put("ip", foundIp)
+                put("is_online", reachable)
+                put("mode", if (foundIp.startsWith("192.168.223")) "Wi-Fi Direct" else "Hotspot / Wi-Fi")
+            }
+            return json.toString()
+        }
 
-            Log.i("HKM_SCAN", "Initiating scan for side=$side, autoCrop=$autoCrop, dpi=$dpi, docType=$docType. Candidates: $candidates, printerIp: $printerIp")
-
-            // 1. Fast check if PC Scanner Bridge is actively running on any candidate host
-            for (bridgeIp in candidates) {
-                if (DeviceDetector.isPortOpen(bridgeIp, 8767, 500)) {
-                    Log.i("HKM_SCAN", "Found active PC scanner bridge at $bridgeIp:8767, executing scan...")
-                    try {
-                        val url = java.net.URL("http://$bridgeIp:8767/api/scan")
-                        val conn = url.openConnection() as java.net.HttpURLConnection
-                        conn.requestMethod = "POST"
-                        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                        conn.connectTimeout = 3000
-                        conn.readTimeout = 120000
-                        conn.doOutput = true
-                        conn.doInput = true
-
-                        val payload = JSONObject().apply {
-                            put("side", side)
-                            put("autocrop", autoCrop)
-                            put("dpi", dpi)
-                            put("doc_type", docType)
-                        }.toString()
-
-                        conn.outputStream.use { os ->
-                            os.write(payload.toByteArray(Charsets.UTF_8))
-                        }
-
-                        val code = conn.responseCode
-                        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                        val response = stream.bufferedReader().use { it.readText() }
-                        val json = JSONObject(response)
-                        if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
-                            Log.i("HKM_SCAN", "Scan successfully returned from bridge at $bridgeIp:8767")
-                            return response
-                        }
-                    } catch (e: Exception) {
-                        Log.w("HKM_SCAN", "PC bridge scan attempt failed at $bridgeIp: ${e.message}")
+        @JavascriptInterface
+        fun scanDirectOrBridgeAsync(side: String, autoCrop: Boolean, dpi: Int, docType: String, colorMode: String, callbackId: String) {
+            Thread {
+                try {
+                    val resultJson = scanDirectOrBridge(side, autoCrop, dpi, docType, colorMode)
+                    runOnUiThread {
+                        val b64 = Base64.encodeToString(resultJson.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+                        webView.evaluateJavascript("if (typeof window.__onScanBridgeResult === 'function') { window.__onScanBridgeResult('$callbackId', decodeURIComponent(escape(atob('$b64')))); }", null)
+                    }
+                } catch (e: Exception) {
+                    val errJson = JSONObject().apply {
+                        put("success", false)
+                        put("error", e.message ?: "Scan execution failed")
+                    }.toString()
+                    val b64 = Base64.encodeToString(errJson.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+                    runOnUiThread {
+                        webView.evaluateJavascript("if (typeof window.__onScanBridgeResult === 'function') { window.__onScanBridgeResult('$callbackId', decodeURIComponent(escape(atob('$b64')))); }", null)
                     }
                 }
-            }
+            }.start()
+        }
 
-                        // 1b. Direct HTTP attempt to 127.0.0.1 (ADB Reverse) in case socket probe was restricted
-            try {
-                val url = java.net.URL("http://127.0.0.1:8767/api/scan")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                conn.connectTimeout = 2500
-                conn.readTimeout = 120000
-                conn.doOutput = true
-                conn.doInput = true
+        @JavascriptInterface
+        @JvmOverloads
+        fun scanDirectOrBridge(side: String, autoCrop: Boolean, dpi: Int, docType: String = "id_card", colorMode: String = "color"): String {
+            val dev = DeviceDetector.detect(context)
+            var printerIp = dev.printerIp
+            val candidates = DeviceDetector.getCandidateBridgeIps(context)
 
-                val payload = JSONObject().apply {
-                    put("side", side)
-                    put("autocrop", autoCrop)
-                    put("dpi", dpi)
-                    put("doc_type", docType)
-                }.toString()
+            Log.i("HKM_SCAN", "Initiating scan for side=$side, autoCrop=$autoCrop, dpi=$dpi, docType=$docType, colorMode=$colorMode. Candidates: $candidates, printerIp: $printerIp, isWifiDirect: ${dev.isWifiDirect}")
 
-                conn.outputStream.use { os ->
-                    os.write(payload.toByteArray(Charsets.UTF_8))
+            // If connected via Wi-Fi Direct or directly to printer IP, PC bridge is NOT on this link.
+            // Skip PC bridge probing entirely and scan directly!
+            val isDirectOnly = dev.isWifiDirect || printerIp.startsWith("192.168.223.") || printerIp.startsWith("192.168.192.")
+
+            if (!isDirectOnly) {
+                // 1. Fast check if PC Scanner Bridge is actively running on any candidate host
+                for (bridgeIp in candidates) {
+                    if (DeviceDetector.isPortOpen(bridgeIp, 8767, 80)) {
+                        Log.i("HKM_SCAN", "Found active PC scanner bridge at $bridgeIp:8767, executing scan...")
+                        try {
+                            val url = java.net.URL("http://$bridgeIp:8767/api/scan")
+                            val conn = url.openConnection() as java.net.HttpURLConnection
+                            conn.requestMethod = "POST"
+                            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                            conn.connectTimeout = 1500
+                            conn.readTimeout = 120000
+                            conn.doOutput = true
+                            conn.doInput = true
+
+                            val payload = JSONObject().apply {
+                                put("side", side)
+                                put("autocrop", autoCrop)
+                                put("dpi", dpi)
+                                put("doc_type", docType)
+                                put("color_mode", colorMode)
+                            }.toString()
+
+                            conn.outputStream.use { os ->
+                                os.write(payload.toByteArray(Charsets.UTF_8))
+                            }
+
+                            val code = conn.responseCode
+                            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+                            val response = stream.bufferedReader().use { it.readText() }
+                            val json = JSONObject(response)
+                            if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
+                                Log.i("HKM_SCAN", "Scan successfully returned from bridge at $bridgeIp:8767")
+                                return response
+                            }
+                        } catch (e: Exception) {
+                            Log.w("HKM_SCAN", "PC bridge scan attempt failed at $bridgeIp: ${e.message}")
+                        }
+                    }
                 }
 
-                val code = conn.responseCode
-                val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                val response = stream.bufferedReader().use { it.readText() }
-                val json = JSONObject(response)
-                if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
-                    Log.i("HKM_SCAN", "Scan successfully returned from 127.0.0.1:8767 direct fallback")
-                    return response
+                // 1b. Direct HTTP attempt to 127.0.0.1 (ADB Reverse) in case socket probe was restricted
+                try {
+                    val url = java.net.URL("http://127.0.0.1:8767/api/scan")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    conn.connectTimeout = 500
+                    conn.readTimeout = 120000
+                    conn.doOutput = true
+                    conn.doInput = true
+
+                    val payload = JSONObject().apply {
+                        put("side", side)
+                        put("autocrop", autoCrop)
+                        put("dpi", dpi)
+                        put("doc_type", docType)
+                        put("color_mode", colorMode)
+                    }.toString()
+
+                    conn.outputStream.use { os ->
+                        os.write(payload.toByteArray(Charsets.UTF_8))
+                    }
+
+                    val code = conn.responseCode
+                    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+                    val response = stream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(response)
+                    if (json.optBoolean("success", false) || json.optBoolean("aborted", false)) {
+                        Log.i("HKM_SCAN", "Scan successfully returned from 127.0.0.1:8767 direct fallback")
+                        return response
+                    }
+                } catch (e: Exception) {
+                    Log.d("HKM_SCAN", "127.0.0.1 direct fallback skipped: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Log.d("HKM_SCAN", "127.0.0.1 direct fallback skipped: ${e.message}")
             }
 
-            // 2. Direct Wi-Fi scan fallback
-            Log.i("HKM_SCAN", "Running direct Wi-Fi scan to Epson printer at $printerIp...")
+            // 2. Direct Mobile Scan (NO PC REQUIRED!)
+            var isReachable = EpsonDirectScanner.isPrinterOnlineQuick(printerIp)
+
+            if (!isReachable) {
+                Log.i("HKM_SCAN", "Printer not reachable at cached IP $printerIp. Triggering auto-discovery...")
+                val discovered = EpsonDirectScanner.findHotspotPrinterIp(context, printerIp)
+                if (discovered != printerIp) {
+                    printerIp = discovered
+                    DeviceDetector.setPrinterIp(discovered)
+                    isReachable = EpsonDirectScanner.isPrinterOnlineQuick(printerIp)
+                }
+            }
+
+            Log.i("HKM_SCAN", "Running direct autonomous scan to Epson printer at $printerIp (reachable=$isReachable)...")
             try {
-                val rawBytes = EpsonDirectScanner.scanViaEscl(printerIp, dpi)
+                val rawBytes = EpsonDirectScanner.scanDirect(printerIp, dpi, colorMode)
                 if (rawBytes != null && rawBytes.isNotEmpty()) {
-                    Log.i("HKM_SCAN", "Direct scan succeeded, received ${rawBytes.size} bytes from Epson L3250")
+                    Log.i("HKM_SCAN", "Direct autonomous scan succeeded, received ${rawBytes.size} bytes from Epson L3250")
 
                     if (autoCrop && docType != "a4") {
-                        val cropRes = CardAutoCropper.processScannedImage(rawBytes, docType)
+                        val cropRes = CardAutoCropper.processScannedImage(rawBytes, docType, isPlatenScan = true)
                         val resp = JSONObject().apply {
                             put("success", true)
                             put("image", cropRes.croppedImageDataUri)
@@ -445,6 +574,11 @@ class MainActivity : ComponentActivity() {
                             put("ratio_type", cropRes.ratioType)
                             if (cropRes.bbox != null) {
                                 put("bbox", org.json.JSONArray(cropRes.bbox))
+                            }
+                            if (cropRes.corners != null) {
+                                val cArr = JSONArray()
+                                cropRes.corners.forEach { pt -> cArr.put(JSONArray().apply { put(pt[0]); put(pt[1]) }) }
+                                put("corners", cArr)
                             }
                             put("source", "epson_direct_mobile")
                         }
@@ -466,7 +600,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("HKM_SCAN", "Direct eSCL scan exception: ${e.message}", e)
+                Log.e("HKM_SCAN", "Direct mobile scan exception: ${e.message}", e)
             }
 
             val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
@@ -486,10 +620,17 @@ class MainActivity : ComponentActivity() {
 
             return JSONObject().apply {
                 put("success", false)
-                put("error", "Scan Connection Error: Could not reach Epson Printer or PC Bridge.\n\n" +
-                    "• USB Mode (Recommended): Keep USB cable plugged in. Enable USB Debugging on your phone. PC server will auto-connect.\n" +
-                    "• Wi-Fi Mode: Phone Wi-Fi IP is $phoneIp. Connect phone to the same Wi-Fi router as your PC (PC IP: 192.168.31.156).\n" +
-                    "• Epson Printer: Make sure Epson L3250 is ON and Start_App.bat (server.py) is running on your PC.")
+                put("error", "Direct Mobile Scanner: Could not reach Epson L3250 ($printerIp).\n\n" +
+                    "• Standalone Mobile Hotspot Mode:\n" +
+                    "  1. Turn ON Mobile Hotspot on this phone (SSID: 'HKMTECH').\n" +
+                    "  2. Make sure Epson L3250 is ON and its Wi-Fi light is steady.\n\n" +
+                    "• Wi-Fi Direct Mode:\n" +
+                    "  1. Connect your phone's Wi-Fi to 'DIRECT-xx-EPSON-L3250' (IP: 192.168.223.1).\n\n" +
+                    "• Current Network:\n" +
+                    "  Phone Wi-Fi IP: $phoneIp • Target Printer IP: $printerIp\n" +
+                    "  Tap '⚙️ Connection Settings' in the top bar to auto-detect or enter your printer's IP.\n\n" +
+                    "• Note: If the printer's power LED is currently blinking from a previous interrupted scan, turn the printer OFF and ON once to reset it.\n\n" +
+                    "(No PC or computer is required!)")
             }.toString()
         }
 
@@ -511,7 +652,7 @@ class MainActivity : ComponentActivity() {
         fun scanFromEpsonDirect(dpi: Int, docType: String): String? {
             val dev = DeviceDetector.detect(context)
             val rawBytes = EpsonDirectScanner.scanViaEscl(dev.printerIp, dpi) ?: return null
-            val cropRes = CardAutoCropper.processScannedImage(rawBytes, docType)
+            val cropRes = CardAutoCropper.processScannedImage(rawBytes, docType, isPlatenScan = true)
             return cropRes.croppedImageDataUri
         }
 
@@ -532,14 +673,15 @@ class MainActivity : ComponentActivity() {
                 json.put("wifi_ssid", dev.wifiSsid)
                 json.put("printer_name", dev.printerName)
                 json.put("model_number", dev.modelNumber)
-                json.put("bridge_ip", getScannerBridgeIp())
+                json.put("bridge_ip", dev.bridgeIp)
                 json.put("printer_ip", dev.printerIp)
                 json.put("port", dev.port)
                 json.put("printer_connection", dev.port)
                 json.put("printer_status", if (dev.isReady) "Ready" else "Offline")
                 json.put("scanner_name", dev.scannerName)
                 json.put("scanner_online", dev.isReady)
-                val statusText = if (dev.isReady) "Ready on Hotspot (${dev.printerIp})" else "Offline"
+                val connType = if (dev.isWifiDirect) "Wi-Fi Direct" else "Hotspot / Wi-Fi"
+                val statusText = if (dev.isReady) "Ready on $connType (${dev.printerIp})" else "Offline"
                 json.put("scanner_message", "${dev.modelNumber} $statusText")
                 json.put("is_wifi_direct", dev.isWifiDirect)
                 json.put("is_usb", dev.connectionType.contains("USB", ignoreCase = true))
@@ -550,79 +692,61 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        @JvmOverloads
         fun printDirect(base64Data: String, copies: Int = 1, title: String = "HKM_Card_Print"): String {
-            val candidates = DeviceDetector.getCandidateBridgeIps(context)
-            val bridgeIps = mutableListOf("127.0.0.1")
-            for (c in candidates) {
-                if (!bridgeIps.contains(c)) bridgeIps.add(c)
-            }
-
-            for (ip in bridgeIps) {
-                try {
-                    val url = java.net.URL("http://$ip:8767/api/print_silent")
-                    val conn = url.openConnection() as java.net.HttpURLConnection
-                    conn.requestMethod = "POST"
-                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                    conn.connectTimeout = 3000
-                    conn.readTimeout = 45000
-                    conn.doOutput = true
-                    conn.doInput = true
-
-                    val payload = JSONObject().apply {
-                        put("image", base64Data)
-                        put("copies", copies)
-                        put("title", title)
-                    }.toString()
-
-                    conn.outputStream.use { os ->
-                        os.write(payload.toByteArray(Charsets.UTF_8))
-                    }
-
-                    val code = conn.responseCode
-                    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                    val response = stream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(response)
-                    if (json.optBoolean("success", false)) {
-                        val msg = json.optString("message", "Document sent directly to Epson L3250!")
-                        runOnUiThread {
-                            Toast.makeText(context, "🖨️ $msg", Toast.LENGTH_LONG).show()
-                        }
-                        return response
-                    }
-                } catch (e: Exception) {
-                    Log.w("HKM_PRINT", "Direct print attempt to $ip:8767 failed: ${e.message}")
-                }
-            }
-
-            // Bridge not reachable: ask user if they want to fallback to Android System Print
-            runOnUiThread {
-                android.app.AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Epson L3250 Direct Print")
-                    .setMessage("Could not connect to PC Bridge for direct silent printing.\n\nMake sure the PC Bridge is connected via USB/Wi-Fi, or tap 'System Dialog' to use Android's print spooler.")
-                    .setPositiveButton("System Dialog") { _, _ ->
-                        printPdfSystem(base64Data, title)
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
-            }
+            // When printing from the mobile app, ALWAYS open the phone's native Android Print Dialog
+            Log.i("HKM_PRINT", "printDirect called on mobile. Launching native phone print dialog...")
+            printPdfSystem(base64Data, title)
             return JSONObject().apply {
-                put("success", false)
-                put("error", "PC Bridge not reachable")
+                put("success", true)
+                put("message", "Opening phone print dialog")
             }.toString()
         }
 
         @JavascriptInterface
         fun printPdf(base64Data: String, jobName: String) {
-            printDirect(base64Data, 1, jobName)
+            printPdfSystem(base64Data, jobName)
         }
 
         @JavascriptInterface
         fun printPdfSystem(base64Data: String, jobName: String) {
             runOnUiThread {
                 try {
-                    val pdfBytes = Base64.decode(base64Data, Base64.DEFAULT)
+                    val rawClean = if (base64Data.contains("base64,")) {
+                        base64Data.substringAfter("base64,")
+                    } else {
+                        base64Data
+                    }.trim()
+
+                    val bytes = Base64.decode(rawClean, Base64.DEFAULT)
+                    val isPdf = bytes.size > 4 &&
+                                bytes[0] == '%'.code.toByte() &&
+                                bytes[1] == 'P'.code.toByte() &&
+                                bytes[2] == 'D'.code.toByte() &&
+                                bytes[3] == 'F'.code.toByte()
+
                     val pdfFile = File(context.cacheDir, "print_job_${System.currentTimeMillis()}.pdf")
-                    FileOutputStream(pdfFile).use { it.write(pdfBytes) }
+                    if (isPdf) {
+                        FileOutputStream(pdfFile).use { it.write(bytes) }
+                    } else {
+                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        if (bmp != null) {
+                            val pdfDoc = PdfDocument()
+                            val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 at 72 pt
+                            val page = pdfDoc.startPage(pageInfo)
+                            val canvas = page.canvas
+                            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+                            canvas.drawBitmap(bmp, null, RectF(0f, 0f, 595f, 842f), paint)
+                            pdfDoc.finishPage(page)
+                            FileOutputStream(pdfFile).use { out ->
+                                pdfDoc.writeTo(out)
+                            }
+                            pdfDoc.close()
+                            bmp.recycle()
+                        } else {
+                            throw IllegalArgumentException("Could not decode document bytes for printing")
+                        }
+                    }
 
                     val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
                     val printAdapter = PdfPrintDocumentAdapter(pdfFile)
@@ -633,7 +757,9 @@ class MainActivity : ComponentActivity() {
                         .build()
 
                     printManager.print(jobName, printAdapter, printAttributes)
+                    Log.i("HKM_PRINT", "Native phone print dialog launched successfully for job: $jobName")
                 } catch (e: Exception) {
+                    Log.e("HKM_PRINT", "printPdfSystem error: ${e.message}", e)
                     Toast.makeText(context, "Print Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }

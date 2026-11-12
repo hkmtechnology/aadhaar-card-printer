@@ -11,10 +11,7 @@ REM 1. Check if server is already running and responding to HTTP
 curl.exe -s --max-time 1 http://127.0.0.1:8767/api/settings >nul 2>&1
 if not errorlevel 1 (
     echo [OK] Scanner bridge server is already active on http://127.0.0.1:8767
-    goto REM Configure ADB reverse for mobile app if phone is plugged in
-adb reverse tcp:8767 tcp:8767 >nul 2>&1
-
-:launch_browser
+    goto :server_ready
 )
 
 REM 2. Determine Python launcher
@@ -62,25 +59,16 @@ exit /b 1
 echo [OK] Scanner bridge server is active on http://127.0.0.1:8767
 echo.
 
-REM Configure ADB reverse for mobile app if phone is plugged in
-adb reverse tcp:8767 tcp:8767 >nul 2>&1
+REM Configure ADB reverse for mobile app if phone is plugged in via USB
+where adb >nul 2>&1
+if not errorlevel 1 (
+    adb reverse tcp:8767 tcp:8767 >nul 2>&1
+)
 
-:launch_browser
 set "TARGET_URL=http://127.0.0.1:8767/index.html"
-echo Launching application window...
+echo Launching application window in Chrome / Edge...
 
-REM 1. Try Microsoft Edge App Mode
-if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" (
-    start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --app="%TARGET_URL%" --window-size=1280,840
-    exit /b 0
-)
-
-if exist "C:\Program Files\Microsoft\Edge\Application\msedge.exe" (
-    start "" "C:\Program Files\Microsoft\Edge\Application\msedge.exe" --app="%TARGET_URL%" --window-size=1280,840
-    exit /b 0
-)
-
-REM 2. Try Google Chrome App Mode
+REM 1. Try Google Chrome App Mode (Preferred active browser)
 if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
     start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app="%TARGET_URL%" --window-size=1280,840
     exit /b 0
@@ -88,6 +76,17 @@ if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
 
 if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" (
     start "" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --app="%TARGET_URL%" --window-size=1280,840
+    exit /b 0
+)
+
+REM 2. Try Microsoft Edge App Mode
+if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" (
+    start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --app="%TARGET_URL%" --window-size=1280,840
+    exit /b 0
+)
+
+if exist "C:\Program Files\Microsoft\Edge\Application\msedge.exe" (
+    start "" "C:\Program Files\Microsoft\Edge\Application\msedge.exe" --app="%TARGET_URL%" --window-size=1280,840
     exit /b 0
 )
 
