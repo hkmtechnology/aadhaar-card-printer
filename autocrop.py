@@ -755,6 +755,10 @@ def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=
 
     orig_h, orig_w = img_bgr.shape[:2]
     total_area = orig_w * orig_h
+    short_side = min(orig_w, orig_h)
+    long_side = max(orig_w, orig_h)
+    is_platen_scan = (short_side >= 350 and 1.25 <= (long_side / float(max(1, short_side))) <= 1.62)
+    est_px_per_mm = (short_side / 210.0) if is_platen_scan else None
 
     # If explicitly requesting A4 page:
     if doc_type == "a4":
@@ -770,6 +774,10 @@ def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=
             "aspect": cropped_pil.width / float(cropped_pil.height),
             "width": cropped_pil.width,
             "height": cropped_pil.height,
+            "width_mm": round(cropped_pil.width / est_px_per_mm, 2) if est_px_per_mm else 210.0,
+            "height_mm": round(cropped_pil.height / est_px_per_mm, 2) if est_px_per_mm else 297.0,
+            "platen_width": orig_w,
+            "platen_height": orig_h,
             "is_portrait": is_port
         }
         return cropped_pil, True, (border_trim, border_trim, cropped_pil.width, cropped_pil.height), info
@@ -864,6 +872,10 @@ def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=
             "aspect": cropped_pil.width / float(cropped_pil.height),
             "width": cropped_pil.width,
             "height": cropped_pil.height,
+            "width_mm": round(cropped_pil.width / est_px_per_mm, 2) if est_px_per_mm else 210.0,
+            "height_mm": round(cropped_pil.height / est_px_per_mm, 2) if est_px_per_mm else 297.0,
+            "platen_width": orig_w,
+            "platen_height": orig_h,
             "is_portrait": is_port
         }
         return cropped_pil, True, (border_trim, border_trim, cropped_pil.width, cropped_pil.height), info
@@ -929,6 +941,10 @@ def detect_and_crop_document(image_input, doc_type="auto", padding_px=0, deskew=
             "aspect": aspect,
             "width": cropped_pil.width,
             "height": cropped_pil.height,
+            "width_mm": round(cropped_pil.width / est_px_per_mm, 2) if est_px_per_mm else None,
+            "height_mm": round(cropped_pil.height / est_px_per_mm, 2) if est_px_per_mm else None,
+            "platen_width": orig_w,
+            "platen_height": orig_h,
             "is_portrait": is_portrait
         }
         return cropped_pil, True, (bx, by, bw, bh), info

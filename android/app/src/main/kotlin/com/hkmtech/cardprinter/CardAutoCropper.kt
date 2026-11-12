@@ -2,6 +2,8 @@ package com.hkmtech.cardprinter
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Rect
 import android.util.Base64
 import android.util.Log
@@ -10,6 +12,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.json.JSONArray
 import org.json.JSONObject
@@ -26,6 +29,7 @@ import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import java.io.ByteArrayOutputStream
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -33,8 +37,10 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class CropResult(
     val success: Boolean,
@@ -45,7 +51,10 @@ data class CropResult(
     val ratioType: String,
     val bbox: IntArray?,
     val corners: List<IntArray>? = null,
-    val angle: Float = 0f
+    val angle: Float = 0f,
+    val widthMm: Float = 0f,
+    val heightMm: Float = 0f,
+    val docType: String = "id_card"
 )
 
 /**
@@ -123,9 +132,14 @@ object CardAutoCropper {
                 isCropped = false,
                 aspect = 0.707f,
                 ratioType = "a4",
-                bbox = null
+                bbox = null,
+                widthMm = 210.0f,
+                heightMm = 297.0f,
+                docType = "a4"
             )
         }
+
+        val isSmallDocMode = (docType == "small" || docType == "auto")
 
         var originalBmp: Bitmap? = null
         try {
@@ -133,7 +147,7 @@ object CardAutoCropper {
                 inPreferredConfig = Bitmap.Config.ARGB_8888
             }
             originalBmp = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, opts)
-                ?: return fallbackResult(rawDataUri, 1.5858f, "standard_landscape")
+                ?: return fallbackResult(rawDataUri, if (isSmallDocMode) 0.707f else 1.5858f, if (isSmallDocMode) "a4" else "standard_landscape", docType)
 
             val origW = originalBmp.width
             val origH = originalBmp.height
@@ -144,7 +158,8 @@ object CardAutoCropper {
                 return fallbackResult(
                     rawDataUri,
                     fallbackAspect,
-                    if (fallbackAspect < 1.0f) "standard_portrait" else "standard_landscape"
+                    if (fallbackAspect < 1.0f) "standard_portrait" else "standard_landscape",
+                    docType
                 )
             }
 
@@ -152,22 +167,77 @@ object CardAutoCropper {
             val pxPerMm = if (detectedPlaten) {
                 min(origW, origH).toFloat() / PLATEN_SHORT_SIDE_MM
             } else {
-                // Approximate card scale for general uploads/photos (~54mm short card edge if tightly framed)
+                // Approximate scale for standalone uploaded photos
                 (min(origW, origH).toFloat() / 68.0f).coerceAtLeast(2.0f)
             }
 
-            Log.i(TAG, "Starting OpenCV+MLKit crop: image=${origW}x${origH}, platen=$detectedPlaten, pxPerMm=$pxPerMm")
+            Log.i(TAG, "Starting OpenCV+MLKit crop: docType=$docType, image=${origW}x${origH}, platen=$detectedPlaten, pxPerMm=$pxPerMm")
 
-            val detection = detectCardGeometry(originalBmp, origW, origH, pxPerMm, detectedPlaten)
+            val detection = detectCardGeometry(originalBmp, origW, origH, pxPerMm, detectedPlaten, docMode = isSmallDocMode)
                 ?: run {
-                    Log.w(TAG, "No isolated ID card contour detected; returning full image")
+                    Log.w(TAG, "No isolated contour detected ($docType); returning full image")
                     val origAspect = origW.toFloat() / max(1, origH).toFloat()
-                    return fallbackResult(rawDataUri, origAspect, if (origAspect < 1.0f) "standard_portrait" else "standard_landscape")
+                    val resolvedType = if (docType == "auto") "a4" else docType
+                    val wMm = if (detectedPlaten) origW / pxPerMm else 0f
+                    val hMm = if (detectedPlaten) origH / pxPerMm else 0f
+                    return fallbackResult(
+                        rawDataUri,
+                        origAspect,
+                        if (resolvedType == "a4") "a4" else if (origAspect < 1.0f) "portrait" else "landscape",
+                        resolvedType,
+                        wMm,
+                        hMm
+                    )
                 }
 
-            val croppedBmp = extractDeskewedAndTightTrimmedCard(originalBmp, detection)
+            val detAreaRatio = (detection.shortPxOrig * detection.longPxOrig) / max(1f, (origW * origH).toFloat())
+            val isAutoFullA4 = (docType == "auto") && (
+                detAreaRatio >= 0.55f ||
+                ((detection.shortPxOrig / pxPerMm) > 165f && (detection.longPxOrig / pxPerMm) > 230f)
+            )
+            if (isAutoFullA4) {
+                val trim = max(4, (min(origW, origH) * 0.006f).roundToInt())
+                val trimW = (origW - trim * 2).coerceAtLeast(32)
+                val trimH = (origH - trim * 2).coerceAtLeast(32)
+                val fullCropped = Bitmap.createBitmap(originalBmp, trim, trim, trimW, trimH)
+                originalBmp.recycle()
+                originalBmp = null
+                val (uprightFull, flippedFull) = ensureUprightOrientation180(fullCropped)
+                val fW = uprightFull.width
+                val fH = uprightFull.height
+                val fAspect = fW.toFloat() / max(1, fH).toFloat()
+                val outStream = ByteArrayOutputStream()
+                uprightFull.compress(Bitmap.CompressFormat.JPEG, 95, outStream)
+                uprightFull.recycle()
+                val a4Uri = "data:image/jpeg;base64,${Base64.encodeToString(outStream.toByteArray(), Base64.NO_WRAP)}"
+                val fWidthMm = if (detectedPlaten) fW / pxPerMm else 210.0f
+                val fHeightMm = if (detectedPlaten) fH / pxPerMm else 297.0f
+                return CropResult(
+                    success = true,
+                    croppedImageDataUri = a4Uri,
+                    rawImageDataUri = rawDataUri,
+                    isCropped = true,
+                    aspect = fAspect,
+                    ratioType = "a4",
+                    bbox = intArrayOf(trim, trim, trimW, trimH),
+                    angle = if (flippedFull) 180f else 0f,
+                    widthMm = fWidthMm,
+                    heightMm = fHeightMm,
+                    docType = "a4"
+                )
+            }
+
+            val rawCroppedBmp = extractDeskewedAndTightTrimmedCard(
+                originalBmp,
+                detection,
+                enforceCardSize = !isSmallDocMode
+            )
             originalBmp.recycle()
             originalBmp = null
+
+            // Stage 4: Final 0° vs 180° ML Kit upright readability check — flips completely inverted cards/slips right-side up
+            val (croppedBmp, flipped180) = ensureUprightOrientation180(rawCroppedBmp)
+            val finalAngle = if (flipped180) normalizeDeg(detection.alignAngleDeg + 180f) else detection.alignAngleDeg
 
             val finalW = croppedBmp.width
             val finalH = croppedBmp.height
@@ -178,7 +248,14 @@ object CardAutoCropper {
             croppedBmp.recycle()
 
             val croppedDataUri = "data:image/jpeg;base64,${Base64.encodeToString(outStream.toByteArray(), Base64.NO_WRAP)}"
-            val ratioType = if (finalAspect < 1.0f) "standard_portrait" else "standard_landscape"
+            val resolvedDocType = if (isSmallDocMode) "small" else "id_card"
+            val ratioType = if (isSmallDocMode) {
+                if (finalAspect < 1.0f) "portrait" else "landscape"
+            } else {
+                if (finalAspect < 1.0f) "standard_portrait" else "standard_landscape"
+            }
+            val finalWidthMm = if (detectedPlaten) finalW / pxPerMm else 0f
+            val finalHeightMm = if (detectedPlaten) finalH / pxPerMm else 0f
 
             val bbox = cornersToBoundingRect(detection.origCorners, origW, origH)
             val cornerList = detection.origCorners.map { pt ->
@@ -190,7 +267,8 @@ object CardAutoCropper {
 
             Log.i(
                 TAG,
-                "OpenCV+MLKit Crop SUCCESS: ${finalW}x${finalH} (aspect=$finalAspect, $ratioType), alignAngle=${detection.alignAngleDeg}°"
+                "OpenCV+MLKit Crop SUCCESS ($resolvedDocType): ${finalW}x${finalH} (~${finalWidthMm.roundToInt()}x${finalHeightMm.roundToInt()}mm, aspect=$finalAspect, $ratioType), alignAngle=${finalAngle}°" +
+                    if (flipped180) " [180° inverted-text flip applied]" else ""
             )
 
             return CropResult(
@@ -202,11 +280,14 @@ object CardAutoCropper {
                 ratioType = ratioType,
                 bbox = intArrayOf(bbox.left, bbox.top, bbox.width(), bbox.height()),
                 corners = cornerList,
-                angle = detection.alignAngleDeg
+                angle = finalAngle,
+                widthMm = finalWidthMm,
+                heightMm = finalHeightMm,
+                docType = resolvedDocType
             )
         } catch (e: Exception) {
             Log.e(TAG, "CardAutoCropper error: ${e.message}", e)
-            return fallbackResult(rawDataUri, 1.5858f, "standard_landscape")
+            return fallbackResult(rawDataUri, if (isSmallDocMode) 0.707f else 1.5858f, if (isSmallDocMode) "a4" else "standard_landscape", docType)
         } finally {
             try {
                 originalBmp?.takeIf { !it.isRecycled }?.recycle()
@@ -327,15 +408,20 @@ object CardAutoCropper {
                 Core.BORDER_REPLICATE
             )
 
-            val outBmp = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
-            Utils.matToBitmap(dstMat, outBmp)
+            val warpedBmp = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(dstMat, warpedBmp)
+            val (outBmp, alignedAngle) = alignBitmapByText(warpedBmp, allowFineDeskew = true)
 
+            val alignedW = outBmp.width
+            val alignedH = outBmp.height
             val outStream = ByteArrayOutputStream()
             outBmp.compress(Bitmap.CompressFormat.JPEG, 95, outStream)
             outBmp.recycle()
 
             val dataUri = "data:image/jpeg;base64,${Base64.encodeToString(outStream.toByteArray(), Base64.NO_WRAP)}"
-            val aspect = outW.toFloat() / outH.toFloat()
+            val aspect = alignedW.toFloat() / max(1, alignedH).toFloat()
+            val quadBbox = cornersToBoundingRect(ordered, srcMat.cols(), srcMat.rows())
+            Log.i(TAG, "warpQuadBase64 SUCCESS: ${alignedW}x${alignedH} (aspect=$aspect), textAlignAngle=${alignedAngle}°")
             return CropResult(
                 success = true,
                 croppedImageDataUri = dataUri,
@@ -343,7 +429,8 @@ object CardAutoCropper {
                 isCropped = true,
                 aspect = aspect,
                 ratioType = if (aspect < 1.0f) "standard_portrait" else "standard_landscape",
-                bbox = null
+                bbox = intArrayOf(quadBbox.left, quadBbox.top, quadBbox.width(), quadBbox.height()),
+                angle = alignedAngle
             )
         } catch (e: Exception) {
             Log.e(TAG, "warpQuadBase64 failed: ${e.message}", e)
@@ -358,7 +445,131 @@ object CardAutoCropper {
         }
     }
 
-    private fun fallbackResult(rawDataUri: String, aspect: Float, ratioType: String): CropResult {
+    /**
+     * Aligns a manually box-cropped region by text orientation using ML Kit + OpenCV.
+     * - If the box is a loose selection with platen margin around a tilted/rotated card,
+     *   runs full isolated card detection, deskewing, and tight trimming inside the box.
+     * - If the box already tightly frames the card edges, preserves the exact user crop bounds
+     *   while rotating (0°/90°/180°/270° + fine text deskew) so text is upright & horizontal.
+     */
+    fun alignManualBoxCrop(roiBytes: ByteArray): CropResult? {
+        if (!ensureOpenCV()) return null
+        var roiBmp: Bitmap? = null
+        try {
+            val opts = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
+            roiBmp = BitmapFactory.decodeByteArray(roiBytes, 0, roiBytes.size, opts) ?: return null
+            val w = roiBmp.width
+            val h = roiBmp.height
+            if (w < 16 || h < 16) return null
+
+            val isPlaten = isA4PlatenAspect(w, h)
+            val pxPerMm = if (isPlaten) {
+                min(w, h).toFloat() / PLATEN_SHORT_SIDE_MM
+            } else {
+                (min(w, h).toFloat() / 68.0f).coerceAtLeast(2.0f)
+            }
+
+            var chosenBmp: Bitmap? = null
+            var appliedAngle = 0f
+
+            val det = detectCardGeometry(roiBmp, w, h, pxPerMm, isPlaten)
+            if (det != null) {
+                val polyArea = det.shortPxOrig.toDouble() * det.longPxOrig.toDouble()
+                val roiArea = w.toDouble() * h.toDouble()
+                val areaRatio = polyArea / max(1.0, roiArea)
+                val perimBgFrac = computePerimeterBgFraction(roiBmp, det.bgRgb)
+                val hasLooseMargin = perimBgFrac >= 0.35f && areaRatio in 0.12..0.90
+                val isSignificantlyTilted = abs(det.alignAngleDeg) > 4.0f && areaRatio >= 0.25
+
+                if (hasLooseMargin || isSignificantlyTilted) {
+                    val extracted = extractDeskewedAndTightTrimmedCard(roiBmp, det)
+                    val (oriented, rotStep) = alignBitmapByText(extracted, allowFineDeskew = false)
+                    chosenBmp = oriented
+                    appliedAngle = normalizeDeg(det.alignAngleDeg + rotStep)
+                }
+            }
+
+            if (chosenBmp == null) {
+                val (aligned, rotDeg) = alignBitmapByText(roiBmp, allowFineDeskew = true)
+                chosenBmp = aligned
+                appliedAngle = rotDeg
+            } else if (!roiBmp.isRecycled) {
+                roiBmp.recycle()
+            }
+
+            val finalW = chosenBmp.width
+            val finalH = chosenBmp.height
+            val finalAspect = finalW.toFloat() / max(1, finalH).toFloat()
+
+            val outStream = ByteArrayOutputStream()
+            chosenBmp.compress(Bitmap.CompressFormat.JPEG, 95, outStream)
+            if (!chosenBmp.isRecycled) chosenBmp.recycle()
+
+            val dataUri = "data:image/jpeg;base64,${Base64.encodeToString(outStream.toByteArray(), Base64.NO_WRAP)}"
+            Log.i(TAG, "alignManualBoxCrop SUCCESS: ${finalW}x${finalH} (aspect=$finalAspect), alignAngle=${appliedAngle}°")
+            return CropResult(
+                success = true,
+                croppedImageDataUri = dataUri,
+                rawImageDataUri = dataUri,
+                isCropped = true,
+                aspect = finalAspect,
+                ratioType = if (finalAspect < 1.0f) "standard_portrait" else "standard_landscape",
+                bbox = null,
+                angle = appliedAngle
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "alignManualBoxCrop failed: ${e.message}", e)
+            return null
+        } finally {
+            try { roiBmp?.takeIf { !it.isRecycled }?.recycle() } catch (_: Throwable) {}
+        }
+    }
+
+    /**
+     * Orients any bitmap upright & horizontal by ML Kit text recognition (0°/90°/180°/270° + fine skew).
+     */
+    fun orientByText(rawBytes: ByteArray): CropResult? {
+        var bmp: Bitmap? = null
+        try {
+            val opts = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
+            bmp = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, opts) ?: return null
+            val (aligned, rotDeg) = alignBitmapByText(bmp, allowFineDeskew = true)
+            val finalW = aligned.width
+            val finalH = aligned.height
+            val finalAspect = finalW.toFloat() / max(1, finalH).toFloat()
+
+            val outStream = ByteArrayOutputStream()
+            aligned.compress(Bitmap.CompressFormat.JPEG, 95, outStream)
+            if (!aligned.isRecycled) aligned.recycle()
+
+            val dataUri = "data:image/jpeg;base64,${Base64.encodeToString(outStream.toByteArray(), Base64.NO_WRAP)}"
+            Log.i(TAG, "orientByText SUCCESS: ${finalW}x${finalH}, rot=${rotDeg}°")
+            return CropResult(
+                success = true,
+                croppedImageDataUri = dataUri,
+                rawImageDataUri = dataUri,
+                isCropped = false,
+                aspect = finalAspect,
+                ratioType = if (finalAspect < 1.0f) "standard_portrait" else "standard_landscape",
+                bbox = null,
+                angle = rotDeg
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "orientByText failed: ${e.message}", e)
+            return null
+        } finally {
+            try { bmp?.takeIf { !it.isRecycled }?.recycle() } catch (_: Throwable) {}
+        }
+    }
+
+    private fun fallbackResult(
+        rawDataUri: String,
+        aspect: Float,
+        ratioType: String,
+        docType: String = "id_card",
+        widthMm: Float = 0f,
+        heightMm: Float = 0f
+    ): CropResult {
         return CropResult(
             success = true,
             croppedImageDataUri = rawDataUri,
@@ -366,7 +577,10 @@ object CardAutoCropper {
             isCropped = false,
             aspect = aspect,
             ratioType = ratioType,
-            bbox = null
+            bbox = null,
+            widthMm = widthMm,
+            heightMm = heightMm,
+            docType = docType
         )
     }
 
@@ -383,7 +597,8 @@ object CardAutoCropper {
         origW: Int,
         origH: Int,
         pxPerMm: Float,
-        isPlaten: Boolean
+        isPlaten: Boolean,
+        docMode: Boolean = false
     ): CardDetection? {
         // Scale down platen image for fast OpenCV contour analysis + initial ML Kit OCR
         val workMaxDim = 960
@@ -443,12 +658,13 @@ object CardAutoCropper {
                 workH = workH,
                 workPxPerMm = workPxPerMm,
                 isPlaten = isPlaten,
-                mlHints = mlHints
+                mlHints = mlHints,
+                docMode = docMode
             )
 
             // If platen shadow/crease bloated the primary contour past ID bounds while ML Kit saw text,
             // retry once with stricter thresholding and smaller closing radius to detach the ambient shadow.
-            if (isPlaten && candidate != null && mlHints.lines.size >= 2) {
+            if (!docMode && isPlaten && candidate != null && mlHints.lines.size >= 2) {
                 val cShortMm = min(candidate.first.size.width, candidate.first.size.height) / workPxPerMm
                 val cLongMm = max(candidate.first.size.width, candidate.first.size.height) / workPxPerMm
                 if (cShortMm > 78.0 || cLongMm > 118.0) {
@@ -472,7 +688,8 @@ object CardAutoCropper {
                         workH = workH,
                         workPxPerMm = workPxPerMm,
                         isPlaten = true,
-                        mlHints = mlHints
+                        mlHints = mlHints,
+                        docMode = false
                     )
                     if (strictCand != null) {
                         val sShortMm = min(strictCand.first.size.width, strictCand.first.size.height) / workPxPerMm
@@ -536,20 +753,21 @@ object CardAutoCropper {
                 poly2f.release()
             }
 
-            // If full-platen OCR found < 2 lines (e.g. high-DPI tiny card on large A4 sheet),
-            // crop just the high-res card region and run ML Kit OCR again at ~1000px card scale!
+            // If full-platen OCR found < 2 lines (e.g. small/low-DPI or inverted card),
+            // extract just the isolated card region, upscale if small, and run high-res ML Kit OCR!
             var highResAngle: Float? = computeWeightedCircularAngle(inlierLinesWork)
-            if (inlierLinesWork.size < 2 && max(origW, origH) > 1000) {
+            var refinedOrigLines: List<TextLineHint>? = null
+            if (inlierLinesWork.size < 2) {
                 val refined = refineTextAngleOnHighResPatch(originalBmp, origCorners, origW, origH, pxPerMm, bgRgb)
                 if (refined.first != null) {
                     highResAngle = refined.first
-                    if (refined.second.isNotEmpty()) {
-                        inlierLinesWork = refined.second
-                    }
+                }
+                if (refined.second.isNotEmpty()) {
+                    refinedOrigLines = refined.second
                 }
             }
 
-            val inlierLinesOrig = inlierLinesWork.map {
+            val inlierLinesOrig = refinedOrigLines ?: inlierLinesWork.map {
                 TextLineHint(
                     box = Rect(
                         (it.box.left * invScale).roundToInt(),
@@ -570,7 +788,8 @@ object CardAutoCropper {
             val alignAngle = chooseFinalAlignAngle(
                 textAngle = highResAngle,
                 rotRectAngle = rawRotRectAngle,
-                rectangularity = rectangularity
+                rectangularity = rectangularity,
+                inlierCount = inlierLinesOrig.size
             )
 
             // Check if non-platen uploaded photo already tightly frames an upright card
@@ -608,7 +827,8 @@ object CardAutoCropper {
 
     private fun extractDeskewedAndTightTrimmedCard(
         originalBmp: Bitmap,
-        det: CardDetection
+        det: CardDetection,
+        enforceCardSize: Boolean = true
     ): Bitmap {
         val origW = originalBmp.width
         val origH = originalBmp.height
@@ -669,14 +889,30 @@ object CardAutoCropper {
                 Point(det.origCorners[i].x - roiLeft, det.origCorners[i].y - roiTop)
             }
             val safeExpandedCorners = expandQuadFromCenter(roiCorners, (3.5f * det.pxPerMm).toDouble())
+            // Keep polygon vertices unclamped so OpenCV fillPoly clips edges mathematically at ROI bounds
+            // instead of bending a clamped edge inward across corners that touch the platen border (y=0/x=0).
             val polyPts = MatOfPoint(*safeExpandedCorners.map {
-                Point(it.x.coerceIn(0.0, (roiW - 1).toDouble()), it.y.coerceIn(0.0, (roiH - 1).toDouble()))
+                Point(it.x.roundToInt().toDouble(), it.y.roundToInt().toDouble())
             }.toTypedArray())
 
             try {
                 Imgproc.fillPoly(cardMask, listOf(polyPts), Scalar(255.0))
             } finally {
                 polyPts.release()
+            }
+
+            // Feather outer mask perimeter so platen transition never forms a hard polygon seam line,
+            // then reinforce the inner +1.5mm core to solid 255 so no card corner ever gets faded/blurred.
+            val blurK = makeOdd((2.0f * det.pxPerMm).roundToInt().coerceIn(7, 15)).toDouble()
+            Imgproc.GaussianBlur(cardMask, cardMask, Size(blurK, blurK), 0.0)
+            val solidCoreCorners = expandQuadFromCenter(roiCorners, (1.5f * det.pxPerMm).toDouble())
+            val corePts = MatOfPoint(*solidCoreCorners.map {
+                Point(it.x.roundToInt().toDouble(), it.y.roundToInt().toDouble())
+            }.toTypedArray())
+            try {
+                Imgproc.fillPoly(cardMask, listOf(corePts), Scalar(255.0))
+            } finally {
+                corePts.release()
             }
 
             // Fill background outside expanded card polygon with seamless spatially-matched platen tone
@@ -686,37 +922,64 @@ object CardAutoCropper {
                 maskedRgb.create(roiH, roiW, CvType.CV_8UC3)
                 maskedRgb.setTo(Scalar(localBgRgb[0], localBgRgb[1], localBgRgb[2]))
             }
-            roiRgb.copyTo(maskedRgb, cardMask)
+            val fRgb = Mat()
+            val fBg = Mat()
+            val fAlpha = Mat()
+            val fAlpha3 = Mat()
+            try {
+                roiRgb.convertTo(fRgb, CvType.CV_32FC3)
+                maskedRgb.convertTo(fBg, CvType.CV_32FC3)
+                cardMask.convertTo(fAlpha, CvType.CV_32FC1, 1.0 / 255.0)
+                Core.merge(listOf(fAlpha, fAlpha, fAlpha), fAlpha3)
+                Core.subtract(fRgb, fBg, fRgb)
+                Core.multiply(fRgb, fAlpha3, fRgb)
+                Core.add(fRgb, fBg, fRgb)
+                fRgb.convertTo(maskedRgb, CvType.CV_8UC3)
+            } finally {
+                fRgb.release()
+                fBg.release()
+                fAlpha.release()
+                fAlpha3.release()
+            }
 
             val cx = det.origCenter.x - roiLeft
             val cy = det.origCenter.y - roiTop
 
+            var activeAlignDeg = det.alignAngleDeg
+            val rotExtraPx = (2.5f * det.pxPerMm).roundToInt().coerceAtLeast(4)
+
             // Compute exact axis-aligned output dimensions needed after OpenCV rotation around (cx, cy).
             // NOTE: OpenCV getRotationMatrix2D(+theta) rotates CCW in screen coords, whereas
             // Android Matrix.postRotate(+theta) rotates CW. Since alignAngle follows Android CW
-            // convention (from ML Kit line.angle), passing +alignAngle to OpenCV rotates -alignAngle!
-            val radCw = Math.toRadians(-det.alignAngleDeg.toDouble())
-            val cosA = cos(radCw)
-            val sinA = sin(radCw)
-            var maxAbsX = 0.0
-            var maxAbsY = 0.0
-            for (pt in safeExpandedCorners) {
-                val dx = pt.x - cx
-                val dy = pt.y - cy
-                val rx = dx * cosA - dy * sinA
-                val ry = dx * sinA + dy * cosA
-                maxAbsX = max(maxAbsX, abs(rx))
-                maxAbsY = max(maxAbsY, abs(ry))
+            // convention (from ML Kit line.angle), passing +alignAngle to OpenCV rotates -alignAngle.
+            fun computeDeskewBounds(angleDeg: Float): Pair<Int, Int> {
+                val radCw = Math.toRadians(-angleDeg.toDouble())
+                val cosA = cos(radCw)
+                val sinA = sin(radCw)
+                var maxAbsX = 0.0
+                var maxAbsY = 0.0
+                for (pt in safeExpandedCorners) {
+                    val dx = pt.x - cx
+                    val dy = pt.y - cy
+                    val rx = dx * cosA - dy * sinA
+                    val ry = dx * sinA + dy * cosA
+                    maxAbsX = max(maxAbsX, abs(rx))
+                    maxAbsY = max(maxAbsY, abs(ry))
+                }
+                val wOut = ((maxAbsX * 2.0).roundToInt() + rotExtraPx * 2).coerceAtLeast(32)
+                val hOut = ((maxAbsY * 2.0).roundToInt() + rotExtraPx * 2).coerceAtLeast(32)
+                return Pair(wOut, hOut)
             }
 
-            val rotExtraPx = (2.5f * det.pxPerMm).roundToInt().coerceAtLeast(4)
-            val deskewW = ((maxAbsX * 2.0).roundToInt() + rotExtraPx * 2).coerceAtLeast(32)
-            val deskewH = ((maxAbsY * 2.0).roundToInt() + rotExtraPx * 2).coerceAtLeast(32)
+            fun buildAlignedRotMat(angleDeg: Float, outW: Int, outH: Int): Mat {
+                val m = Imgproc.getRotationMatrix2D(Point(cx, cy), angleDeg.toDouble(), 1.0)
+                m.put(0, 2, m.get(0, 2)[0] + (outW / 2.0 - cx))
+                m.put(1, 2, m.get(1, 2)[0] + (outH / 2.0 - cy))
+                return m
+            }
 
-            rotMat = Imgproc.getRotationMatrix2D(Point(cx, cy), det.alignAngleDeg.toDouble(), 1.0)
-            rotMat.put(0, 2, rotMat.get(0, 2)[0] + (deskewW / 2.0 - cx))
-            rotMat.put(1, 2, rotMat.get(1, 2)[0] + (deskewH / 2.0 - cy))
-
+            var (deskewW, deskewH) = computeDeskewBounds(activeAlignDeg)
+            rotMat = buildAlignedRotMat(activeAlignDeg, deskewW, deskewH)
             Imgproc.warpAffine(
                 maskedRgb,
                 deskewedRgb,
@@ -725,6 +988,27 @@ object CardAutoCropper {
                 Imgproc.INTER_CUBIC,
                 Core.BORDER_REPLICATE
             )
+
+            // Refine residual fine skew (< 8.5°) using card edges + horizontal/vertical internal rules
+            // so low-DPI coarse OCR text-box jitter never leaves a tilted bottom/top corner.
+            val fineDeltaDeg = measureResidualAxisAngleDeg(deskewedRgb, det.pxPerMm)
+            if (abs(fineDeltaDeg) in 0.15f..8.5f) {
+                activeAlignDeg += fineDeltaDeg
+                val (newW, newH) = computeDeskewBounds(activeAlignDeg)
+                deskewW = newW
+                deskewH = newH
+                rotMat.release()
+                rotMat = buildAlignedRotMat(activeAlignDeg, deskewW, deskewH)
+                Imgproc.warpAffine(
+                    maskedRgb,
+                    deskewedRgb,
+                    rotMat,
+                    Size(deskewW.toDouble(), deskewH.toDouble()),
+                    Imgproc.INTER_CUBIC,
+                    Core.BORDER_REPLICATE
+                )
+                Log.d(TAG, "FineHoughRefine: coarse=${det.alignAngleDeg}°, delta=$fineDeltaDeg°, refined=$activeAlignDeg°")
+            }
 
             if (roiBgField != null) {
                 deskewedBgField = Mat()
@@ -760,8 +1044,10 @@ object CardAutoCropper {
                 } else null
             }
 
-            val detIsPlausibleCard = !det.isPlaten ||
+            val detIsPlausibleCard = enforceCardSize && (
+                !det.isPlaten ||
                 ((det.shortPxOrig / det.pxPerMm) in 38f..74f && (det.longPxOrig / det.pxPerMm) in 62f..108f)
+            )
             val expectedCardRect = if (detIsPlausibleCard) transformPolyBounds(roiCorners) else null
             val transformedTextRects = det.inlierLinesOrig.mapNotNull { line ->
                 val corners = if (line.corners != null && line.corners.size >= 4) {
@@ -851,7 +1137,10 @@ object CardAutoCropper {
                 isPlaten = bgFieldMat != null,
                 dstMask = smallFg,
                 strictTrimMode = true,
-                bgFieldMat = smallBgField
+                bgFieldMat = smallBgField,
+                diffThreshOverride = if (smallBgField != null) 24.0 else 17.0,
+                cannyLow = 34.0,
+                cannyHigh = 96.0
             )
 
             val contours = mutableListOf<MatOfPoint>()
@@ -948,8 +1237,8 @@ object CardAutoCropper {
                     }
                 }
 
-                // Tiny 0.3mm cushion so rounded PVC corners stay crisp
-                val microPad = (0.3f * pxPerMm).roundToInt().coerceIn(0, 3)
+                // Cushion rounded PVC corners and anti-aliased card rims cleanly
+                val microPad = (0.55f * pxPerMm).roundToInt().coerceIn(2, 5)
                 val finalL = (left - microPad).coerceIn(0, w - 16)
                 val finalT = (top - microPad).coerceIn(0, h - 16)
                 val finalR = (right + microPad).coerceIn(finalL + 16, w)
@@ -995,11 +1284,12 @@ object CardAutoCropper {
         val edges = Mat()
         val speckKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(3.0, 3.0))
         val closeFactor = closeFactorOverride ?: if (strictTrimMode) 2.0f else 2.8f
-        val openFactor = if (strictTrimMode) 1.4f else 1.2f
+        val openFactor = if (strictTrimMode) 0.85f else 1.2f
         val closeSize = makeOdd((closeFactor * pxPerMmWork).roundToInt().coerceIn(3, 19)).toDouble()
-        val openSize = makeOdd((openFactor * pxPerMmWork).roundToInt().coerceIn(3, 7)).toDouble()
+        val openSize = makeOdd((openFactor * pxPerMmWork).roundToInt().coerceIn(3, if (strictTrimMode) 5 else 7)).toDouble()
+        val openShape = if (strictTrimMode) Imgproc.MORPH_ELLIPSE else Imgproc.MORPH_RECT
         val closeKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(closeSize, closeSize))
-        val openKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(openSize, openSize))
+        val openKernel = Imgproc.getStructuringElement(openShape, Size(openSize, openSize))
         val fgRaw = Mat()
         val closedMask = Mat()
         val fillContours = ArrayList<MatOfPoint>()
@@ -1028,7 +1318,7 @@ object CardAutoCropper {
             Imgproc.Canny(gray, edges, cannyLow, cannyHigh)
 
             // Zero outer frame perimeter so platen bezel brightness ramps cannot bridge into contours
-            val edgeRimPx = if (isPlaten) 6 else 4
+            val edgeRimPx = if (strictTrimMode) 4 else if (isPlaten) 6 else 4
             Imgproc.rectangle(edges, Point(0.0, 0.0), Point((w - 1).toDouble(), (h - 1).toDouble()), Scalar(0.0), edgeRimPx)
             if (dilateEdges) {
                 Imgproc.dilate(edges, edges, speckKernel)
@@ -1406,7 +1696,8 @@ object CardAutoCropper {
         workH: Int,
         workPxPerMm: Float,
         isPlaten: Boolean,
-        mlHints: MlKitHints
+        mlHints: MlKitHints,
+        docMode: Boolean = false
     ): Pair<RotatedRect, Float>? {
         val contours = ArrayList<MatOfPoint>()
         val hierarchy = Mat()
@@ -1433,7 +1724,9 @@ object CardAutoCropper {
                 val area = Imgproc.contourArea(c)
                 val areaMm2 = area / pxPerMm2
                 if (isPlaten) {
-                    if (areaMm2 < 1000.0 || area < workArea * 0.012) continue
+                    val minAreaMm2 = if (docMode) 450.0 else 1000.0
+                    val minAreaFrac = if (docMode) 0.008 else 0.012
+                    if (areaMm2 < minAreaMm2 || area < workArea * minAreaFrac) continue
                 } else {
                     if (area < workArea * 0.03) continue
                 }
@@ -1451,16 +1744,19 @@ object CardAutoCropper {
                 if (shortPx < 12.0 || longPx < 16.0) continue
 
                 val aspectLong = longPx / shortPx
-                // Strictly reject long thin scanner bezel edge lines (which typically have aspect > 4)
-                if (aspectLong > 2.75) continue
+                // Reject ultra-thin scanner bezel edge lines while allowing tall narrow receipts/slips in docMode
+                val maxAspect = if (docMode) 6.5 else 2.75
+                if (aspectLong > maxAspect) continue
 
                 val shortMm = shortPx / workPxPerMm
                 val longMm = longPx / workPxPerMm
                 if (isPlaten) {
-                    if (shortMm < 26.0 || longMm < 40.0) continue
+                    val minShortMm = if (docMode) 18.0 else 26.0
+                    val minLongMm = if (docMode) 24.0 else 40.0
+                    if (shortMm < minShortMm || longMm < minLongMm) continue
                     // Reject full-platen A4 outer border loops
                     if (shortPx > workW * 0.89 && longPx > workH * 0.89) continue
-                    if (longMm > 192.0 && shortMm > 145.0) continue
+                    if (!docMode && longMm > 192.0 && shortMm > 145.0) continue
                 }
 
                 val rectArea = max(1.0, rotRect.size.width * rotRect.size.height)
@@ -1490,7 +1786,9 @@ object CardAutoCropper {
                 }
 
                 var sizeFitBonus = 0.0
-                if (isPlaten) {
+                if (docMode) {
+                    sizeFitBonus += (area / workArea) * 1400.0
+                } else if (isPlaten) {
                     if (shortMm in 40.0..86.0 && longMm in 66.0..132.0) sizeFitBonus += 600.0
                     if (aspectLong in 1.25..1.90) sizeFitBonus += 400.0
                 } else {
@@ -1501,7 +1799,7 @@ object CardAutoCropper {
                     objHits * 2500.0 +
                     sizeFitBonus +
                     rectangularity * 650.0 +
-                    min(areaMm2, 10000.0) * 0.08
+                    min(areaMm2, if (docMode) 40000.0 else 10000.0) * 0.08
 
                 scored.add(ScoredCandidate(c, rotRect, rectangularity, textHits, objHits, score))
             }
@@ -1510,11 +1808,11 @@ object CardAutoCropper {
             scored.sortByDescending { it.score }
             val top = scored[0]
 
-            // If white-paper card had split top/bottom contours across a faint middle band,
-            // merge nearby valid text-bearing contours within a single card's max extent (~135mm).
+            // If white-paper card or receipt had split sections across faint bands,
+            // merge nearby valid text-bearing contours.
             if (mlHints.lines.size >= 3 && top.textHits < (mlHints.lines.size * 0.75f)) {
                 val mergedPoints = ArrayList<Point>(top.contour.toList())
-                val maxMergeDistPx = (95.0f * workPxPerMm).toDouble()
+                val maxMergeDistPx = ((if (docMode) 180.0f else 95.0f) * workPxPerMm).toDouble()
                 for (i in 1 until scored.size) {
                     val other = scored[i]
                     if (other.textHits == 0 && other.objHits == 0) continue
@@ -1529,7 +1827,7 @@ object CardAutoCropper {
                         }
                         val cShort = min(combinedRot.size.width, combinedRot.size.height) / workPxPerMm
                         val cLong = max(combinedRot.size.width, combinedRot.size.height) / workPxPerMm
-                        if (!isPlaten || (cLong <= 145.0 && cShort <= 98.0 && (cLong / max(1.0, cShort)) <= 2.4)) {
+                        if (docMode || !isPlaten || (cLong <= 145.0 && cShort <= 98.0 && (cLong / max(1.0, cShort)) <= 2.4)) {
                             mergedPoints.addAll(other.contour.toList())
                         }
                     }
@@ -1562,6 +1860,7 @@ object CardAutoCropper {
     ): Pair<Float?, List<TextLineHint>> {
         var patchBmp: Bitmap? = null
         var ocrBmp: Bitmap? = null
+        var ocrBmp180: Bitmap? = null
         try {
             val bbox = cornersToBoundingRect(origCorners, origW, origH)
             val pad = (4.0f * pxPerMm).roundToInt().coerceAtLeast(4)
@@ -1574,17 +1873,22 @@ object CardAutoCropper {
             if (w < 20 || h < 20) return Pair(null, emptyList())
 
             patchBmp = Bitmap.createBitmap(originalBmp, l, t, w, h)
-            val maxOcrDim = 1000
-            val oScale = min(1.0f, maxOcrDim.toFloat() / max(w, h).toFloat())
-            ocrBmp = if (oScale < 0.99f) {
-                Bitmap.createScaledBitmap(patchBmp, (w * oScale).roundToInt(), (h * oScale).roundToInt(), true)
+            val maxDim = max(w, h).toFloat()
+            val targetOcrDim = if (maxDim < 700f) min(880f, maxDim * 2.5f) else 1000f
+            val oScale = if (maxDim < 700f || maxDim > 1000f) targetOcrDim / maxDim else 1.0f
+            ocrBmp = if (abs(oScale - 1.0f) > 0.02f) {
+                Bitmap.createScaledBitmap(
+                    patchBmp,
+                    max(24, (w * oScale).roundToInt()),
+                    max(24, (h * oScale).roundToInt()),
+                    true
+                )
             } else {
                 patchBmp
             }
 
-            val input = InputImage.fromBitmap(ocrBmp, 0)
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-            val res = Tasks.await(recognizer.process(input), 4000, TimeUnit.MILLISECONDS)
+            val res = Tasks.await(recognizer.process(InputImage.fromBitmap(ocrBmp, 0)), 4000, TimeUnit.MILLISECONDS)
 
             val patchLines = ArrayList<TextLineHint>()
             for (block in res.textBlocks) {
@@ -1602,14 +1906,462 @@ object CardAutoCropper {
                     patchLines.add(TextLineHint(mappedOrig, line.angle, weight, cPts))
                 }
             }
+
+            // If 0° OCR still found < 2 lines (common when card is upside-down or ~150..180° inverted),
+            // test the 180°-rotated patch so readable inverted angles normalize back cleanly!
+            val eval0 = scoreOcrTextResult(res)
+            if (patchLines.size < 2 || eval0.score < 20.0) {
+                val m = Matrix().apply { postRotate(180f) }
+                ocrBmp180 = Bitmap.createBitmap(ocrBmp, 0, 0, ocrBmp.width, ocrBmp.height, m, false)
+                val res180 = Tasks.await(recognizer.process(InputImage.fromBitmap(ocrBmp180, 0)), 3500, TimeUnit.MILLISECONDS)
+                val eval180 = scoreOcrTextResult(res180)
+                if (eval180.score > eval0.score * 1.15 && eval180.score >= 16.0) {
+                    val ocrW = ocrBmp.width.toDouble()
+                    val ocrH = ocrBmp.height.toDouble()
+                    val lines180 = ArrayList<TextLineHint>()
+                    for (block in res180.textBlocks) {
+                        for (line in block.lines) {
+                            val lb = line.boundingBox ?: continue
+                            val mappedOrig = Rect(
+                                l + ((ocrW - lb.right) / oScale).roundToInt(),
+                                t + ((ocrH - lb.bottom) / oScale).roundToInt(),
+                                l + ((ocrW - lb.left) / oScale).roundToInt(),
+                                t + ((ocrH - lb.top) / oScale).roundToInt()
+                            )
+                            val weight = line.text.trim().length.coerceAtLeast(1) *
+                                (lb.width() + lb.height()).toFloat().coerceAtLeast(1f)
+                            val cPts = line.cornerPoints?.map {
+                                Point(l + (ocrW - it.x) / oScale, t + (ocrH - it.y) / oScale)
+                            }?.toTypedArray()
+                            lines180.add(TextLineHint(mappedOrig, normalizeDeg(line.angle + 180f), weight, cPts))
+                        }
+                    }
+                    if (lines180.isNotEmpty()) {
+                        return Pair(computeWeightedCircularAngle(lines180), lines180)
+                    }
+                }
+            }
+
             val angle = computeWeightedCircularAngle(patchLines)
             return Pair(angle, patchLines)
         } catch (e: Exception) {
             Log.d(TAG, "High-res OCR refine skipped: ${e.message}")
             return Pair(null, emptyList())
         } finally {
+            if (ocrBmp180 != null && !ocrBmp180.isRecycled) ocrBmp180.recycle()
             if (ocrBmp != null && ocrBmp !== patchBmp && !ocrBmp.isRecycled) ocrBmp.recycle()
             if (patchBmp != null && !patchBmp.isRecycled) patchBmp.recycle()
+        }
+    }
+
+    private data class UprightOcrEval(
+        val score: Double,
+        val uprightKeywords: Int,
+        val invertedLines: Int
+    )
+
+    private fun isIdUprightKeyword(upToken: String): Boolean {
+        return when (upToken) {
+            "INDIA", "GOVT", "GOVERNMENT", "ELECTION", "COMMISSION", "INCOME", "TAX",
+            "DEPARTMENT", "AADHAAR", "UNIQUE", "IDENTIFICATION", "AUTHORITY", "UIDAI",
+            "PERMANENT", "ACCOUNT", "NUMBER", "CARD", "IDENTITY", "NAME", "FATHER",
+            "MOTHER", "HUSBAND", "SPOUSE", "DOB", "DATE", "BIRTH", "YEAR", "GENDER",
+            "MALE", "FEMALE", "ADDRESS", "SIGNATURE", "REPUBLIC", "DRIVING", "LICENCE",
+            "LICENSE", "PASSPORT", "VOTER", "ELECTOR", "ELECTORAL", "PHOTO", "BENGAL",
+            "PRADESH", "MAHARASHTRA", "GUJARAT", "KARNATAKA", "TAMIL", "KERALA", "DELHI",
+            "ASSAM", "BIHAR", "ODISHA", "PUNJAB", "HARYANA", "RAJASTHAN", "VILLAGE",
+            "TOWN", "DIST", "STATE", "PIN", "CODE", "VALID", "DOWNLOAD", "OFFICER", "HELP" -> true
+            else -> false
+        }
+    }
+
+    private fun scoreOcrTextResult(res: com.google.mlkit.vision.text.Text): UprightOcrEval {
+        var totalScore = 0.0
+        var keywords = 0
+        var invertedLines = 0
+
+        for (block in res.textBlocks) {
+            for (line in block.lines) {
+                val txt = line.text.trim()
+                if (txt.isEmpty()) continue
+                val ang = abs(normalizeDeg(line.angle))
+                if (ang > 120f) {
+                    invertedLines++
+                    continue
+                }
+                if (ang > 35f) continue
+
+                var lineScore = 0.0
+                val tokens = txt.split(Regex("[^A-Za-z0-9]+")).filter { it.isNotEmpty() }
+                for (tok in tokens) {
+                    val up = tok.uppercase(Locale.US)
+                    if (isIdUprightKeyword(up)) {
+                        keywords++
+                        lineScore += 65.0
+                    }
+                    val alphaLen = tok.count { it in 'A'..'Z' || it in 'a'..'z' }
+                    val digitLen = tok.count { it in '0'..'9' }
+                    if (alphaLen >= 3) {
+                        val hasVowel = tok.any { it in "AEIOUaeiou" }
+                        lineScore += if (hasVowel) (14.0 + alphaLen * 3.5) else (4.0 + alphaLen * 1.2)
+                    } else if (alphaLen + digitLen >= 4) {
+                        lineScore += 5.0 + (alphaLen + digitLen) * 1.0
+                    } else if (alphaLen >= 2) {
+                        lineScore += 3.0
+                    }
+                }
+                val noiseCount = txt.count { it in "~^_|\\/<>{}[]*;" }
+                lineScore -= noiseCount * 4.5
+                totalScore += max(0.0, lineScore)
+            }
+        }
+        return UprightOcrEval(totalScore, keywords, invertedLines)
+    }
+
+    /**
+     * Stage 4 upright readability verification: runs ML Kit OCR on the tightly cropped card at 0°
+     * vs 180° (upscaled for low-DPI crispness) and rotates 180° cleanly if inverted text is detected.
+     */
+    private fun ensureUprightOrientation180(srcBmp: Bitmap): Pair<Bitmap, Boolean> {
+        var evalBmp0: Bitmap? = null
+        var evalBmp180: Bitmap? = null
+        try {
+            val w = srcBmp.width
+            val h = srcBmp.height
+            if (w < 24 || h < 24) return Pair(srcBmp, false)
+
+            val maxDim = max(w, h).toFloat()
+            val targetDim = when {
+                maxDim < 760f -> min(860f, maxDim * 2.6f)
+                maxDim > 1100f -> 1000f
+                else -> maxDim
+            }
+            val scale = targetDim / maxDim
+            evalBmp0 = if (abs(scale - 1.0f) > 0.03f) {
+                Bitmap.createScaledBitmap(
+                    srcBmp,
+                    max(24, (w * scale).roundToInt()),
+                    max(24, (h * scale).roundToInt()),
+                    true
+                )
+            } else {
+                srcBmp
+            }
+
+            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            val res0 = Tasks.await(recognizer.process(InputImage.fromBitmap(evalBmp0, 0)), 3500, TimeUnit.MILLISECONDS)
+            val eval0 = scoreOcrTextResult(res0)
+
+            // Fast-path: overwhelmingly clear upright English card text with zero inverted lines
+            if (eval0.score >= 300.0 && eval0.uprightKeywords >= 3 && eval0.invertedLines == 0) {
+                return Pair(srcBmp, false)
+            }
+
+            val m180 = Matrix().apply { postRotate(180f) }
+            evalBmp180 = Bitmap.createBitmap(evalBmp0, 0, 0, evalBmp0.width, evalBmp0.height, m180, false)
+            val res180 = Tasks.await(recognizer.process(InputImage.fromBitmap(evalBmp180, 0)), 3500, TimeUnit.MILLISECONDS)
+            val eval180 = scoreOcrTextResult(res180)
+
+            val scoreDiffStrong = eval180.score > eval0.score * 1.15 && eval180.score >= 16.0
+            val invertedSignalFlip = eval0.invertedLines > 0 && eval180.invertedLines == 0 &&
+                eval180.score >= eval0.score * 0.90 && eval180.score >= 8.0
+            val keywordFlip = eval180.uprightKeywords > eval0.uprightKeywords &&
+                eval180.score >= eval0.score * 0.95 && eval180.uprightKeywords >= 1
+
+            Log.d(
+                TAG,
+                "Stage 4 Upright Check: 0°(score=${eval0.score.roundToInt()}, kw=${eval0.uprightKeywords}, inv=${eval0.invertedLines}) vs " +
+                    "180°(score=${eval180.score.roundToInt()}, kw=${eval180.uprightKeywords}, inv=${eval180.invertedLines})"
+            )
+
+            if (scoreDiffStrong || invertedSignalFlip || keywordFlip) {
+                val flippedBmp = Bitmap.createBitmap(srcBmp, 0, 0, w, h, m180, false)
+                try { if (!srcBmp.isRecycled && flippedBmp !== srcBmp) srcBmp.recycle() } catch (_: Throwable) {}
+                return Pair(flippedBmp, true)
+            }
+            return Pair(srcBmp, false)
+        } catch (e: Exception) {
+            Log.d(TAG, "Stage 4 180° check skipped: ${e.message}")
+            return Pair(srcBmp, false)
+        } finally {
+            if (evalBmp180 != null && !evalBmp180.isRecycled) evalBmp180.recycle()
+            if (evalBmp0 != null && evalBmp0 !== srcBmp && !evalBmp0.isRecycled) evalBmp0.recycle()
+        }
+    }
+
+    /**
+     * Full-orientation ML Kit text alignment across 0°/90°/180°/270° plus residual/diagonal
+     * text skew straightening so manually cropped or quad-warped cards always come out aligned by text.
+     */
+    private fun alignBitmapByText(srcBmp: Bitmap, allowFineDeskew: Boolean = true): Pair<Bitmap, Float> {
+        var ocrBase: Bitmap? = null
+        try {
+            val w = srcBmp.width
+            val h = srcBmp.height
+            if (w < 24 || h < 24) return Pair(srcBmp, 0f)
+
+            val maxDim = max(w, h).toFloat()
+            val targetDim = when {
+                maxDim < 760f -> min(880f, maxDim * 2.6f)
+                maxDim > 1100f -> 1000f
+                else -> maxDim
+            }
+            val scale = targetDim / maxDim
+            ocrBase = if (abs(scale - 1.0f) > 0.03f) {
+                Bitmap.createScaledBitmap(
+                    srcBmp,
+                    max(24, (w * scale).roundToInt()),
+                    max(24, (h * scale).roundToInt()),
+                    true
+                )
+            } else {
+                srcBmp
+            }
+
+            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+            data class CardinalCand(
+                val rotDeg: Int,
+                val eval: UprightOcrEval,
+                val rank: Double,
+                val horizMedianTilt: Float?,
+                val horizCount: Int,
+                val allLines: List<TextLineHint>
+            )
+
+            val candidates = ArrayList<CardinalCand>(4)
+            for (rotDeg in intArrayOf(0, 90, 180, 270)) {
+                var probeBmp: Bitmap? = null
+                try {
+                    probeBmp = if (rotDeg == 0) {
+                        ocrBase
+                    } else {
+                        val m = Matrix().apply { postRotate(rotDeg.toFloat()) }
+                        Bitmap.createBitmap(ocrBase, 0, 0, ocrBase.width, ocrBase.height, m, false)
+                    }
+                    val res = Tasks.await(
+                        recognizer.process(InputImage.fromBitmap(probeBmp, 0)),
+                        3500,
+                        TimeUnit.MILLISECONDS
+                    )
+                    val eval = scoreOcrTextResult(res)
+                    val horizHints = ArrayList<TextLineHint>()
+                    val allHints = ArrayList<TextLineHint>()
+                    for (block in res.textBlocks) {
+                        for (line in block.lines) {
+                            val lb = line.boundingBox ?: continue
+                            val txt = line.text.trim()
+                            if (txt.isEmpty()) continue
+                            val ang = normalizeDeg(line.angle)
+                            val wt = txt.length.coerceAtLeast(1) * (lb.width() + lb.height()).toFloat().coerceAtLeast(1f)
+                            val hint = TextLineHint(lb, ang, wt, null)
+                            allHints.add(hint)
+                            if (abs(ang) <= 35f) horizHints.add(hint)
+                        }
+                    }
+                    val horizMed = computeWeightedCircularAngle(horizHints)
+                    val rank = eval.score + eval.uprightKeywords * 45.0 - eval.invertedLines * 35.0 +
+                        (if (rotDeg == 0) 6.0 else 0.0)
+                    candidates.add(CardinalCand(rotDeg, eval, rank, horizMed, horizHints.size, allHints))
+                } finally {
+                    if (probeBmp != null && probeBmp !== ocrBase && !probeBmp.isRecycled) {
+                        probeBmp.recycle()
+                    }
+                }
+            }
+
+            val best = candidates.maxByOrNull { it.rank }
+            if (best != null && (best.eval.score >= 8.0 || best.horizCount > 0)) {
+                val cardinalDeg = best.rotDeg.toFloat()
+                var workOut = if (best.rotDeg == 0) srcBmp else rotateBitmapExact(srcBmp, cardinalDeg)
+                if (workOut !== srcBmp && !srcBmp.isRecycled) {
+                    try { srcBmp.recycle() } catch (_: Throwable) {}
+                }
+                val residual = best.horizMedianTilt
+                if (allowFineDeskew && residual != null && abs(residual) > 1.8f) {
+                    workOut = deskewBitmapByTextAngle(workOut, residual)
+                    val netRot = normalizeDeg(cardinalDeg - residual)
+                    Log.d(
+                        TAG,
+                        "alignBitmapByText cardinal=${best.rotDeg}° (score=${best.eval.score.roundToInt()}, kw=${best.eval.uprightKeywords}) + deskew=${-residual}°"
+                    )
+                    return Pair(workOut, netRot)
+                }
+                Log.d(
+                    TAG,
+                    "alignBitmapByText cardinal=${best.rotDeg}° (score=${best.eval.score.roundToInt()}, kw=${best.eval.uprightKeywords})"
+                )
+                return Pair(workOut, normalizeDeg(cardinalDeg))
+            }
+
+            // Diagonal text fallback (e.g., ~35..55° where cardinal windows miss lines):
+            val bestRawPass = candidates.maxByOrNull { pass ->
+                pass.allLines.sumOf { it.weight.toDouble() }
+            }
+            val rawAngle = if (bestRawPass != null && bestRawPass.allLines.isNotEmpty()) {
+                computeWeightedCircularAngle(bestRawPass.allLines)
+            } else null
+            if (allowFineDeskew && bestRawPass != null && rawAngle != null &&
+                (abs(rawAngle) > 1.8f || bestRawPass.rotDeg != 0)
+            ) {
+                val preRot = if (bestRawPass.rotDeg == 0) srcBmp else rotateBitmapExact(srcBmp, bestRawPass.rotDeg.toFloat())
+                if (preRot !== srcBmp && !srcBmp.isRecycled) {
+                    try { srcBmp.recycle() } catch (_: Throwable) {}
+                }
+                val leveled = if (abs(rawAngle) > 1.8f) deskewBitmapByTextAngle(preRot, rawAngle) else preRot
+                val (upright, flipped) = ensureUprightOrientation180(leveled)
+                val netRot = normalizeDeg(bestRawPass.rotDeg.toFloat() - rawAngle + if (flipped) 180f else 0f)
+                Log.d(
+                    TAG,
+                    "alignBitmapByText diagonal fallback: pass=${bestRawPass.rotDeg}°, raw=${rawAngle}°, netRot=${netRot}°"
+                )
+                return Pair(upright, netRot)
+            }
+
+            val (upright, flipped) = ensureUprightOrientation180(srcBmp)
+            return Pair(upright, if (flipped) 180f else 0f)
+        } catch (e: Exception) {
+            Log.d(TAG, "alignBitmapByText skipped: ${e.message}")
+            return Pair(srcBmp, 0f)
+        } finally {
+            if (ocrBase != null && ocrBase !== srcBmp && !ocrBase.isRecycled) {
+                ocrBase.recycle()
+            }
+        }
+    }
+
+    private fun rotateBitmapExact(src: Bitmap, rotCwDeg: Float): Bitmap {
+        val norm = normalizeDeg(rotCwDeg)
+        if (abs(norm) < 0.01f) return src
+        val m = Matrix().apply { postRotate(norm) }
+        return Bitmap.createBitmap(src, 0, 0, src.width, src.height, m, false)
+    }
+
+    /**
+     * Checks whether the outer 3px ring of roiBmp predominantly matches bgRgb (loose platen margin).
+     */
+    private fun computePerimeterBgFraction(bmp: Bitmap, bgRgb: DoubleArray): Float {
+        val w = bmp.width
+        val h = bmp.height
+        if (w < 16 || h < 16) return 0f
+        val bgBright = 0.299 * bgRgb[0] + 0.587 * bgRgb[1] + 0.114 * bgRgb[2]
+        if (bgBright < 135.0) return 0f
+
+        val ring = 3
+        val step = max(1, min(w, h) / 80)
+        var total = 0
+        var bgCount = 0
+
+        fun samplePx(x: Int, y: Int) {
+            val px = bmp.getPixel(x, y)
+            val r = Color.red(px).toDouble()
+            val g = Color.green(px).toDouble()
+            val b = Color.blue(px).toDouble()
+            val d = sqrt((r - bgRgb[0]).pow(2.0) + (g - bgRgb[1]).pow(2.0) + (b - bgRgb[2]).pow(2.0))
+            if (d <= 32.0) bgCount++
+            total++
+        }
+
+        for (y in 0 until ring) {
+            var x = 0
+            while (x < w) {
+                samplePx(x, y)
+                samplePx(x, h - 1 - y)
+                x += step
+            }
+        }
+        for (x in 0 until ring) {
+            var y = ring
+            while (y < h - ring) {
+                samplePx(x, y)
+                samplePx(w - 1 - x, y)
+                y += step
+            }
+        }
+        return if (total > 0) bgCount.toFloat() / total.toFloat() else 0f
+    }
+
+    /**
+     * Straightens a slightly tilted card bitmap using ML Kit residual angle (CW convention).
+     * Expands canvas & tight-trims when uniform outer platen margin is present; otherwise rotates
+     * smoothly in-place with BORDER_REPLICATE so tight manual bounds never gain artificial borders.
+     */
+    private fun deskewBitmapByTextAngle(srcBmp: Bitmap, textTiltCwDeg: Float): Bitmap {
+        val rgba = Mat()
+        val rgb = Mat()
+        val rotRgb = Mat()
+        val outRgba = Mat()
+        var rotMat: Mat? = null
+        try {
+            Utils.bitmapToMat(srcBmp, rgba)
+            Imgproc.cvtColor(rgba, rgb, Imgproc.COLOR_RGBA2RGB)
+            val w = rgb.cols()
+            val h = rgb.rows()
+            if (w < 24 || h < 24) return srcBmp
+
+            val bgEst = estimatePlatenBackground(rgb, isPlaten = false)
+            val perimBg = computePerimeterBgFraction(srcBmp, bgEst)
+            val hasOuterMargin = perimBg >= 0.35f
+
+            val rad = Math.toRadians(abs(textTiltCwDeg).toDouble())
+            val cosA = abs(cos(rad))
+            val sinA = abs(sin(rad))
+
+            val targetW: Int
+            val targetH: Int
+            if (hasOuterMargin || abs(textTiltCwDeg) > 10f) {
+                targetW = (w * cosA + h * sinA).roundToInt().coerceAtLeast(32)
+                targetH = (w * sinA + h * cosA).roundToInt().coerceAtLeast(32)
+            } else {
+                targetW = w
+                targetH = h
+            }
+
+            rotMat = Imgproc.getRotationMatrix2D(Point(w / 2.0, h / 2.0), textTiltCwDeg.toDouble(), 1.0)
+            rotMat.put(0, 2, rotMat.get(0, 2)[0] + (targetW - w) / 2.0)
+            rotMat.put(1, 2, rotMat.get(1, 2)[0] + (targetH - h) / 2.0)
+
+            Imgproc.warpAffine(
+                rgb,
+                rotRgb,
+                rotMat,
+                Size(targetW.toDouble(), targetH.toDouble()),
+                Imgproc.INTER_CUBIC,
+                if (hasOuterMargin) Core.BORDER_CONSTANT else Core.BORDER_REPLICATE,
+                Scalar(bgEst[0], bgEst[1], bgEst[2])
+            )
+
+            val subMat = if (hasOuterMargin) {
+                val pxPerMm = (min(w, h).toFloat() / 56.0f).coerceAtLeast(2.0f)
+                val tightRect = findTightAxisAlignedCardRect(
+                    deskewedRgb = rotRgb,
+                    bgRgb = bgEst,
+                    pxPerMm = pxPerMm,
+                    textGuards = emptyList()
+                )
+                Mat(rotRgb, tightRect)
+            } else {
+                rotRgb
+            }
+
+            try {
+                Imgproc.cvtColor(subMat, outRgba, Imgproc.COLOR_RGB2RGBA)
+                val outBmp = Bitmap.createBitmap(subMat.cols(), subMat.rows(), Bitmap.Config.ARGB_8888)
+                Utils.matToBitmap(outRgba, outBmp)
+                try { if (!srcBmp.isRecycled && outBmp !== srcBmp) srcBmp.recycle() } catch (_: Throwable) {}
+                return outBmp
+            } finally {
+                if (subMat !== rotRgb) subMat.release()
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "deskewBitmapByTextAngle failed: ${e.message}")
+            return srcBmp
+        } finally {
+            rotMat?.release()
+            outRgba.release()
+            rotRgb.release()
+            rgb.release()
+            rgba.release()
         }
     }
 
@@ -1654,7 +2406,8 @@ object CardAutoCropper {
     private fun chooseFinalAlignAngle(
         textAngle: Float?,
         rotRectAngle: Float,
-        rectangularity: Float
+        rectangularity: Float,
+        inlierCount: Int = 0
     ): Float {
         if (textAngle == null) {
             // No OCR lines available: level nearest orthogonal rectangle axis
@@ -1664,9 +2417,12 @@ object CardAutoCropper {
             return a
         }
 
-        // Find the orthogonal card-edge angle (rotRectAngle + 90*k) closest to ML Kit textAngle.
-        // Preserves ML Kit's 90°/180° upright reading direction while snapping micro-skew to crisp OpenCV borders.
-        if (rectangularity >= 0.78f) {
+        // Preserve ML Kit's multi-line text angle when OpenCV minAreaRect deviates slightly due
+        // to rounded PVC corners or clipped platen rims; snap when rectangularity & alignment agree tightly,
+        // or rescue low-DPI OCR polygon jitter (>3.2 deg outlier) using a rectangular card contour.
+        val snapMinRect = if (inlierCount >= 2) 0.90f else 0.84f
+        val snapMaxDiff = if (inlierCount >= 2) 0.55f else 1.4f
+        if (rectangularity >= 0.80f) {
             var bestEdge = rotRectAngle
             var minDiff = Float.MAX_VALUE
             for (k in -2..2) {
@@ -1677,11 +2433,109 @@ object CardAutoCropper {
                     bestEdge = cand
                 }
             }
-            if (minDiff <= 2.2f) {
+            if ((rectangularity >= snapMinRect && minDiff <= snapMaxDiff) ||
+                (minDiff in 2.6f..20.0f) ||
+                (inlierCount <= 2 && rectangularity >= 0.85f && minDiff <= 20.0f)
+            ) {
                 return bestEdge
             }
         }
         return normalizeDeg(textAngle)
+    }
+
+    /**
+     * Measures residual micro-skew within ±4.8° using Canny + HoughLinesP on straight card borders
+     * and internal header/divider lines, resisting ±2° OCR box jitter.
+     */
+    private fun measureResidualAxisAngleDeg(rgbMat: Mat, pxPerMm: Float): Float {
+        val w = rgbMat.cols()
+        val h = rgbMat.rows()
+        if (w < 48 || h < 48) return 0f
+
+        val scale = min(1.0, 960.0 / max(w, h).toDouble())
+        val workW = (w * scale).roundToInt().coerceAtLeast(48)
+        val workH = (h * scale).roundToInt().coerceAtLeast(48)
+        val sPxPerMm = pxPerMm * scale.toFloat()
+
+        val workRgb = Mat()
+        val gray = Mat()
+        val blur = Mat()
+        val edges = Mat()
+        val linesMat = Mat()
+
+        try {
+            if (workW == w && workH == h) {
+                rgbMat.copyTo(workRgb)
+            } else {
+                Imgproc.resize(rgbMat, workRgb, Size(workW.toDouble(), workH.toDouble()), 0.0, 0.0, Imgproc.INTER_AREA)
+            }
+            Imgproc.cvtColor(workRgb, gray, Imgproc.COLOR_RGB2GRAY)
+            Imgproc.GaussianBlur(gray, blur, Size(3.0, 3.0), 0.0)
+            Imgproc.Canny(blur, edges, 26.0, 86.0)
+
+            // Ignore outer 5px frame perimeter so warp borders never trigger false 0°/90° lines
+            Imgproc.rectangle(edges, Point(0.0, 0.0), Point((workW - 1).toDouble(), (workH - 1).toDouble()), Scalar(0.0), 5)
+
+            val minLineLen = max(28.0, min(workW, workH) * 0.18)
+            val maxGap = max(4.5, sPxPerMm * 1.25)
+            Imgproc.HoughLinesP(edges, linesMat, 1.0, Math.PI / 360.0, 36, minLineLen, maxGap)
+
+            val count = linesMat.rows()
+            if (count <= 0) return 0f
+
+            val deltas = ArrayList<Pair<Float, Double>>(count)
+            var totalWeight = 0.0
+            for (i in 0 until count) {
+                val seg = linesMat.get(i, 0) ?: continue
+                if (seg.size < 4) continue
+                val x1 = seg[0]; val y1 = seg[1]; val x2 = seg[2]; val y2 = seg[3]
+                val len = hypot(x2 - x1, y2 - y1)
+                if (len < minLineLen) continue
+
+                var ang = Math.toDegrees(atan2(y2 - y1, x2 - x1))
+                while (ang <= -90.0) ang += 180.0
+                while (ang > 90.0) ang -= 180.0
+
+                val res: Double = when {
+                    abs(ang) <= 8.5 -> ang
+                    abs(ang - 90.0) <= 8.5 -> ang - 90.0
+                    abs(ang + 90.0) <= 8.5 -> ang + 90.0
+                    else -> continue
+                }
+                val wt = len * len
+                deltas.add(Pair(res.toFloat(), wt))
+                totalWeight += wt
+            }
+
+            if (deltas.size < 2 || totalWeight <= 0.0) return 0f
+            deltas.sortBy { it.first }
+
+            // Find strongest coherent angular cluster within ±0.9° so sparse diagonal strokes never dilute the peak
+            var bestClusterW = 0.0
+            var bestClusterSum = 0.0
+            for ((center, _) in deltas) {
+                var wSum = 0.0
+                var dSum = 0.0
+                for ((d, wt) in deltas) {
+                    if (abs(d - center) <= 0.9f) {
+                        wSum += wt
+                        dSum += d * wt
+                    }
+                }
+                if (wSum > bestClusterW) {
+                    bestClusterW = wSum
+                    bestClusterSum = dSum
+                }
+            }
+            if (bestClusterW < totalWeight * 0.45 || bestClusterW <= 0.0) return 0f
+            return (bestClusterSum / bestClusterW).toFloat()
+        } finally {
+            workRgb.release()
+            gray.release()
+            blur.release()
+            edges.release()
+            linesMat.release()
+        }
     }
 
     private fun computeMlKitFallbackRect(
@@ -1729,21 +2583,27 @@ object CardAutoCropper {
     }
 
     private fun orderQuadPoints(pts: Array<Point>): Array<Point> {
-        // Order: top-left, top-right, bottom-right, bottom-left
-        val sortedSum = pts.sortedBy { it.x + it.y }
-        val tl = sortedSum.first()
-        val br = sortedSum.last()
-        val remaining = pts.filter { it !== tl && it !== br }
-        val (tr, bl) = if (remaining.size == 2) {
-            if ((remaining[0].x - remaining[0].y) >= (remaining[1].x - remaining[1].y)) {
-                Pair(remaining[0], remaining[1])
-            } else {
-                Pair(remaining[1], remaining[0])
-            }
-        } else {
-            Pair(pts[1], pts[3])
+        // Order clockwise around centroid (TL, TR, BR, BL) so arbitrary/45° quads cannot cross into a bowtie
+        if (pts.size != 4) return pts
+        var cx = 0.0
+        var cy = 0.0
+        for (p in pts) {
+            cx += p.x
+            cy += p.y
         }
-        return arrayOf(tl, tr, br, bl)
+        cx /= 4.0
+        cy /= 4.0
+        val cyclic = pts.sortedBy { atan2(it.y - cy, it.x - cx) }
+        var tlIdx = 0
+        var bestSum = Double.MAX_VALUE
+        for (i in 0 until 4) {
+            val s = cyclic[i].x + cyclic[i].y
+            if (s < bestSum) {
+                bestSum = s
+                tlIdx = i
+            }
+        }
+        return Array(4) { k -> cyclic[(tlIdx + k) % 4] }
     }
 
     private fun cornersToBoundingRect(pts: Array<Point>, maxW: Int, maxH: Int): Rect {

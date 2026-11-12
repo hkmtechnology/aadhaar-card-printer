@@ -404,11 +404,14 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                     "cropped": detected,
                     "bbox": list(bbox) if bbox else None,
                     "corners": r_info.get("corners"),
+                    "doc_type": r_info.get("doc_type", doc_type),
                     "ratio_type": r_info.get("ratio_type", "custom"),
                     "aspect": r_info.get("aspect", cropped_pil.width / float(cropped_pil.height)),
                     "is_portrait": r_info.get("is_portrait", (cropped_pil.height > cropped_pil.width)),
                     "width": cropped_pil.width,
-                    "height": cropped_pil.height
+                    "height": cropped_pil.height,
+                    "width_mm": r_info.get("width_mm"),
+                    "height_mm": r_info.get("height_mm")
                 }
             except Exception as e:
                 response_data = {
@@ -533,6 +536,8 @@ class ScanRequestHandler(SimpleHTTPRequestHandler):
                     "corners": result.get("corners"),
                     "cropped": result["cropped"],
                     "doc_type": result.get("doc_type", doc_type),
+                    "width_mm": result.get("width_mm"),
+                    "height_mm": result.get("height_mm"),
                     "ratio_type": result.get("ratio_type", "custom"),
                     "aspect": result.get("aspect", 1.585),
                     "is_portrait": result.get("is_portrait", False),

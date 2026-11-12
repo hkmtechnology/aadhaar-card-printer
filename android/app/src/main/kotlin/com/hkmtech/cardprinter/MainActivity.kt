@@ -49,6 +49,7 @@ import java.net.InetAddress
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var cameraImageUri: Uri? = null
+    private var cameraPhotoFile: File? = null
 
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -70,31 +72,44 @@ class MainActivity : ComponentActivity() {
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (filePathCallback == null) return@registerForActivityResult
+        val callback = filePathCallback ?: return@registerForActivityResult
+        filePathCallback = null
 
         var results: Array<Uri>? = null
         if (result.resultCode == Activity.RESULT_OK) {
             val data = result.data
-            if (data?.data != null) {
-                results = arrayOf(data.data!!)
-            } else if (cameraImageUri != null) {
-                results = arrayOf(cameraImageUri!!)
-            } else if (data?.clipData != null) {
-                val clip = data.clipData!!
-                val count = clip.itemCount
-                val uris = mutableListOf<Uri>()
-                for (i in 0 until count) {
-                    uris.add(clip.getItemAt(i).uri)
+            val clip = data?.clipData
+            if (clip != null && clip.itemCount > 0) {
+                val uris = ArrayList<Uri>(clip.itemCount)
+                for (i in 0 until clip.itemCount) {
+                    clip.getItemAt(i)?.uri?.let { uris.add(it) }
                 }
-                results = uris.toTypedArray()
+                if (uris.isNotEmpty()) {
+                    results = uris.toTypedArray()
+                }
+            } else if (data?.data != null) {
+                results = arrayOf(data.data!!)
+            } else if (cameraImageUri != null && cameraPhotoFile?.let { it.exists() && it.length() > 0L } == true) {
+                results = arrayOf(cameraImageUri!!)
             }
         }
 
-        filePathCallback?.onReceiveValue(results)
-        filePathCallback = null
+        // Remove unused 0-byte camera placeholder file if Gallery/Picker returned results or user cancelled
+        val usedCamera = results != null && results.size == 1 && results[0] == cameraImageUri
+        if (!usedCamera) {
+            try {
+                cameraPhotoFile?.takeIf { it.exists() && it.length() == 0L }?.delete()
+            } catch (_: Throwable) {}
+        }
+        cameraImageUri = null
+        cameraPhotoFile = null
+
+        callback.onReceiveValue(results)
     }
 
     
+    private val pendingBgResults = ConcurrentHashMap<String, String>()
+
     private val tabReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val tab = intent?.getStringExtra("tab")
@@ -239,9 +254,19 @@ class MainActivity : ComponentActivity() {
                 filePathCallback?.onReceiveValue(null)
                 filePathCallback = callback
 
+                // Clean up any leftover 0-byte camera temp file from an earlier aborted chooser
+                try {
+                    cameraPhotoFile?.takeIf { it.exists() && it.length() == 0L }?.delete()
+                } catch (_: Throwable) {}
+                cameraPhotoFile = null
+                cameraImageUri = null
+
                 // 1. Create intent for Camera capture
-                val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                }
                 val photoFile = createImageFile()
+                cameraPhotoFile = photoFile
                 cameraImageUri = FileProvider.getUriForFile(
                     this@MainActivity,
                     "${applicationContext.packageName}.fileprovider",
@@ -252,6 +277,7 @@ class MainActivity : ComponentActivity() {
                 // 2. Create intent for Gallery / File selection
                 val contentSelectionIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     type = "image/*"
                     if (params?.mode == FileChooserParams.MODE_OPEN_MULTIPLE) {
                         putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
@@ -337,6 +363,36 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun autoCropDocBase64(base64Data: String, docType: String): String {
+            try {
+                val clean = if (base64Data.contains("base64,")) base64Data.substringAfter("base64,") else base64Data
+                val bytes = Base64.decode(clean, Base64.DEFAULT)
+                val targetType = if (docType.isNullOrBlank()) "small" else docType
+                val res = CardAutoCropper.processScannedImage(bytes, targetType, isPlatenScan = false)
+                val json = JSONObject().apply {
+                    put("success", res.success)
+                    put("cropped", res.isCropped)
+                    put("image", res.croppedImageDataUri)
+                    put("aspect", res.aspect.toDouble())
+                    put("ratio_type", res.ratioType)
+                    put("doc_type", res.docType)
+                    if (res.widthMm > 0f && res.heightMm > 0f) {
+                        put("width_mm", String.format(java.util.Locale.US, "%.2f", res.widthMm).toDouble())
+                        put("height_mm", String.format(java.util.Locale.US, "%.2f", res.heightMm).toDouble())
+                    }
+                    if (res.bbox != null) put("bbox", JSONArray(res.bbox))
+                    put("angle", res.angle.toDouble())
+                }
+                return json.toString()
+            } catch (e: Exception) {
+                return JSONObject().apply {
+                    put("success", false)
+                    put("error", e.message ?: "Doc crop failed")
+                }.toString()
+            }
+        }
+
+        @JavascriptInterface
         fun detectCardBoundsBase64(base64Data: String): String {
             return try {
                 val clean = if (base64Data.contains("base64,")) base64Data.substringAfter("base64,") else base64Data
@@ -350,28 +406,130 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        private fun cropResultJson(res: CropResult?, errMsg: String): String {
+            return if (res != null) {
+                JSONObject().apply {
+                    put("success", true)
+                    put("image", res.croppedImageDataUri)
+                    put("aspect", res.aspect.toDouble())
+                    put("ratio_type", res.ratioType)
+                    put("is_portrait", res.aspect < 1.0f)
+                    put("rotation", res.angle.toDouble())
+                    put("angle", res.angle.toDouble())
+                    if (res.bbox != null) put("bbox", JSONArray(res.bbox))
+                }.toString()
+            } else {
+                JSONObject().put("success", false).put("error", errMsg).toString()
+            }
+        }
+
+        private fun decodeBase64Payload(base64Data: String): ByteArray {
+            val clean = if (base64Data.contains("base64,")) base64Data.substringAfter("base64,") else base64Data
+            return Base64.decode(clean, Base64.DEFAULT)
+        }
+
         @JavascriptInterface
         fun warpQuadBase64(base64Data: String, pointsJson: String): String {
             return try {
-                val clean = if (base64Data.contains("base64,")) base64Data.substringAfter("base64,") else base64Data
-                val bytes = Base64.decode(clean, Base64.DEFAULT)
-                val res = CardAutoCropper.warpQuadBase64(bytes, pointsJson)
-                if (res != null) {
-                    JSONObject().apply {
-                        put("success", true)
-                        put("image", res.croppedImageDataUri)
-                        put("aspect", res.aspect.toDouble())
-                        put("ratio_type", res.ratioType)
-                    }.toString()
-                } else {
-                    JSONObject().put("success", false).put("error", "Quad warp failed").toString()
-                }
+                val res = CardAutoCropper.warpQuadBase64(decodeBase64Payload(base64Data), pointsJson)
+                cropResultJson(res, "Quad warp failed")
             } catch (e: Exception) {
                 JSONObject().apply {
                     put("success", false)
                     put("error", e.message ?: "Quad warp error")
                 }.toString()
             }
+        }
+
+        @JavascriptInterface
+        fun alignManualBoxBase64(base64Data: String): String {
+            return try {
+                val res = CardAutoCropper.alignManualBoxCrop(decodeBase64Payload(base64Data))
+                cropResultJson(res, "Box alignment failed")
+            } catch (e: Exception) {
+                JSONObject().apply {
+                    put("success", false)
+                    put("error", e.message ?: "Box alignment error")
+                }.toString()
+            }
+        }
+
+        @JavascriptInterface
+        fun orientByTextBase64(base64Data: String): String {
+            return try {
+                val res = CardAutoCropper.orientByText(decodeBase64Payload(base64Data))
+                cropResultJson(res, "Text orientation failed")
+            } catch (e: Exception) {
+                JSONObject().apply {
+                    put("success", false)
+                    put("error", e.message ?: "Text orientation error")
+                }.toString()
+            }
+        }
+
+        /** Runs offline ML Kit + OpenCV portrait segmentation in the background and delivers via callbackId. */
+        @JavascriptInterface
+        fun removePassportBgAsync(base64Data: String, callbackId: String) {
+            Thread {
+                val json = try {
+                    val res = PassportBgRemover.removeBackground(decodeBase64Payload(base64Data))
+                    JSONObject().apply {
+                        put("success", res.success)
+                        if (res.success) {
+                            put("image", res.cutoutDataUri)
+                        } else {
+                            put("error", res.error ?: "Background removal failed")
+                        }
+                    }.toString()
+                } catch (e: Exception) {
+                    JSONObject().apply {
+                        put("success", false)
+                        put("error", e.message ?: "Background removal error")
+                    }.toString()
+                }
+                pendingBgResults[callbackId] = json
+                val safeId = JSONObject.quote(callbackId)
+                runOnUiThread {
+                    webView.evaluateJavascript(
+                        "if (typeof window.__onPassportBgResult === 'function') { window.__onPassportBgResult($safeId); }",
+                        null
+                    )
+                }
+            }.start()
+        }
+
+        /** Consumes a completed offline background-removal JSON payload by callbackId. */
+        @JavascriptInterface
+        fun consumePassportBgResult(callbackId: String): String {
+            return pendingBgResults.remove(callbackId) ?: "{\"success\":false,\"error\":\"Missing result\"}"
+        }
+
+        /** Runs offline ML Kit + OpenCV Passport Studio AI actions (`align`, `open_eyes`, `retouch`, `lighting`, `auto_studio`, `analyze`). */
+        @JavascriptInterface
+        fun runPassportAiStudioAsync(action: String, base64Data: String, aspectW: Float, aspectH: Float, callbackId: String) {
+            Thread {
+                val json = try {
+                    PassportAiStudio.processJson(
+                        action = action,
+                        imageBytes = decodeBase64Payload(base64Data),
+                        aspectW = aspectW,
+                        aspectH = aspectH
+                    )
+                } catch (e: Exception) {
+                    JSONObject().apply {
+                        put("success", false)
+                        put("error", e.message ?: "Offline AI Studio error")
+                    }.toString()
+                }
+                pendingBgResults[callbackId] = json
+                val safeId = JSONObject.quote(callbackId)
+                runOnUiThread {
+                    webView.evaluateJavascript(
+                        "if (typeof window.__onPassportAiStudioResult === 'function') { window.__onPassportAiStudioResult($safeId); }",
+                        null
+                    )
+                }
+            }.start()
         }
 
         @JavascriptInterface
@@ -572,6 +730,11 @@ class MainActivity : ComponentActivity() {
                             put("cropped", cropRes.isCropped)
                             put("aspect", cropRes.aspect.toDouble())
                             put("ratio_type", cropRes.ratioType)
+                            put("doc_type", cropRes.docType)
+                            if (cropRes.widthMm > 0f && cropRes.heightMm > 0f) {
+                                put("width_mm", String.format(java.util.Locale.US, "%.2f", cropRes.widthMm).toDouble())
+                                put("height_mm", String.format(java.util.Locale.US, "%.2f", cropRes.heightMm).toDouble())
+                            }
                             if (cropRes.bbox != null) {
                                 put("bbox", org.json.JSONArray(cropRes.bbox))
                             }
@@ -592,6 +755,7 @@ class MainActivity : ComponentActivity() {
                             put("image", dataUri)
                             put("raw_image", dataUri)
                             put("cropped", false)
+                            put("doc_type", docType)
                             put("aspect", 0.707)
                             put("ratio_type", "a4")
                             put("source", "epson_direct_mobile")

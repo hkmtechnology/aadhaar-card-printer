@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     :root {
-    --card-corner-radius: 3.18mm;
+    --card-corner-radius: 9.01px;
       --primary: #1a73e8;
       --primary-hover: #1557b0;
       --success: #0f9d58;
@@ -860,17 +860,30 @@
       overflow: hidden;
     }
 
-    #photoModeLayout .preview-workspace {
+    #photoModeLayout .preview-workspace,
+    #docModeLayout .preview-workspace {
       display: flex;
       flex-direction: column;
       align-items: center;
       background: radial-gradient(circle at 50% 20%, #0f172a 0%, #060913 100%);
-      padding: 16px 20px 40px;
-      overflow-y: auto;
-      overflow-x: hidden;
+      padding: 12px 16px 16px;
+      overflow: hidden;
       min-height: 100%;
       box-sizing: border-box;
       flex: 1;
+      min-width: 0;
+    }
+
+    #photoModeLayout .preview-viewport,
+    #docModeLayout .preview-viewport {
+      width: 100%;
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 10px 8px 24px;
+      box-sizing: border-box;
     }
 
     /* Live Simulated A4 / Photo Paper Sheet */
@@ -893,10 +906,20 @@
       box-shadow: 0 16px 50px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.15);
       border-radius: 4px;
       overflow: hidden;
-      transform-origin: top center;
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: 0 0;
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       margin: 0 auto;
       box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .sheet-scale-stage > .photo-sheet-container,
+    .sheet-scale-stage > .doc-sheet-container {
+      position: absolute !important;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0 !important;
+      margin: 0 !important;
     }
 
     /* Studio Sheet Toolbar */
@@ -1203,6 +1226,24 @@
       overflow: hidden;
       margin: 0 auto;
       border-radius: 2px;
+      flex-shrink: 0;
+      transform-origin: 0 0;
+    }
+
+    .doc-orig-floating-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 12;
+      padding: 4px 9px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(15, 23, 42, 0.88);
+      color: #fcd34d;
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      pointer-events: none;
     }
 
 
@@ -2625,6 +2666,14 @@
       display: block;
       margin: auto;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      transition: transform 0.2s ease;
+    }
+
+    .doc-sheet-image.small-doc-real {
+      object-fit: fill;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
+      border: 1px dashed rgba(100, 116, 139, 0.45);
+      border-radius: 2px;
     }
     
     .card-slot {
@@ -3306,8 +3355,23 @@
       /* Preview Workspace & Scaled Sheet */
       .preview-workspace {
         width: 100% !important;
+        min-width: 0 !important;
         padding: 8px 6px 80px !important;
         box-sizing: border-box !important;
+      }
+
+      #photoModeLayout .preview-workspace,
+      #docModeLayout .preview-workspace {
+        width: 100% !important;
+        min-width: 0 !important;
+        padding: 8px 6px 80px !important;
+        overflow: visible !important;
+      }
+
+      #photoModeLayout .preview-viewport,
+      #docModeLayout .preview-viewport {
+        padding: 6px 0 !important;
+        width: 100% !important;
       }
 
       .preview-toolbar {
@@ -5889,6 +5953,9 @@
           <button type="button" class="doc-toolbar-btn btn-toggle-orig" id="btnDocToggleOriginal" onclick="toggleDocOriginalView()" title="Compare original scan vs enhanced document">
             👁️ Show Original
           </button>
+          <button type="button" class="doc-toolbar-btn" id="btnDocScaleMode" onclick="toggleDocScaleMode()" style="display: none;" title="Toggle between true physical size vs stretch to Full A4">
+            ⛶ Fill A4
+          </button>
           <button type="button" class="doc-toolbar-btn" onclick="rotateCurrentDocPage(-90)" title="Rotate 90° Left">⟲ 90°</button>
           <button type="button" class="doc-toolbar-btn" onclick="rotateCurrentDocPage(90)" title="Rotate 90° Right">⟳ 90°</button>
           <button type="button" class="doc-toolbar-btn" onclick="rotateCurrentDocPage(180)" title="Rotate 180°">🔄 180°</button>
@@ -5903,17 +5970,20 @@
       </div>
 
       <!-- Live Simulated A4 Document Sheet -->
-      <div class="a4-sheet-container" style="transform: scale(0.85); transform-origin: top center;" id="docSheetContainer">
-        <div class="doc-sheet-container" id="docA4Sheet">
-          <div class="doc-orig-floating-badge" id="docOrigFloatingBadge" style="display: none;">👁️ Viewing Original Unenhanced Scan</div>
-          <div id="docSheetPlaceholder" class="doc-empty-state">
-            <span style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6;">📄</span>
-            <strong style="color: #94a3b8; font-size: 1rem;">Document Page Preview</strong>
-            <span style="color: #64748b; font-size: 0.8rem; margin-top: 6px;">
-              Ready to scan full A4 pages or small documents
-            </span>
+      <div class="preview-viewport" id="docPreviewViewport">
+        <div class="sheet-scale-stage" id="docScaleStage">
+          <div class="doc-sheet-container" id="docA4Sheet">
+            <div class="doc-orig-floating-badge" id="docOrigFloatingBadge" style="display: none;">👁️ Viewing Original Unenhanced Scan</div>
+            <div class="doc-orig-floating-badge" id="docSizeFloatingBadge" style="display: none; top: auto; bottom: 8px; right: 8px; left: auto; background: rgba(15, 23, 42, 0.85); color: #93c5fd; border: 1px solid rgba(56, 189, 248, 0.4);">📏 Actual Size</div>
+            <div id="docSheetPlaceholder" class="doc-empty-state">
+              <span style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6;">📄</span>
+              <strong style="color: #94a3b8; font-size: 1rem;">Document Page Preview</strong>
+              <span style="color: #64748b; font-size: 0.8rem; margin-top: 6px;">
+                Ready to scan full A4 pages or small documents
+              </span>
+            </div>
+            <img id="docSheetImg" class="doc-sheet-image" style="display: none;" alt="Scanned Document Page" />
           </div>
-          <img id="docSheetImg" class="doc-sheet-image" style="display: none;" alt="Scanned Document Page" />
         </div>
       </div>
     
@@ -6127,19 +6197,38 @@
           </div>
         </div>
 
-        <!-- SECTION 1B: 🪄 AI BACKGROUND STUDIO & COLOR REPLACEMENT -->
+        <!-- SECTION 1B: 🪄 OFFLINE AI PHOTO STUDIO & BACKGROUND REPLACEMENT -->
         <div class="section-card" id="passportAiBgCard">
           <div class="section-title">
-            <span>🪄 AI Background Studio</span>
-            <span style="font-size:0.68rem; background: linear-gradient(135deg, #7c3aed, #4f46e5); color:#fff; padding:2px 6px; border-radius:4px; font-weight:700;">u2netp AI</span>
+            <span>🪄 AI Photo Studio</span>
+            <span id="aiBgEngineBadge" style="font-size:0.68rem; background: linear-gradient(135deg, #059669, #0284c7); color:#fff; padding:2px 6px; border-radius:4px; font-weight:700;">Offline AI</span>
           </div>
 
-          <div style="margin-bottom: 10px;">
+          <div style="margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
+            <button type="button" class="btn-scan-action" id="btnAiAutoStudio" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #059669 0%, #0284c7 100%); box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);" onclick="runPassportStudioAi('auto_studio')">
+              ✨ 1-Click AI Auto Studio (All-in-One)
+            </button>
+
+            <div id="passportStudioAiGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
+              <button type="button" class="mini-btn" id="btnAiAlignFace" style="padding: 6px 4px; font-size: 0.72rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.12);" onclick="runPassportStudioAi('align')" title="Detect face, level eyes to 0°, and auto-frame to biometric passport standard">
+                🎯 Face Align
+              </button>
+              <button type="button" class="mini-btn" id="btnAiOpenEyes" style="padding: 6px 4px; font-size: 0.72rem; font-weight: 700; color: #c4b5fd; border-color: rgba(167, 139, 250, 0.45); background: rgba(139, 92, 246, 0.14);" onclick="runPassportStudioAi('open_eyes')" title="Detect blinking/closed eyes and open them naturally">
+                👁️ Open Eyes
+              </button>
+              <button type="button" class="mini-btn" id="btnAiRetouch" style="padding: 6px 4px; font-size: 0.72rem; font-weight: 700; color: #f472b6; border-color: rgba(244, 114, 182, 0.45); background: rgba(236, 72, 153, 0.12);" onclick="runPassportStudioAi('retouch')" title="Studio skin soften while sharpening eyes, brows & hair">
+                🌟 Skin Retouch
+              </button>
+              <button type="button" class="mini-btn" id="btnAiLighting" style="padding: 6px 4px; font-size: 0.72rem; font-weight: 700; color: #fcd34d; border-color: rgba(251, 191, 36, 0.45); background: rgba(245, 158, 11, 0.12);" onclick="runPassportStudioAi('lighting')" title="Auto fill light, shadow lift & skin-safe white balance">
+                💡 Studio Light
+              </button>
+            </div>
+
             <button class="btn-scan-action" id="btnAiBgRemoval" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);" onclick="applyPassportAiBgRemoval()">
               🪄 AI Remove Background
             </button>
-            <div id="aiBgStatus" style="font-size: 0.72rem; color: #94a3b8; text-align: center; margin-top: 4px;">
-              Fast ~0.2s portrait cutout with clean edge matte
+            <div id="aiBgStatus" style="font-size: 0.72rem; color: #94a3b8; text-align: center; margin-top: 2px; line-height: 1.35;">
+              100% offline face align, eye open, retouch &amp; portrait cutout
             </div>
           </div>
 
@@ -6170,10 +6259,11 @@
                 <span class="photo-bg-dot" style="background:#dc2626;"></span>
                 <span>Red</span>
               </button>
-              <div class="photo-bg-custom-wrap" title="Pick Custom Background Color">
-                <input type="color" id="photoCustomBgPicker" value="#ffffff" onchange="setPassportBgColor(this.value)">
-                <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 600;">Custom 🎨</span>
-              </div>
+              <button type="button" class="photo-bg-chip" id="btnCustomBgColor" onclick="openCustomPassportBgPicker()" title="Pick Custom Background Color">
+                <span class="photo-bg-dot" id="photoCustomBgDot" style="background: conic-gradient(#ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444); border:1px solid #94a3b8;"></span>
+                <span>Custom 🎨</span>
+              </button>
+              <input type="hidden" id="photoCustomBgPicker" value="#ffffff">
             </div>
           </div>
         </div>
@@ -6267,9 +6357,11 @@
       </div>
 
       <!-- Live Simulated A4 Photo Sheet -->
-      <div class="a4-sheet-container" style="transform: scale(0.85); transform-origin: top center;" id="photoSheetContainer">
-        <div class="photo-sheet-container" id="photoA4Sheet">
-          <!-- Dynamic Photo Grid Slots populated by renderPhotoGridSheet() -->
+      <div class="preview-viewport" id="photoPreviewViewport">
+        <div class="sheet-scale-stage" id="photoScaleStage">
+          <div class="photo-sheet-container" id="photoA4Sheet">
+            <!-- Dynamic Photo Grid Slots populated by renderPhotoGridSheet() -->
+          </div>
         </div>
       </div>
     
@@ -7601,6 +7693,56 @@
     </div>
   </div>
 
+  <!-- CUSTOM PASSPORT BACKGROUND COLOR PICKER MODAL -->
+  <div class="modal-overlay" id="customBgColorModal" style="display: none; z-index: 100007;" onclick="if (event.target === this) closeCustomPassportBgPicker()">
+    <div class="modal-box" style="max-width: 390px; width: 92vw;">
+      <div class="modal-header">
+        <div class="modal-title">🎨 Custom Background Color</div>
+        <button type="button" class="mini-btn btn-danger" onclick="closeCustomPassportBgPicker()">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div id="customBgPreviewBox" style="width: 56px; height: 56px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.35); background: #3b82f6; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.35);"></div>
+          <div style="flex: 1;">
+            <label style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 4px;">Hex Color Code:</label>
+            <input type="text" id="customBgHexInput" value="#3b82f6" maxlength="7" oninput="onCustomBgHexInput(this.value)" style="width: 100%; padding: 7px 10px; background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; font-family: monospace; font-size: 0.9rem; font-weight: 700;">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 6px;">Studio Backdrop Swatches:</label>
+          <div id="customBgSwatches" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;"></div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(15, 23, 42, 0.55); padding: 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.16);">
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#cbd5e1; margin-bottom:2px;">
+              <span>Hue (Color)</span><span id="customBgHueVal">217°</span>
+            </div>
+            <input type="range" id="customBgHueSlider" min="0" max="360" value="217" oninput="onCustomBgHslChange()" style="width:100%; accent-color:#38bdf8; background: linear-gradient(to right, #ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444); height: 8px; border-radius: 4px;">
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#cbd5e1; margin-bottom:2px;">
+              <span>Saturation</span><span id="customBgSatVal">91%</span>
+            </div>
+            <input type="range" id="customBgSatSlider" min="0" max="100" value="91" oninput="onCustomBgHslChange()" style="width:100%;">
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#cbd5e1; margin-bottom:2px;">
+              <span>Lightness</span><span id="customBgLightVal">60%</span>
+            </div>
+            <input type="range" id="customBgLightSlider" min="5" max="100" value="60" oninput="onCustomBgHslChange()" style="width:100%;">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeCustomPassportBgPicker()" style="padding: 8px 14px;">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="applyCustomPassportBgPicker()" style="padding: 8px 18px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #0284c7 100%); border: none;">✓ Apply Color</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SCANNING MODAL WITH ABORT BUTTON -->
   <div class="modal-overlay" id="scanModal">
     <div class="modal-box">
@@ -8323,6 +8465,9 @@ function getApiUrl(endpoint) {
 
       autoCenterPhotoGrid();
       renderPhotoGridSheet();
+      if (typeof resetDocZoom === 'function') resetDocZoom();
+      if (typeof renderCurrentDocPage === 'function' && currentAppMode === 'doc') renderCurrentDocPage();
+      if (typeof resetPhotoZoom === 'function') resetPhotoZoom();
 
       // Update PDF button labels
       const pdfBtn = document.getElementById('btnPdfLabel');
@@ -9079,7 +9224,11 @@ function getApiUrl(endpoint) {
       updateSheetLayout();
       renderMidLine();
       applyZoom();
-      window.addEventListener('resize', autoFitZoom);
+      window.addEventListener('resize', () => {
+        autoFitZoom();
+        if (typeof resetDocZoom === 'function' && currentAppMode === 'doc') resetDocZoom();
+        if (typeof resetPhotoZoom === 'function' && currentAppMode === 'photo') resetPhotoZoom();
+      });
       autoFitZoom();
       runDeviceDetection();
       checkScannerServer(true);
@@ -10188,21 +10337,36 @@ function getApiUrl(endpoint) {
       alignTextHorizontal(side);
     }
 
+    async function requestOrientByText(imageDataUrl) {
+      if (window.AndroidBridge && typeof window.AndroidBridge.orientByTextBase64 === 'function') {
+        try {
+          const nativeRes = window.AndroidBridge.orientByTextBase64(imageDataUrl);
+          const parsed = JSON.parse(nativeRes);
+          if (parsed && parsed.success && parsed.image) {
+            return parsed;
+          }
+        } catch (nativeErr) {
+          console.warn('Native orientByTextBase64 failed, trying server fallback:', nativeErr);
+        }
+      }
+      const res = await fetch(getApiUrl('/api/orient'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageDataUrl })
+      });
+      if (!res.ok) throw new Error('Server returned ' + res.status);
+      return await res.json();
+    }
+
     async function alignTextHorizontal(side) {
       if (!state[side].croppedImg) return;
       const originalSrc = state[side].croppedImg.src;
       showToast(`Analyzing text orientation for ${side === 'front' ? 'Top (Front)' : 'Bottom (Back)'}...`, 'info');
 
       try {
-        const res = await fetch(getApiUrl('/api/orient'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: originalSrc })
-        });
-        if (!res.ok) throw new Error('Server returned ' + res.status);
-        const data = await res.json();
+        const data = await requestOrientByText(originalSrc);
         if (data.success && data.image) {
-          if (data.rotation === 0) {
+          if (Math.abs(data.rotation || 0) < 0.5) {
             showToast('Card text is already horizontal and upright!', 'info');
             return;
           }
@@ -10210,17 +10374,18 @@ function getApiUrl(endpoint) {
           orientedImg.onload = () => {
             state[side].croppedImg = orientedImg;
             state[side].rotation = 0;
+            state[side].canvasAngle = 0;
             detectAndApplyAspect(side, orientedImg, data.ratio_type, data.aspect);
             updateSheetLayout();
             renderSlot(side);
-            showToast(`Card oriented by text (${data.rotation}° applied) to ${data.is_portrait ? 'Portrait' : 'Landscape'}!`, 'success');
+            showToast(`Card oriented by text (${Math.round(data.rotation)}° applied) to ${data.is_portrait ? 'Portrait' : 'Landscape'}!`, 'success');
           };
           orientedImg.src = data.image;
         } else {
           throw new Error(data.error || 'Auto-orientation failed');
         }
       } catch (err) {
-        console.warn('Text orientation API error, falling back to 90° rotation:', err);
+        console.warn('Text orientation error, falling back to 90° rotation:', err);
         rotateImage(side, 90);
       }
     }
@@ -10261,28 +10426,26 @@ function getApiUrl(endpoint) {
       showToast('Analyzing crop image text orientation...', 'info');
 
       try {
-        const res = await fetch(getApiUrl('/api/orient'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: targetImg.src })
-        });
-        if (!res.ok) throw new Error('Server returned ' + res.status);
-        const data = await res.json();
+        const data = await requestOrientByText(targetImg.src);
         if (data.success && data.image) {
-          if (data.rotation === 0) {
+          if (Math.abs(data.rotation || 0) < 0.5) {
             showToast('Text is already horizontal & upright!', 'info');
             return;
           }
+          cropState.sourceMatchesRaw = false;
+          cropState._pendingAutoDetectOnLoad = true;
           targetImg.onload = () => {
-            if (data.is_portrait) {
-              setCropRatio('id_portrait');
-            } else {
-              setCropRatio('id_landscape');
-            }
             initCropWorkspace();
-            showToast(`Image oriented by text (${data.rotation}°)!`, 'success');
+            if (data.is_portrait) {
+              setCropRatio('id_portrait', false);
+            } else {
+              setCropRatio('id_landscape', false);
+            }
+            showToast(`Image oriented by text (${Math.round(data.rotation)}°)!`, 'success');
           };
           targetImg.src = data.image;
+        } else {
+          showToast(data.error || 'Could not detect text orientation.', 'warning');
         }
       } catch (e) {
         showToast('Auto-orientation error: ' + e.message, 'error');
@@ -10616,7 +10779,8 @@ function getApiUrl(endpoint) {
         function handleCornerCurveChange(val) {
       const radiusMm = parseFloat(val);
       state.cornerCurveMm = isNaN(radiusMm) ? 3.18 : radiusMm;
-      document.documentElement.style.setProperty('--card-corner-radius', state.cornerCurveMm + 'mm');
+      const sheetPxPerMm = (typeof PX_PER_MM === 'number' && PX_PER_MM > 0) ? PX_PER_MM : (595.0 / 210.0);
+      document.documentElement.style.setProperty('--card-corner-radius', (state.cornerCurveMm * sheetPxPerMm).toFixed(2) + 'px');
       const badge = document.getElementById('cornerCurveBadge');
       if (badge) {
         if (Math.abs(state.cornerCurveMm - 3.18) < 0.05) {
@@ -11346,7 +11510,12 @@ function getApiUrl(endpoint) {
         updateSheetLayout();
       } else if (mode === 'doc') {
         if (subtext) subtext.innerText = 'Scan Multiple Pages (A4 or Small Docs) • Auto-Enhance • Print';
-        if (lbl1) lbl1.innerText = '1. Pages & Scan'; if (lbl2) lbl2.innerText = '2. Doc Preview'; if (lbl3) lbl3.innerText = '3. Print & PDF'; if (icn1) icn1.innerText = '📄'; renderDocPageList(); renderCurrentDocPage();
+        if (lbl1) lbl1.innerText = '1. Pages & Scan'; if (lbl2) lbl2.innerText = '2. Doc Preview'; if (lbl3) lbl3.innerText = '3. Print & PDF'; if (icn1) icn1.innerText = '📄';
+        requestAnimationFrame(() => {
+          if (typeof resetDocZoom === 'function') resetDocZoom();
+          renderDocPageList();
+          renderCurrentDocPage();
+        });
       } else if (mode === 'photo') {
         if (subtext) subtext.innerText = 'Passport Photo Studio • Grid Layout on A4 • Auto-Enhance • Print';
         if (lbl1) lbl1.innerText = '1. Photo & Crop';
@@ -11354,8 +11523,10 @@ function getApiUrl(endpoint) {
         if (lbl3) lbl3.innerText = '3. Layout & Print';
         if (icn1) icn1.innerText = '📷';
         if (typeof syncPhotoMarginUI === 'function') syncPhotoMarginUI();
-        if (typeof resetPhotoZoom === 'function') resetPhotoZoom();
-        if (typeof renderPhotoGridSheet === 'function') renderPhotoGridSheet();
+        requestAnimationFrame(() => {
+          if (typeof autoCenterPhotoGrid === 'function') autoCenterPhotoGrid(false);
+          if (typeof resetPhotoZoom === 'function') resetPhotoZoom();
+        });
       }
     }
 
@@ -11374,6 +11545,80 @@ function getApiUrl(endpoint) {
     function onDocAutoEnhanceChange() {
       const toggle = document.getElementById('docAutoEnhanceToggle');
       if (toggle) docState.autoEnhance = toggle.checked;
+    }
+
+    function resolveSmallDocPhysicalSizeMm(imgW, imgH, docType, explicitWmm, explicitHmm, rawImgDataUrl, scanDpi, isUpload = false) {
+      if (explicitWmm > 0 && explicitHmm > 0) {
+        return { widthMm: Math.round(explicitWmm * 10) / 10, heightMm: Math.round(explicitHmm * 10) / 10 };
+      }
+      if (docType !== 'small' || !imgW || !imgH) {
+        return { widthMm: 0, heightMm: 0 };
+      }
+
+      const paperW = state.paperWidthMm || 210.0;
+      const paperH = state.paperHeightMm || 297.0;
+      const aspect = imgW / Math.max(1, imgH);
+
+      if (!isUpload) {
+        const dpi = scanDpi || docState.scanDpi || 300;
+        const pxPerMm = dpi / 25.4;
+        let wMm = imgW / pxPerMm;
+        let hMm = imgH / pxPerMm;
+        // Guard only if uncropped full-platen somehow arrived for a "small" doc
+        if (wMm > paperW * 0.96 && hMm > paperH * 0.96) {
+          wMm = Math.min(wMm, paperW * 0.94);
+          hMm = wMm / aspect;
+        }
+        return { widthMm: Math.round(wMm * 10) / 10, heightMm: Math.round(hMm * 10) / 10 };
+      }
+
+      // Uploaded standalone image in "Small Doc / Slip" mode:
+      // Keep realistic small-document physical footprint on A4 rather than inflating to full 210×297 mm
+      const refPxPerMm = 300.0 / 25.4;
+      let wMm = imgW / refPxPerMm;
+      let hMm = imgH / refPxPerMm;
+      const maxUploadW = Math.min(paperW * 0.62, 130.0);
+      const maxUploadH = Math.min(paperH * 0.62, 175.0);
+      if (wMm > maxUploadW || hMm > maxUploadH || Math.max(wMm, hMm) < 35.0) {
+        if ((aspect >= maxUploadW / maxUploadH)) {
+          wMm = Math.min(maxUploadW, Math.max(70.0, wMm));
+          hMm = wMm / aspect;
+          if (hMm > maxUploadH) { hMm = maxUploadH; wMm = hMm * aspect; }
+        } else {
+          hMm = Math.min(maxUploadH, Math.max(85.0, hMm));
+          wMm = hMm * aspect;
+          if (wMm > maxUploadW) { wMm = maxUploadW; hMm = wMm / aspect; }
+        }
+      }
+      return { widthMm: Math.round(wMm * 10) / 10, heightMm: Math.round(hMm * 10) / 10 };
+    }
+
+    function measureDocPageDimensions(page, imgDataUrl, explicitWmm, explicitHmm, isUpload) {
+      if (explicitWmm > 0 && explicitHmm > 0) {
+        page.widthMm = Math.round(explicitWmm * 10) / 10;
+        page.heightMm = Math.round(explicitHmm * 10) / 10;
+        if (docState.pages[docState.currentIndex] === page) renderCurrentDocPage();
+        return;
+      }
+      if (page.docType !== 'small') return;
+      const probe = new Image();
+      probe.onload = () => {
+        const dims = resolveSmallDocPhysicalSizeMm(
+          probe.naturalWidth || probe.width,
+          probe.naturalHeight || probe.height,
+          page.docType,
+          0,
+          0,
+          null,
+          docState.scanDpi || 300,
+          isUpload
+        );
+        page.widthMm = dims.widthMm;
+        page.heightMm = dims.heightMm;
+        page.aspect = (probe.naturalWidth || 1) / Math.max(1, probe.naturalHeight || 1);
+        if (docState.pages[docState.currentIndex] === page) renderCurrentDocPage();
+      };
+      probe.src = imgDataUrl;
     }
 
     async function triggerDocScanNext() {
@@ -11416,12 +11661,18 @@ function getApiUrl(endpoint) {
         if (data.aborted) {
           showToast('Scan was aborted by user.', 'warning');
         } else if (data.success && data.image) {
+          const effDocType = (data.doc_type === 'a4' || data.doc_type === 'small')
+            ? data.doc_type
+            : (docState.docType === 'small' ? 'small' : 'a4');
           const newPage = {
             id: 'page_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             rawImg: data.image,
             enhancedImg: data.image,
             rotation: 0,
-            docType: data.doc_type || docState.docType,
+            docType: effDocType,
+            fitToA4: false,
+            widthMm: (data.width_mm > 0) ? Math.round(data.width_mm * 10) / 10 : 0,
+            heightMm: (data.height_mm > 0) ? Math.round(data.height_mm * 10) / 10 : 0,
             preset: docState.autoEnhance ? docState.enhancePreset : 'original',
             brightness: docState.brightness,
             contrast: docState.contrast,
@@ -11433,6 +11684,9 @@ function getApiUrl(endpoint) {
           docState.pages.push(newPage);
           docState.currentIndex = docState.pages.length - 1;
 
+          measureDocPageDimensions(newPage, data.image, data.width_mm, data.height_mm, false);
+
+          if (typeof resetDocZoom === 'function') resetDocZoom();
           renderDocPageList();
           renderCurrentDocPage();
           showToast(`Page ${targetPageNum} scanned & auto-enhanced!`, 'success');
@@ -11457,23 +11711,70 @@ function getApiUrl(endpoint) {
       if (!files || files.length === 0) return;
 
       Array.from(files).forEach((file, idx) => {
+        if (!file || !file.size) {
+          showToast('Selected file is empty or could not be read.', 'warning');
+          return;
+        }
         const reader = new FileReader();
-        reader.onload = function(evt) {
-          const dataUrl = evt.target.result;
-          const pageNum = docState.pages.length + 1;
+        reader.onload = async function(evt) {
+          let finalUrl = evt.target && evt.target.result;
+          if (!finalUrl || typeof finalUrl !== 'string' || finalUrl.length < 40 || !finalUrl.includes('base64,')) {
+            showToast('Failed to read selected image file.', 'warning');
+            return;
+          }
+          let effDocType = docState.docType === 'small' ? 'small' : 'a4';
+          let detectedWmm = 0;
+          let detectedHmm = 0;
+          let detectedAspect = 0.707;
+
+          // If uploading in Small Doc / Auto mode on Android/PC, detect & crop document contour first
+          if (docState.docType !== 'a4') {
+            let cropData = null;
+            if (window.AndroidBridge && typeof window.AndroidBridge.autoCropDocBase64 === 'function') {
+              try {
+                cropData = JSON.parse(window.AndroidBridge.autoCropDocBase64(finalUrl, docState.docType));
+              } catch (_) {}
+            } else {
+              try {
+                const res = await fetch(getApiUrl('/api/autocrop'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ image: finalUrl, doc_type: docState.docType, corner_curve_mm: 0 })
+                });
+                if (res.ok) cropData = await res.json();
+              } catch (_) {}
+            }
+            if (cropData && cropData.success && cropData.image) {
+              finalUrl = cropData.image;
+              if (cropData.doc_type === 'a4' || cropData.doc_type === 'small') effDocType = cropData.doc_type;
+              if (cropData.width_mm > 0 && cropData.height_mm > 0) {
+                detectedWmm = cropData.width_mm;
+                detectedHmm = cropData.height_mm;
+              }
+              if (cropData.aspect > 0) detectedAspect = cropData.aspect;
+            }
+          }
+
           const newPage = {
             id: 'page_' + Date.now() + '_' + idx,
-            rawImg: dataUrl,
-            enhancedImg: dataUrl,
+            rawImg: finalUrl,
+            enhancedImg: finalUrl,
             rotation: 0,
-            docType: docState.docType,
-            preset: 'clean',
+            docType: effDocType,
+            fitToA4: false,
+            widthMm: detectedWmm,
+            heightMm: detectedHmm,
+            preset: docState.autoEnhance ? docState.enhancePreset : 'original',
             brightness: docState.brightness,
             contrast: docState.contrast,
             sharpness: docState.sharpness,
             bgWhiten: docState.bgWhiten,
-            aspect: 0.707
+            aspect: detectedAspect
           };
+
+          docState.pages.push(newPage);
+          docState.currentIndex = docState.pages.length - 1;
+          measureDocPageDimensions(newPage, finalUrl, detectedWmm, detectedHmm, true);
 
           // Apply auto-enhance if checked
           if (docState.autoEnhance) {
@@ -11483,8 +11784,7 @@ function getApiUrl(endpoint) {
             });
           }
 
-          docState.pages.push(newPage);
-          docState.currentIndex = docState.pages.length - 1;
+          if (typeof resetDocZoom === 'function') resetDocZoom();
           renderDocPageList();
           renderCurrentDocPage();
         };
@@ -11564,16 +11864,42 @@ function getApiUrl(endpoint) {
       });
     }
 
+    function toggleDocScaleMode() {
+      if (docState.currentIndex < 0 || docState.currentIndex >= docState.pages.length) return;
+      const page = docState.pages[docState.currentIndex];
+      page.fitToA4 = !page.fitToA4;
+      renderCurrentDocPage();
+      showToast(page.fitToA4 ? 'Stretched to fill full page' : 'Showing exact physical size on sheet', 'info');
+    }
+
     function renderCurrentDocPage() {
       const currentNum = document.getElementById('docCurrentPageNum');
       const placeholder = document.getElementById('docSheetPlaceholder');
       const img = document.getElementById('docSheetImg');
       const filterBadge = document.getElementById('docFilterBadge');
+      const scaleBtn = document.getElementById('btnDocScaleMode');
+      const sizeBadge = document.getElementById('docSizeFloatingBadge');
+      const sheet = document.getElementById('docA4Sheet');
+
+      const spec = (typeof PAPER_SIZES !== 'undefined' && PAPER_SIZES[state.paperSize])
+        ? PAPER_SIZES[state.paperSize]
+        : { widthMm: 210.0, heightMm: 297.0 };
+      const sheetW = spec.widthMm * PX_PER_MM;
+      const sheetH = spec.heightMm * PX_PER_MM;
+      if (sheet) {
+        sheet.style.width = Math.round(sheetW) + 'px';
+        sheet.style.height = Math.round(sheetH) + 'px';
+      }
 
       if (docState.pages.length === 0 || docState.currentIndex < 0 || docState.currentIndex >= docState.pages.length) {
         if (currentNum) currentNum.innerText = 0;
         if (placeholder) placeholder.style.display = 'flex';
-        if (img) img.style.display = 'none';
+        if (img) {
+          img.style.display = 'none';
+          img.classList.remove('small-doc-real');
+        }
+        if (scaleBtn) scaleBtn.style.display = 'none';
+        if (sizeBadge) sizeBadge.style.display = 'none';
         return;
       }
 
@@ -11581,17 +11907,80 @@ function getApiUrl(endpoint) {
       if (currentNum) currentNum.innerText = docState.currentIndex + 1;
       if (placeholder) placeholder.style.display = 'none';
 
-      if (img) {
-        img.style.display = 'block';
-        img.src = docState.showOriginal ? page.rawImg : page.enhancedImg;
-        const rot = page.rotation || 0;
-        if (rot % 180 !== 0) {
-          // Scale slightly so 90/270 rotated page fits neatly inside portrait sheet preview
-          const scale = 595.0 / 842.0;
-          img.style.transform = `rotate(${rot}deg) scale(${scale.toFixed(3)})`;
+      const isSmallRealSize = (page.docType === 'small' && !page.fitToA4 && page.widthMm > 0 && page.heightMm > 0);
+      if (scaleBtn) {
+        scaleBtn.style.display = (page.docType === 'small') ? 'inline-flex' : 'none';
+        scaleBtn.innerText = page.fitToA4 ? '📏 Actual Size' : '⛶ Fill A4';
+        scaleBtn.classList.toggle('active', !!page.fitToA4);
+      }
+      if (sizeBadge) {
+        if (page.docType === 'small' && page.widthMm > 0 && page.heightMm > 0) {
+          sizeBadge.style.display = 'inline-block';
+          const rot90 = ((page.rotation || 0) % 180 !== 0);
+          const dW = Math.round(rot90 ? page.heightMm : page.widthMm);
+          const dH = Math.round(rot90 ? page.widthMm : page.heightMm);
+          sizeBadge.innerText = page.fitToA4
+            ? `⛶ Stretched to ${spec.name || 'A4'}`
+            : `📏 Actual Size: ${dW} × ${dH} mm`;
         } else {
-          img.style.transform = `rotate(${rot}deg)`;
+          sizeBadge.style.display = 'none';
         }
+      }
+
+      if (img) {
+        const rot = page.rotation || 0;
+        const rot90 = (rot % 180 !== 0);
+        const applyImgLayout = () => {
+          if (isSmallRealSize) {
+            let wPx = page.widthMm * PX_PER_MM;
+            let hPx = page.heightMm * PX_PER_MM;
+            const rotW = rot90 ? hPx : wPx;
+            const rotH = rot90 ? wPx : hPx;
+            const maxScale = Math.min(1.0, (sheetW * 0.94) / Math.max(1, rotW), (sheetH * 0.94) / Math.max(1, rotH));
+            wPx *= maxScale;
+            hPx *= maxScale;
+            img.classList.add('small-doc-real');
+            img.style.width = wPx.toFixed(1) + 'px';
+            img.style.height = hPx.toFixed(1) + 'px';
+            img.style.maxWidth = 'none';
+            img.style.maxHeight = 'none';
+            img.style.transform = `rotate(${rot}deg)`;
+          } else {
+            img.classList.remove('small-doc-real');
+            const natW = img.naturalWidth || 595;
+            const natH = img.naturalHeight || 842;
+            const aspect = natW / Math.max(1, natH);
+            if (rot90) {
+              const boxW = sheetH * 0.94;
+              const boxH = sheetW * 0.94;
+              let tw, th;
+              if (aspect > (boxW / boxH)) {
+                tw = boxW;
+                th = tw / aspect;
+              } else {
+                th = boxH;
+                tw = th * aspect;
+              }
+              img.style.width = tw.toFixed(1) + 'px';
+              img.style.height = th.toFixed(1) + 'px';
+              img.style.maxWidth = 'none';
+              img.style.maxHeight = 'none';
+              img.style.transform = `rotate(${rot}deg)`;
+            } else {
+              img.style.width = 'auto';
+              img.style.height = 'auto';
+              img.style.maxWidth = '94%';
+              img.style.maxHeight = '94%';
+              img.style.transform = `rotate(${rot}deg)`;
+            }
+          }
+        };
+
+        img.onload = applyImgLayout;
+        img.style.display = 'block';
+        const nextSrc = docState.showOriginal ? page.rawImg : page.enhancedImg;
+        if (img.src !== nextSrc) img.src = nextSrc;
+        if (img.complete) applyImgLayout();
       }
 
       if (filterBadge) {
@@ -11815,6 +12204,9 @@ function getApiUrl(endpoint) {
           page.enhancedImg = canvas.toDataURL('image/jpeg', 0.94);
           resolve();
         };
+        img.onerror = function() {
+          resolve();
+        };
         img.src = page.rawImg;
       });
     }
@@ -11851,20 +12243,53 @@ function getApiUrl(endpoint) {
       }
     }
 
-    function zoomDocPage(delta) {
-      docState.zoom = Math.max(0.4, Math.min(1.8, docState.zoom + delta));
-      const container = document.getElementById('docSheetContainer');
+    function applyDocZoom() {
+      const z = docState.zoom || 0.85;
+      const stage = document.getElementById('docScaleStage');
+      const sheet = document.getElementById('docA4Sheet');
+      const spec = (typeof PAPER_SIZES !== 'undefined' && PAPER_SIZES[state.paperSize])
+        ? PAPER_SIZES[state.paperSize]
+        : { widthMm: 210.0, heightMm: 297.0 };
+      const baseW = spec.widthMm * PX_PER_MM;
+      const baseH = spec.heightMm * PX_PER_MM;
+
+      if (stage) {
+        stage.style.width = Math.round(baseW * z) + 'px';
+        stage.style.height = Math.round(baseH * z) + 'px';
+      }
+      if (sheet) {
+        sheet.style.width = Math.round(baseW) + 'px';
+        sheet.style.height = Math.round(baseH) + 'px';
+        sheet.style.transform = `scale(${z})`;
+        sheet.style.transformOrigin = '0 0';
+      }
       const label = document.getElementById('docZoomLevel');
-      if (container) container.style.transform = `scale(${docState.zoom})`;
-      if (label) label.innerText = Math.round(docState.zoom * 100) + '%';
+      if (label) label.innerText = Math.round(z * 100) + '%';
+    }
+
+    function zoomDocPage(delta) {
+      docState.zoom = Math.max(0.35, Math.min(1.8, (docState.zoom || 0.85) + delta));
+      applyDocZoom();
     }
 
     function resetDocZoom() {
-      docState.zoom = 0.85;
-      const container = document.getElementById('docSheetContainer');
-      const label = document.getElementById('docZoomLevel');
-      if (container) container.style.transform = `scale(${docState.zoom})`;
-      if (label) label.innerText = '85%';
+      const vp = document.getElementById('docPreviewViewport');
+      const isMobile = window.innerWidth <= 900;
+      const spec = (typeof PAPER_SIZES !== 'undefined' && PAPER_SIZES[state.paperSize])
+        ? PAPER_SIZES[state.paperSize]
+        : { widthMm: 210.0, heightMm: 297.0 };
+      const baseW = spec.widthMm * PX_PER_MM;
+      const baseH = spec.heightMm * PX_PER_MM;
+
+      let availW = window.innerWidth - 28;
+      if (vp && vp.clientWidth > 80) availW = vp.clientWidth - 16;
+      let availH = window.innerHeight - 210;
+      if (vp && vp.clientHeight > 100) availH = vp.clientHeight - 16;
+
+      let fitZoom = Math.min(availW / baseW, availH / baseH, isMobile ? 0.95 : 1.15);
+      fitZoom = Math.max(0.35, Math.floor(fitZoom * 100) / 100);
+      docState.zoom = fitZoom;
+      applyDocZoom();
     }
 
     // PRINT ALL PAGES ACTION (DIRECT SILENT PRINT)
@@ -12011,19 +12436,27 @@ function getApiUrl(endpoint) {
           const availH = A4_H - (margin * 2);
 
           // Handle rotation
-          const rad = (page.rotation * Math.PI) / 180;
-          const isRot90 = (page.rotation % 180 !== 0);
+          const rad = ((page.rotation || 0) * Math.PI) / 180;
+          const isRot90 = ((page.rotation || 0) % 180 !== 0);
           const srcW = isRot90 ? img.height : img.width;
           const srcH = isRot90 ? img.width : img.height;
-          const aspect = srcW / srcH;
+          const aspect = srcW / Math.max(1, srcH);
 
           let tw, th;
-          if (aspect > (availW / availH)) {
-            tw = availW;
-            th = tw / aspect;
+          if (page.docType === 'small' && !page.fitToA4 && page.widthMm > 0 && page.heightMm > 0) {
+            const targetW = (isRot90 ? page.heightMm : page.widthMm) * scale;
+            const targetH = (isRot90 ? page.widthMm : page.heightMm) * scale;
+            const fitRatio = Math.min(1.0, availW / Math.max(1, targetW), availH / Math.max(1, targetH));
+            tw = targetW * fitRatio;
+            th = targetH * fitRatio;
           } else {
-            th = availH;
-            tw = th * aspect;
+            if (aspect > (availW / availH)) {
+              tw = availW;
+              th = tw / aspect;
+            } else {
+              th = availH;
+              tw = th * aspect;
+            }
           }
 
           const cx = margin + availW / 2;
@@ -12165,6 +12598,7 @@ function getApiUrl(endpoint) {
       sizePreset: 'indian_passport',
       photoWidthMm: 35.0,
       photoHeightMm: 45.0,
+      cellRotated: false,
 
       // Framing
       frameZoom: 1.0,
@@ -12255,10 +12689,18 @@ function getApiUrl(endpoint) {
 
     function loadPhotoFromUpload(e) {
       const file = e.target.files && e.target.files[0];
-      if (!file) return;
+      if (!file || !file.size) {
+        if (file) showToast('Selected photo file is empty or unreadable.', 'warning');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = function(evt) {
-        loadPhotoFromDataUrl(evt.target.result);
+        const resUrl = evt.target && evt.target.result ? String(evt.target.result) : '';
+        if (resUrl.length < 40 || !resUrl.includes('base64,')) {
+          showToast('Could not read the selected photo.', 'warning');
+          return;
+        }
+        loadPhotoFromDataUrl(resUrl);
         const label = document.getElementById('photoFileLabel');
         if (label) label.innerText = file.name;
       };
@@ -12278,11 +12720,12 @@ function getApiUrl(endpoint) {
       const restBtn = document.getElementById('btnRestoreOriginalBg');
       if (restBtn) restBtn.style.display = 'none';
       const status = document.getElementById('aiBgStatus');
-      if (status) status.innerText = 'Fast ~0.2s portrait cutout with clean edge matte';
-      document.querySelectorAll('#photoBgPalette .photo-bg-chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.color === '#ffffff');
-      });
+      if (status) status.innerText = '100% offline face align, eye open, retouch & portrait cutout';
+      resetPassportBgPaletteUi();
       updatePhotoFraming();
+      if (typeof analyzePassportPhotoOffline === 'function') {
+        analyzePassportPhotoOffline(dataUrl);
+      }
     }
 
     function rotatePhoto(deg) {
@@ -12375,8 +12818,10 @@ function getApiUrl(endpoint) {
         return;
       }
 
-      try {
-        const res = await fetch(getApiUrl('/api/photo/enhance'), {
+      const isAndroidOffline = !!(window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp());
+      if (!isAndroidOffline) {
+        try {
+          const res = await fetch(getApiUrl('/api/photo/enhance'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -12388,14 +12833,15 @@ function getApiUrl(endpoint) {
             saturation: photoState.saturation,
             bg_mode: (photoState.preset === 'blue_bg' ? 'blue' : (photoState.preset === 'white_bg' ? 'white' : 'auto'))
           })
-        });
-        const data = await res.json();
-        if (data.success && data.image) {
-          photoState.enhancedImg = data.image;
-          renderPhotoGridSheet();
-          return;
-        }
-      } catch (e) {}
+          });
+          const data = await res.json();
+          if (data.success && data.image) {
+            photoState.enhancedImg = data.image;
+            renderPhotoGridSheet();
+            return;
+          }
+        } catch (e) {}
+      }
 
       const img = new Image();
       img.onload = function() {
@@ -12508,31 +12954,37 @@ function getApiUrl(endpoint) {
         photoState.cols = 4;
         photoState.fillCount = 8;
         photoState.topMarginMm = 20.0;
+        if (photoState.gapMm < 2.0) photoState.gapMm = 3.0;
       } else if (preset === '12') {
         photoState.rows = 3;
         photoState.cols = 4;
         photoState.fillCount = 12;
         photoState.topMarginMm = 18.0;
+        if (photoState.gapMm < 2.0) photoState.gapMm = 3.0;
       } else if (preset === '16') {
         photoState.rows = 4;
         photoState.cols = 4;
         photoState.fillCount = 16;
         photoState.topMarginMm = 16.0;
+        if (photoState.gapMm < 2.0) photoState.gapMm = 3.0;
       } else if (preset === '24') {
         photoState.rows = 6;
         photoState.cols = 4;
         photoState.fillCount = 24;
-        photoState.topMarginMm = 10.0;
+        photoState.topMarginMm = 6.0;
+        if (photoState.gapMm < 2.0) photoState.gapMm = 3.0;
       } else if (preset === '30') {
         photoState.rows = 6;
         photoState.cols = 5;
         photoState.fillCount = 30;
-        photoState.topMarginMm = 8.0;
+        photoState.topMarginMm = 6.0;
+        if (photoState.gapMm < 2.0) photoState.gapMm = 3.0;
       } else if (preset === '32') {
         photoState.rows = 8;
         photoState.cols = 4;
         photoState.fillCount = 32;
-        photoState.topMarginMm = 6.0;
+        photoState.gapMm = 1.5;
+        photoState.topMarginMm = 3.0;
       }
 
       document.getElementById('photoRowsSlider').value = photoState.rows;
@@ -12547,7 +12999,7 @@ function getApiUrl(endpoint) {
         document.getElementById('photoFillCountVal').innerText = photoState.fillCount;
       }
 
-      autoCenterPhotoGrid();
+      autoCenterPhotoGrid(true);
     }
 
     function stepPhotoMargin(which, delta) {
@@ -12656,23 +13108,61 @@ function getApiUrl(endpoint) {
       renderPhotoGridSheet();
     }
 
+    function resolvePhotoGridMetrics() {
+      const paperW = state.paperWidthMm || 210.0;
+      const paperH = state.paperHeightMm || 297.0;
+      const wU = photoState.photoWidthMm;
+      const hU = photoState.photoHeightMm;
+      const gap = photoState.gapMm;
+
+      const uprightW = (photoState.cols * wU) + Math.max(0, photoState.cols - 1) * gap;
+      const uprightH = (photoState.rows * hU) + Math.max(0, photoState.rows - 1) * gap;
+      const fitsUpright = (uprightW <= paperW + 0.25) && (uprightH <= paperH + 0.25);
+
+      const rotW = (photoState.cols * hU) + Math.max(0, photoState.cols - 1) * gap;
+      const rotH = (photoState.rows * wU) + Math.max(0, photoState.rows - 1) * gap;
+      const fitsRotated = (wU !== hU) && (rotW <= paperW + 0.25) && (rotH <= paperH + 0.25);
+
+      const cellRotated = (!fitsUpright && fitsRotated);
+      const cellW = cellRotated ? hU : wU;
+      const cellH = cellRotated ? wU : hU;
+      const gridW = cellRotated ? rotW : uprightW;
+      const gridH = cellRotated ? rotH : uprightH;
+
+      photoState.cellRotated = cellRotated;
+      return { paperW, paperH, cellW, cellH, gridW, gridH, cellRotated };
+    }
+
     function autoCenterPhotoGrid(recalcTop = true) {
-      const pW = state.paperWidthMm || 210.0;
-      const pH = state.paperHeightMm || 297.0;
-      const gridW = (photoState.cols * photoState.photoWidthMm) + ((photoState.cols - 1) * photoState.gapMm);
-      const gridH = (photoState.rows * photoState.photoHeightMm) + ((photoState.rows - 1) * photoState.gapMm);
-
-      photoState.leftMarginMm = Math.max(0.0, Math.round(((pW - gridW) / 2.0) * 10) / 10);
-
-      if (recalcTop) {
-        if (pH <= 160) {
-          photoState.topMarginMm = Math.max(0.0, Math.round(((pH - gridH) / 2.0) * 10) / 10);
-        } else if (photoState.rows <= 3) {
-          photoState.topMarginMm = 20.0;
-        } else {
-          photoState.topMarginMm = Math.max(0.0, Math.round(((pH - gridH) / 2.0) * 10) / 10);
+      let m = resolvePhotoGridMetrics();
+      // If preset/slider rows or cols slightly exceed paper solely because gap is wide, tighten gap cleanly
+      if (recalcTop && (m.gridW > m.paperW + 0.2 || m.gridH > m.paperH + 0.2)) {
+        const maxGapW = (photoState.cols > 1) ? (m.paperW - photoState.cols * m.cellW) / (photoState.cols - 1) : photoState.gapMm;
+        const maxGapH = (photoState.rows > 1) ? (m.paperH - photoState.rows * m.cellH) / (photoState.rows - 1) : photoState.gapMm;
+        const clampedGap = Math.max(0, Math.min(photoState.gapMm, maxGapW, maxGapH));
+        if (clampedGap < photoState.gapMm && clampedGap >= 0) {
+          photoState.gapMm = Math.floor(clampedGap * 10) / 10;
+          m = resolvePhotoGridMetrics();
         }
       }
+
+      photoState.leftMarginMm = Math.max(0.0, Math.round(((m.paperW - m.gridW) / 2.0) * 10) / 10);
+
+      if (recalcTop) {
+        if (m.paperH <= 160 || photoState.rows > 3 || (20.0 + m.gridH > m.paperH)) {
+          photoState.topMarginMm = Math.max(0.0, Math.round(((m.paperH - m.gridH) / 2.0) * 10) / 10);
+        } else {
+          photoState.topMarginMm = 20.0;
+        }
+      } else if (photoState.topMarginMm + m.gridH > m.paperH) {
+        // Never leave stale large topMargin pushing rows off the bottom of A4 when rows/size increases
+        photoState.topMarginMm = Math.max(0.0, Math.round(((m.paperH - m.gridH) / 2.0) * 10) / 10);
+      }
+
+      const topSlider = document.getElementById('photoTopMarginSlider');
+      if (topSlider) topSlider.max = Math.max(20, Math.floor(m.paperH));
+      const leftSlider = document.getElementById('photoLeftMarginSlider');
+      if (leftSlider) leftSlider.max = Math.max(20, Math.floor(m.paperW));
 
       syncPhotoMarginUI();
       renderPhotoGridSheet();
@@ -12710,33 +13200,53 @@ function getApiUrl(endpoint) {
       if (!container) return;
       container.innerHTML = '';
 
-      const badge = document.getElementById('photoGridSummaryBadge');
-      if (badge) {
-        badge.innerText = `📷 ${photoState.fillCount} Photos on A4 (${photoState.photoWidthMm}×${photoState.photoHeightMm} mm) • ${photoState.rows}R × ${photoState.cols}C`;
-      }
+      const m = resolvePhotoGridMetrics();
+      const S = PX_PER_MM;
+      const sheetW = Math.round(m.paperW * S);
+      const sheetH = Math.round(m.paperH * S);
+      container.style.width = sheetW + 'px';
+      container.style.height = sheetH + 'px';
 
-      const S = 595.0 / 210.0;
-      const pW = photoState.photoWidthMm * S;
-      const pH = photoState.photoHeightMm * S;
+      const pW = m.cellW * S;
+      const pH = m.cellH * S;
       const gap = photoState.gapMm * S;
       const leftPx = photoState.leftMarginMm * S;
       const topPx = photoState.topMarginMm * S;
+      const gridWPx = m.gridW * S;
+      const gridHPx = m.gridH * S;
+
+      const exceedsSheet = (leftPx + gridWPx > sheetW + 1.5) || (topPx + gridHPx > sheetH + 1.5);
+      const spec = (typeof PAPER_SIZES !== 'undefined' && PAPER_SIZES[state.paperSize])
+        ? PAPER_SIZES[state.paperSize]
+        : { name: 'A4' };
+
+      const badge = document.getElementById('photoGridSummaryBadge');
+      if (badge) {
+        const rotNote = m.cellRotated ? ' • Fit 90°' : '';
+        const warnNote = exceedsSheet ? ' • ⚠️ Exceeds Sheet' : '';
+        badge.innerText = `📷 ${photoState.fillCount} Photos on ${spec.name} (${photoState.photoWidthMm}×${photoState.photoHeightMm} mm) • ${photoState.rows}×${photoState.cols}${rotNote}${warnNote}`;
+        badge.style.color = exceedsSheet ? '#fca5a5' : '#93c5fd';
+      }
 
       if (photoState.cutGuides) {
-        const gridWPx = (photoState.cols * pW) + ((photoState.cols - 1) * gap);
-        const gridHPx = (photoState.rows * pH) + ((photoState.rows - 1) * gap);
+        const lineLeft = Math.max(0, leftPx - 12);
+        const lineRight = Math.min(sheetW, leftPx + gridWPx + 12);
+        const lineTop = Math.max(0, topPx - 12);
+        const lineBottom = Math.min(sheetH, topPx + gridHPx + 12);
 
         for (let r = 0; r <= photoState.rows; r++) {
           let lineY = (r === 0) ? (topPx - gap / 2) : (r === photoState.rows ? (topPx + gridHPx + gap / 2) : (topPx + r * (pH + gap) - gap / 2));
+          if (lineY < 0 || lineY > sheetH) continue;
           const line = document.createElement('div');
-          line.style.cssText = `position:absolute; left:${Math.max(0, leftPx - 15)}px; top:${lineY}px; width:${gridWPx + 30}px; height:1px; border-top:1px dashed #cbd5e1; pointer-events:none;`;
+          line.style.cssText = `position:absolute; left:${lineLeft.toFixed(1)}px; top:${lineY.toFixed(1)}px; width:${Math.max(0, lineRight - lineLeft).toFixed(1)}px; height:1px; border-top:1px dashed #cbd5e1; pointer-events:none;`;
           container.appendChild(line);
         }
 
         for (let c = 0; c <= photoState.cols; c++) {
           let lineX = (c === 0) ? (leftPx - gap / 2) : (c === photoState.cols ? (leftPx + gridWPx + gap / 2) : (leftPx + c * (pW + gap) - gap / 2));
+          if (lineX < 0 || lineX > sheetW) continue;
           const line = document.createElement('div');
-          line.style.cssText = `position:absolute; left:${lineX}px; top:${Math.max(0, topPx - 15)}px; width:1px; height:${gridHPx + 30}px; border-left:1px dashed #cbd5e1; pointer-events:none;`;
+          line.style.cssText = `position:absolute; left:${lineX.toFixed(1)}px; top:${lineTop.toFixed(1)}px; width:1px; height:${Math.max(0, lineBottom - lineTop).toFixed(1)}px; border-left:1px dashed #cbd5e1; pointer-events:none;`;
           container.appendChild(line);
         }
       }
@@ -12759,7 +13269,7 @@ function getApiUrl(endpoint) {
           else if (photoState.borderStyle === 'white_margin') borderCss = 'border: 2px solid #ffffff; box-shadow: 0 0 0 1px #111827;';
           else if (photoState.borderStyle === 'none') borderCss = 'border: none;';
 
-          slot.style.cssText = `left: ${x}px; top: ${y}px; width: ${pW}px; height: ${pH}px; ${borderCss}`;
+          slot.style.cssText = `left: ${x.toFixed(1)}px; top: ${y.toFixed(1)}px; width: ${pW.toFixed(1)}px; height: ${pH.toFixed(1)}px; ${borderCss}`;
           slot.onclick = () => togglePhotoSlot(idx);
 
           const badgeEl = document.createElement('span');
@@ -12771,6 +13281,14 @@ function getApiUrl(endpoint) {
             const img = document.createElement('img');
             img.src = photoState.enhancedImg;
             img.alt = `Photo #${idx + 1}`;
+            if (m.cellRotated) {
+              img.style.width = `${pH.toFixed(1)}px`;
+              img.style.height = `${pW.toFixed(1)}px`;
+              img.style.maxWidth = 'none';
+              img.style.maxHeight = 'none';
+              img.style.flexShrink = '0';
+              img.style.transform = 'rotate(90deg)';
+            }
             slot.appendChild(img);
           } else {
             const empty = document.createElement('div');
@@ -12784,22 +13302,53 @@ function getApiUrl(endpoint) {
       }
     }
 
-    function zoomPhotoSheet(delta) {
-      photoState.zoom = Math.max(0.4, Math.min(1.8, photoState.zoom + delta));
-      const container = document.getElementById('photoSheetContainer');
+    function applyPhotoZoom() {
+      const z = photoState.zoom || 0.85;
+      const stage = document.getElementById('photoScaleStage');
+      const sheet = document.getElementById('photoA4Sheet');
+      const spec = (typeof PAPER_SIZES !== 'undefined' && PAPER_SIZES[state.paperSize])
+        ? PAPER_SIZES[state.paperSize]
+        : { widthMm: 210.0, heightMm: 297.0 };
+      const baseW = spec.widthMm * PX_PER_MM;
+      const baseH = spec.heightMm * PX_PER_MM;
+
+      if (stage) {
+        stage.style.width = Math.round(baseW * z) + 'px';
+        stage.style.height = Math.round(baseH * z) + 'px';
+      }
+      if (sheet) {
+        sheet.style.width = Math.round(baseW) + 'px';
+        sheet.style.height = Math.round(baseH) + 'px';
+        sheet.style.transform = `scale(${z})`;
+        sheet.style.transformOrigin = '0 0';
+      }
       const label = document.getElementById('photoZoomLevel');
-      if (container) container.style.transform = `scale(${photoState.zoom})`;
-      if (label) label.innerText = Math.round(photoState.zoom * 100) + '%';
+      if (label) label.innerText = Math.round(z * 100) + '%';
+    }
+
+    function zoomPhotoSheet(delta) {
+      photoState.zoom = Math.max(0.35, Math.min(1.8, (photoState.zoom || 0.85) + delta));
+      applyPhotoZoom();
     }
 
     function resetPhotoZoom() {
-      const availW = (window.innerWidth <= 900) ? (window.innerWidth - 24) : 595;
-      const fitScale = Math.min(0.85, Math.max(0.40, availW / 595.0));
-      photoState.zoom = Math.round(fitScale * 100) / 100;
-      const container = document.getElementById('photoSheetContainer');
-      const label = document.getElementById('photoZoomLevel');
-      if (container) container.style.transform = `scale(${photoState.zoom})`;
-      if (label) label.innerText = Math.round(photoState.zoom * 100) + '%';
+      const vp = document.getElementById('photoPreviewViewport');
+      const isMobile = window.innerWidth <= 900;
+      const spec = (typeof PAPER_SIZES !== 'undefined' && PAPER_SIZES[state.paperSize])
+        ? PAPER_SIZES[state.paperSize]
+        : { widthMm: 210.0, heightMm: 297.0 };
+      const baseW = spec.widthMm * PX_PER_MM;
+      const baseH = spec.heightMm * PX_PER_MM;
+
+      let availW = window.innerWidth - 28;
+      if (vp && vp.clientWidth > 80) availW = vp.clientWidth - 16;
+      let availH = window.innerHeight - 210;
+      if (vp && vp.clientHeight > 100) availH = vp.clientHeight - 16;
+
+      let fitScale = Math.min(availW / baseW, availH / baseH, isMobile ? 0.95 : 1.15);
+      fitScale = Math.max(0.35, Math.floor(fitScale * 100) / 100);
+      photoState.zoom = fitScale;
+      applyPhotoZoom();
     }
 
     function changePhotoCopies(delta) {
@@ -12838,8 +13387,9 @@ function getApiUrl(endpoint) {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, A4_W, A4_H);
 
-      const pW = Math.round(photoState.photoWidthMm * scale);
-      const pH = Math.round(photoState.photoHeightMm * scale);
+      const m = resolvePhotoGridMetrics();
+      const pW = Math.round(m.cellW * scale);
+      const pH = Math.round(m.cellH * scale);
       const gap = Math.round(photoState.gapMm * scale);
       const leftPx = Math.round(photoState.leftMarginMm * scale);
       const topPx = Math.round(photoState.topMarginMm * scale);
@@ -12881,7 +13431,15 @@ function getApiUrl(endpoint) {
             const x = leftPx + c * (pW + gap);
             const y = topPx + r * (pH + gap);
 
-            ctx.drawImage(img, x, y, pW, pH);
+            if (m.cellRotated) {
+              ctx.save();
+              ctx.translate(x + pW / 2, y + pH / 2);
+              ctx.rotate(Math.PI / 2);
+              ctx.drawImage(img, -pH / 2, -pW / 2, pH, pW);
+              ctx.restore();
+            } else {
+              ctx.drawImage(img, x, y, pW, pH);
+            }
 
             if (photoState.borderStyle === 'solid') {
               ctx.strokeStyle = '#000000';
@@ -13028,7 +13586,8 @@ function getApiUrl(endpoint) {
 
       const canvas = await renderHighResPhotoCanvas();
       const jpegData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdfBytes = createMultiPageDocumentPDF([jpegData], photoState.copies);
+      const binaryImg = atob(jpegData.split(',')[1]);
+      const pdfBytes = createMultiPageDocumentPDF([binaryImg], photoState.copies, 300);
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -13955,6 +14514,7 @@ function getApiUrl(endpoint) {
 
     async function syncCameraRawWithServer() {
       if (!photoState.framedImg) return;
+      if (window.AndroidBridge && typeof window.AndroidBridge.isAndroidApp === 'function' && window.AndroidBridge.isAndroidApp()) return;
       try {
         const res = await fetch(getApiUrl('/api/photo/camera_raw'), {
           method: 'POST',
@@ -15221,11 +15781,229 @@ function getApiUrl(endpoint) {
       const croppedDataUrl = offCanvas.toDataURL('image/jpeg', 0.98);
 
       photoState.rawImg = croppedDataUrl;
-      photoState.originalRawImg = photoState.originalRawImg || croppedDataUrl;
+      photoState.originalRawImg = croppedDataUrl;
       photoState.cutoutImg = null;
       updatePhotoFraming();
       closePassportCropModal();
       showToast('Passport photo cropped successfully!', 'success');
+    }
+
+    // Normalizes EXIF rotation via Canvas and caps long side for fast on-device segmentation.
+    function prepareImageForBgRemoval(dataUrl, maxDim = 1600) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const nw = img.naturalWidth || img.width;
+          const nh = img.naturalHeight || img.height;
+          if (!nw || !nh) {
+            reject(new Error('Invalid image dimensions'));
+            return;
+          }
+          const longest = Math.max(nw, nh);
+          const scale = longest > maxDim ? (maxDim / longest) : 1;
+          const w = Math.max(1, Math.round(nw * scale));
+          const h = Math.max(1, Math.round(nh * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.94));
+        };
+        img.onerror = () => reject(new Error('Failed to decode photo for segmentation'));
+        img.src = dataUrl;
+      });
+    }
+
+    window.__pendingBgCallbacks = window.__pendingBgCallbacks || {};
+    window.__onPassportBgResult = function(callbackId) {
+      const cb = window.__pendingBgCallbacks[callbackId];
+      if (!cb) return;
+      delete window.__pendingBgCallbacks[callbackId];
+      clearTimeout(cb.timer);
+      try {
+        const raw = window.AndroidBridge.consumePassportBgResult(callbackId);
+        cb.resolve(JSON.parse(raw));
+      } catch (err) {
+        cb.reject(err);
+      }
+    };
+    window.__onPassportAiStudioResult = window.__onPassportBgResult;
+
+    async function extractPassportCutout(imageDataUrl) {
+      const prepared = await prepareImageForBgRemoval(imageDataUrl);
+      if (window.AndroidBridge && typeof window.AndroidBridge.removePassportBgAsync === 'function') {
+        return new Promise((resolve, reject) => {
+          const callbackId = 'bg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+          const timer = setTimeout(() => {
+            if (window.__pendingBgCallbacks[callbackId]) {
+              delete window.__pendingBgCallbacks[callbackId];
+              reject(new Error('Offline background removal timed out'));
+            }
+          }, 25000);
+          window.__pendingBgCallbacks[callbackId] = { resolve, reject, timer };
+          window.AndroidBridge.removePassportBgAsync(prepared, callbackId);
+        });
+      }
+
+      const res = await fetch(getApiUrl('/api/photo/remove_bg'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: prepared })
+      });
+      return res.json();
+    }
+
+    async function runPassportAiBridgeAction(action, imageDataUrl) {
+      if (!window.AndroidBridge || typeof window.AndroidBridge.runPassportAiStudioAsync !== 'function') {
+        throw new Error('Offline Studio AI requires the Android app');
+      }
+      const prepared = await prepareImageForBgRemoval(imageDataUrl);
+      const aw = parseFloat(photoState.photoWidthMm) || 35.0;
+      const ah = parseFloat(photoState.photoHeightMm) || 45.0;
+      return new Promise((resolve, reject) => {
+        const callbackId = 'ai_' + action + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        const timer = setTimeout(() => {
+          if (window.__pendingBgCallbacks[callbackId]) {
+            delete window.__pendingBgCallbacks[callbackId];
+            reject(new Error('Offline Studio AI timed out'));
+          }
+        }, 30000);
+        window.__pendingBgCallbacks[callbackId] = { resolve, reject, timer };
+        window.AndroidBridge.runPassportAiStudioAsync(action, prepared, aw, ah, callbackId);
+      });
+    }
+
+    function formatFaceTelemetry(report) {
+      if (!report || !report.faceDetected) return 'No face detected in photo';
+      const parts = [];
+      const tilt = typeof report.tiltDegAfter === 'number' ? report.tiltDegAfter : report.tiltDeg;
+      if (typeof tilt === 'number') parts.push(`Tilt ${tilt.toFixed(1)}°`);
+      const lp = typeof report.leftEyeOpenProb === 'number' ? report.leftEyeOpenProb : -1;
+      const rp = typeof report.rightEyeOpenProb === 'number' ? report.rightEyeOpenProb : -1;
+      if (report.eyesOpened) {
+        parts.push(`Eyes Opened (${report.eyeMethod === 'mirrored_open_eye' ? 'mirrored' : 'restored'})`);
+      } else if (lp >= 0 && rp >= 0) {
+        if (lp < 0.48 || rp < 0.48) {
+          parts.push(`Closed Eye Detected (L:${Math.round(lp * 100)}% R:${Math.round(rp * 100)}%)`);
+        } else {
+          parts.push(`Eyes Open (L:${Math.round(lp * 100)}% R:${Math.round(rp * 100)}%)`);
+        }
+      }
+      return parts.join(' • ');
+    }
+
+    async function analyzePassportPhotoOffline(dataUrl) {
+      if (!window.AndroidBridge || typeof window.AndroidBridge.runPassportAiStudioAsync !== 'function') return;
+      try {
+        const data = await runPassportAiBridgeAction('analyze', dataUrl);
+        if (data && data.success && data.report) {
+          const status = document.getElementById('aiBgStatus');
+          if (status && photoState.rawImg === dataUrl) {
+            status.innerText = formatFaceTelemetry(data.report);
+          }
+        }
+      } catch (e) {}
+    }
+
+    function setStudioAiButtonsDisabled(disabled) {
+      ['btnAiAutoStudio', 'btnAiAlignFace', 'btnAiOpenEyes', 'btnAiRetouch', 'btnAiLighting', 'btnAiBgRemoval'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+      });
+    }
+
+    async function runPassportStudioAi(action) {
+      if (!photoState.rawImg) {
+        showToast('Please scan or upload a photo first!', 'warning');
+        return;
+      }
+
+      const status = document.getElementById('aiBgStatus');
+      const autoBtn = document.getElementById('btnAiAutoStudio');
+      const origAutoText = autoBtn ? autoBtn.innerText : '✨ 1-Click AI Auto Studio (All-in-One)';
+      const labelMap = {
+        auto_studio: 'Aligning face, checking eyes, retouching & cutting out offline...',
+        align: 'Detecting face, leveling eyes & biometric framing offline...',
+        open_eyes: 'Inspecting eyelids & opening closed eyes offline...',
+        retouch: 'Applying studio skin smoothing & eye sharpening offline...',
+        lighting: 'Balancing studio lighting & skin tones offline...'
+      };
+
+      setStudioAiButtonsDisabled(true);
+      if (action === 'auto_studio' && autoBtn) autoBtn.innerText = '⏳ Running Offline AI Studio...';
+      if (status) status.innerText = labelMap[action] || 'Processing offline AI...';
+
+      try {
+        const hadCutout = !!photoState.cutoutImg;
+        const sourceImg = (action === 'auto_studio' && photoState.originalRawImg)
+          ? photoState.originalRawImg
+          : photoState.rawImg;
+        if (!photoState.originalRawImg) photoState.originalRawImg = photoState.rawImg;
+
+        const data = await runPassportAiBridgeAction(action, sourceImg);
+        if (!data || !data.success) {
+          const errMsg = (data && data.error) ? data.error : 'AI Studio processing failed';
+          showToast(errMsg, 'warning');
+          if (status) status.innerText = errMsg;
+          return;
+        }
+
+        const report = data.report || {};
+        if (action === 'auto_studio' || action === 'align') {
+          photoState.rotation = 0;
+          photoState.frameZoom = 1.0;
+          photoState.framePanX = 0;
+          photoState.framePanY = 0;
+        }
+
+        if (action === 'auto_studio' && data.cutout) {
+          photoState.cutoutImg = data.cutout;
+          compositePassportBg(photoState.bgColor || '#ffffff');
+        } else {
+          if (data.image) photoState.rawImg = data.image;
+          if (hadCutout) {
+            try {
+              const cut = await extractPassportCutout(photoState.rawImg);
+              if (cut && cut.success && cut.image) {
+                photoState.cutoutImg = cut.image;
+                compositePassportBg(photoState.bgColor || '#ffffff');
+              } else {
+                photoState.cutoutImg = null;
+                updatePhotoFraming();
+              }
+            } catch (_) {
+              photoState.cutoutImg = null;
+              updatePhotoFraming();
+            }
+          } else {
+            photoState.cutoutImg = null;
+            updatePhotoFraming();
+          }
+        }
+
+        const restBtn = document.getElementById('btnRestoreOriginalBg');
+        if (restBtn) restBtn.style.display = 'inline-block';
+
+        const tel = formatFaceTelemetry(report);
+        if (status) status.innerText = tel || 'Offline AI Studio enhancement applied';
+
+        const toastMap = {
+          auto_studio: '✨ Offline AI Auto Studio complete!',
+          align: '🎯 Biometric face detected & aligned!',
+          open_eyes: report.eyesOpened ? `👁️ ${report.eyeStatus}` : '👁️ Both eyes already open!',
+          retouch: '🌟 Portrait skin retouch & sharpness applied!',
+          lighting: '💡 Studio fill light & white balance applied!'
+        };
+        showToast(toastMap[action] || 'Offline AI applied!', 'success');
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        showToast('Offline AI error: ' + msg, 'error');
+        if (status) status.innerText = msg;
+      } finally {
+        setStudioAiButtonsDisabled(false);
+        if (autoBtn) autoBtn.innerText = origAutoText;
+      }
     }
 
     async function applyPassportAiBgRemoval() {
@@ -15241,17 +16019,20 @@ function getApiUrl(endpoint) {
         btn.innerText = '⏳ AI Removing Background...';
         btn.disabled = true;
       }
-      if (status) status.innerText = 'Extracting portrait mask with u2netp AI...';
+      const isOfflineAndroid = !!(window.AndroidBridge && typeof window.AndroidBridge.removePassportBgAsync === 'function');
+      if (status) {
+        status.innerText = isOfflineAndroid
+          ? 'Extracting portrait mask offline on-device...'
+          : 'Extracting portrait mask with AI...';
+      }
 
       try {
-        const res = await fetch(getApiUrl('/api/photo/remove_bg'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: photoState.rawImg })
-        });
-        const data = await res.json();
-        if (data.success && data.image) {
-          photoState.originalRawImg = photoState.originalRawImg || photoState.rawImg;
+        const sourceImg = (photoState.cutoutImg && photoState.originalRawImg) ? photoState.originalRawImg : photoState.rawImg;
+        if (!photoState.cutoutImg) {
+          photoState.originalRawImg = photoState.rawImg;
+        }
+        const data = await extractPassportCutout(sourceImg);
+        if (data && data.success && data.image) {
           photoState.cutoutImg = data.image;
           compositePassportBg(photoState.bgColor || '#ffffff');
 
@@ -15260,12 +16041,14 @@ function getApiUrl(endpoint) {
           if (restBtn) restBtn.style.display = 'inline-block';
           showToast('✨ AI background removed successfully!', 'success');
         } else {
-          showToast('Background removal failed: ' + (data.error || 'Server error'), 'error');
-          if (status) status.innerText = 'Failed to remove background';
+          const errMsg = (data && data.error) ? data.error : 'Background removal failed';
+          showToast(errMsg, 'error');
+          if (status) status.innerText = errMsg;
         }
       } catch (err) {
-        showToast('Error connecting to AI service: ' + err.message, 'error');
-        if (status) status.innerText = 'AI connection error';
+        const msg = err && err.message ? err.message : String(err);
+        showToast('Background removal error: ' + msg, 'error');
+        if (status) status.innerText = 'Background removal error';
       } finally {
         if (btn) {
           btn.innerText = origText;
@@ -15274,17 +16057,153 @@ function getApiUrl(endpoint) {
       }
     }
 
+    const CUSTOM_BG_SWATCHES = [
+      '#ffffff', '#f8fafc', '#dbeafe', '#a4d4f8', '#38bdf8', '#2563eb', '#1e3a8a', '#0f172a',
+      '#fef3c7', '#fde68a', '#d1fae5', '#6ee7b7', '#e9d5ff', '#cbd5e1', '#dc2626', '#7f1d1d'
+    ];
+    let _customBgPendingHex = '#3b82f6';
+
+    function hexToHsl(hex) {
+      let c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      const r = parseInt(c.slice(0, 2), 16) / 255;
+      const g = parseInt(c.slice(2, 4), 16) / 255;
+      const b = parseInt(c.slice(4, 6), 16) / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0, s = 0;
+      const l = (max + min) / 2;
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+    }
+
+    function hslToHex(h, s, l) {
+      s /= 100;
+      l /= 100;
+      const k = n => (n + h / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+      return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
+    }
+
+    function syncCustomBgModalUi(hex, updateSliders = true) {
+      if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+      _customBgPendingHex = hex.toLowerCase();
+      const box = document.getElementById('customBgPreviewBox');
+      if (box) box.style.background = _customBgPendingHex;
+      const inp = document.getElementById('customBgHexInput');
+      if (inp && inp.value.toLowerCase() !== _customBgPendingHex) inp.value = _customBgPendingHex;
+      document.querySelectorAll('#customBgSwatches button').forEach(b => {
+        const match = (b.dataset.color || '').toLowerCase() === _customBgPendingHex;
+        b.style.outline = match ? '2px solid #38bdf8' : 'none';
+        b.style.outlineOffset = '1px';
+      });
+      if (updateSliders) {
+        const [h, s, l] = hexToHsl(_customBgPendingHex);
+        const hs = document.getElementById('customBgHueSlider');
+        const ss = document.getElementById('customBgSatSlider');
+        const ls = document.getElementById('customBgLightSlider');
+        if (hs) hs.value = h;
+        if (ss) ss.value = s;
+        if (ls) ls.value = l;
+        const hv = document.getElementById('customBgHueVal');
+        const sv = document.getElementById('customBgSatVal');
+        const lv = document.getElementById('customBgLightVal');
+        if (hv) hv.innerText = h + '°';
+        if (sv) sv.innerText = s + '%';
+        if (lv) lv.innerText = l + '%';
+      }
+    }
+
+    function openCustomPassportBgPicker() {
+      if (!photoState.rawImg) {
+        showToast('Please scan or upload a photo first!', 'warning');
+        return;
+      }
+      const grid = document.getElementById('customBgSwatches');
+      if (grid && !grid.childElementCount) {
+        CUSTOM_BG_SWATCHES.forEach(col => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.dataset.color = col;
+          btn.title = col;
+          btn.style.cssText = `height: 30px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.45); background: ${col}; cursor: pointer;`;
+          btn.onclick = () => syncCustomBgModalUi(col, true);
+          grid.appendChild(btn);
+        });
+      }
+      const startHex = /^#[0-9a-fA-F]{6}$/.test(photoState.bgColor || '') ? photoState.bgColor : '#3b82f6';
+      syncCustomBgModalUi(startHex, true);
+      const modal = document.getElementById('customBgColorModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeCustomPassportBgPicker() {
+      const modal = document.getElementById('customBgColorModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function onCustomBgHslChange() {
+      const h = parseInt(document.getElementById('customBgHueSlider')?.value || '217', 10);
+      const s = parseInt(document.getElementById('customBgSatSlider')?.value || '91', 10);
+      const l = parseInt(document.getElementById('customBgLightSlider')?.value || '60', 10);
+      const hv = document.getElementById('customBgHueVal');
+      const sv = document.getElementById('customBgSatVal');
+      const lv = document.getElementById('customBgLightVal');
+      if (hv) hv.innerText = h + '°';
+      if (sv) sv.innerText = s + '%';
+      if (lv) lv.innerText = l + '%';
+      syncCustomBgModalUi(hslToHex(h, s, l), false);
+    }
+
+    function onCustomBgHexInput(val) {
+      const clean = val.trim().startsWith('#') ? val.trim() : ('#' + val.trim());
+      if (/^#[0-9a-fA-F]{6}$/.test(clean)) {
+        syncCustomBgModalUi(clean, true);
+      }
+    }
+
+    function applyCustomPassportBgPicker() {
+      const hex = _customBgPendingHex;
+      closeCustomPassportBgPicker();
+      setPassportBgColor(hex);
+    }
+
     async function setPassportBgColor(hexColor) {
       if (!photoState.rawImg) {
         showToast('Please scan or upload a photo first!', 'warning');
         return;
       }
+      if (!/^#[0-9a-fA-F]{3,6}$/.test(String(hexColor || ''))) {
+        showToast('Invalid color code selected.', 'warning');
+        return;
+      }
 
       photoState.bgColor = hexColor;
 
-      document.querySelectorAll('#photoBgPalette .photo-bg-chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.color.toLowerCase() === hexColor.toLowerCase());
+      let matchedPreset = false;
+      document.querySelectorAll('#photoBgPalette .photo-bg-chip[data-color]').forEach(chip => {
+        const isMatch = (chip.dataset.color || '').toLowerCase() === hexColor.toLowerCase();
+        if (isMatch) matchedPreset = true;
+        chip.classList.toggle('active', isMatch);
       });
+      const customBtn = document.getElementById('btnCustomBgColor');
+      if (customBtn) customBtn.classList.toggle('active', !matchedPreset);
+      const customDot = document.getElementById('photoCustomBgDot');
+      if (customDot) {
+        customDot.style.background = matchedPreset
+          ? 'conic-gradient(#ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)'
+          : hexColor;
+      }
       const picker = document.getElementById('photoCustomBgPicker');
       if (picker) picker.value = hexColor;
 
@@ -15297,30 +16216,28 @@ function getApiUrl(endpoint) {
       }
 
       const status = document.getElementById('aiBgStatus');
-      if (status) status.innerText = `Applying ${hexColor} background with AI...`;
+      if (status) status.innerText = `Applying ${hexColor} background offline...`;
 
       try {
-        const res = await fetch(getApiUrl('/api/photo/change_bg'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: photoState.rawImg, color: hexColor })
-        });
-        const data = await res.json();
-        if (data.success && data.image) {
-          photoState.originalRawImg = photoState.originalRawImg || photoState.rawImg;
-          photoState.cutoutImg = data.cutout;
-          photoState.rawImg = data.image;
-          updatePhotoFraming();
+        photoState.originalRawImg = photoState.originalRawImg || photoState.rawImg;
+        const data = await extractPassportCutout(photoState.rawImg);
+        if (data && data.success && data.image) {
+          photoState.cutoutImg = data.image;
+          compositePassportBg(hexColor);
 
           const restBtn = document.getElementById('btnRestoreOriginalBg');
           if (restBtn) restBtn.style.display = 'inline-block';
           if (status) status.innerText = `✨ ${hexColor} background active!`;
           showToast(`Background changed to ${hexColor}!`, 'success');
         } else {
-          showToast('Failed to change background: ' + (data.error || 'Server error'), 'error');
+          const errMsg = (data && data.error) ? data.error : 'Failed to change background';
+          showToast(errMsg, 'error');
+          if (status) status.innerText = errMsg;
         }
       } catch (err) {
-        showToast('Error applying background: ' + err.message, 'error');
+        const msg = err && err.message ? err.message : String(err);
+        showToast('Error applying background: ' + msg, 'error');
+        if (status) status.innerText = 'Background change error';
       }
     }
 
@@ -15341,15 +16258,25 @@ function getApiUrl(endpoint) {
       img.src = photoState.cutoutImg;
     }
 
+    function resetPassportBgPaletteUi() {
+      document.querySelectorAll('#photoBgPalette .photo-bg-chip[data-color]').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.color === '#ffffff');
+      });
+      const customBtn = document.getElementById('btnCustomBgColor');
+      if (customBtn) customBtn.classList.remove('active');
+      const customDot = document.getElementById('photoCustomBgDot');
+      if (customDot) customDot.style.background = 'conic-gradient(#ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)';
+      const customInput = document.getElementById('photoCustomBgPicker');
+      if (customInput) customInput.value = '#ffffff';
+    }
+
     function restoreOriginalPhotoBg() {
       if (!photoState.originalRawImg) return;
       photoState.rawImg = photoState.originalRawImg;
       photoState.cutoutImg = null;
       photoState.bgColor = '#ffffff';
 
-      document.querySelectorAll('#photoBgPalette .photo-bg-chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.color === '#ffffff');
-      });
+      resetPassportBgPaletteUi();
       const restBtn = document.getElementById('btnRestoreOriginalBg');
       if (restBtn) restBtn.style.display = 'none';
 
@@ -15393,6 +16320,9 @@ function getApiUrl(endpoint) {
     const cropState = {
       activeSide: 'front',
       toolMode: 'box', // 'box' (rectangle) or 'quad' (free-form 4 dots)
+      viewingOriginal: false,
+      sourceMatchesRaw: false,
+      _pendingAutoDetectOnLoad: false,
       displayW: 0,
       displayH: 0,
       naturalW: 0,
@@ -15412,6 +16342,18 @@ function getApiUrl(endpoint) {
       dragStartBox: { x: 0, y: 0, w: 0, h: 0 },
       dragStartQuad: null
     };
+
+    function areQuadCornersTilted(corners) {
+      if (!corners || corners.length !== 4) return false;
+      const p0 = corners[0];
+      const p1 = corners[1];
+      const dx = p1[0] - p0[0];
+      const dy = p1[1] - p0[1];
+      if (Math.hypot(dx, dy) < 10) return false;
+      const deg = Math.abs((Math.atan2(dy, dx) * 180) / Math.PI) % 90;
+      const tilt = Math.min(deg, 90 - deg);
+      return tilt > 2.5;
+    }
 
     function setCropToolMode(mode) {
       cropState.toolMode = mode;
@@ -15453,6 +16395,8 @@ function getApiUrl(endpoint) {
         if (boxElem) boxElem.style.display = 'block';
         if (quadElem) quadElem.style.display = 'none';
         if (ratioGroup) ratioGroup.style.opacity = '1';
+        const mobRatioSel = document.getElementById('cropMobileRatioSelect');
+        if (mobRatioSel) mobRatioSel.disabled = false;
         if (boxNudge) boxNudge.style.display = 'flex';
         if (quadNudge) quadNudge.style.display = 'none';
 
@@ -15515,12 +16459,14 @@ function getApiUrl(endpoint) {
       if (!targetElem) return;
 
       cropState.viewingOriginal = !cropState.viewingOriginal;
+      cropState.sourceMatchesRaw = !!(cropState.viewingOriginal && state[side].rawImg);
+      cropState._pendingAutoDetectOnLoad = false;
       const srcToUse = cropState.viewingOriginal
         ? (state[side].rawImg ? state[side].rawImg.src : targetElem.src)
         : (state[side].croppedImg ? state[side].croppedImg.src : targetElem.src);
 
       if (btn) {
-        btn.innerHTML = cropState.viewingOriginal ? '✨ Cropped Image' : '👁️ Original Scan';
+        btn.innerHTML = cropState.viewingOriginal ? '✨ Cropped Image' : '👁️ Original';
         btn.classList.toggle('active', cropState.viewingOriginal);
       }
 
@@ -15583,6 +16529,17 @@ function getApiUrl(endpoint) {
       }
 
       cropState.activeSide = side;
+      cropState.viewingOriginal = !!state[side].rawImg;
+      cropState.sourceMatchesRaw = !!state[side].rawImg;
+      cropState._pendingAutoDetectOnLoad = false;
+      cropState.toolMode = (cropState.sourceMatchesRaw && areQuadCornersTilted(state[side].cropCorners)) ? 'quad' : 'box';
+
+      const srcBtn = document.getElementById('cropBtnToggleSource');
+      if (srcBtn) {
+        srcBtn.innerHTML = cropState.viewingOriginal ? '✨ Cropped Image' : '👁️ Original';
+        srcBtn.classList.toggle('active', cropState.viewingOriginal);
+      }
+
       const modal = document.getElementById('cropModal');
       const modalTitle = document.getElementById('cropModalTitle');
       if (modalTitle) {
@@ -15627,6 +16584,14 @@ function getApiUrl(endpoint) {
       hideMagnifier();
     }
 
+    function inferBoxCropRatioMode(w, h) {
+      if (!w || !h) return 'id_landscape';
+      const asp = w / h;
+      if (Math.abs(asp - 85.6 / 54.0) < 0.25) return 'id_landscape';
+      if (Math.abs(asp - 54.0 / 85.6) < 0.25) return 'id_portrait';
+      return 'free';
+    }
+
     function initCropWorkspace() {
       const targetElem = document.getElementById('cropTargetImage');
       if (!targetElem) return;
@@ -15641,9 +16606,6 @@ function getApiUrl(endpoint) {
       cropState.naturalW = targetElem.naturalWidth || 800;
       cropState.naturalH = targetElem.naturalHeight || 600;
 
-      // In 2-in-1 Card Mode, ID card slots are strictly landscape (85.6 x 54 mm)
-      setCropRatio('id_landscape', false);
-
       // Read rendered dimensions of image inside workspace
       const rect = targetElem.getBoundingClientRect();
       cropState.displayW = rect.width || targetElem.offsetWidth || 600;
@@ -15652,8 +16614,11 @@ function getApiUrl(endpoint) {
       const scaleX = cropState.displayW / cropState.naturalW;
       const scaleY = cropState.displayH / cropState.naturalH;
 
-      const bbox = state[cropState.activeSide].cropBBox;
-      const corners = state[cropState.activeSide].cropCorners;
+      const side = cropState.activeSide;
+      const bbox = cropState.sourceMatchesRaw ? state[side].cropBBox : null;
+      const corners = cropState.sourceMatchesRaw ? state[side].cropCorners : null;
+      const shouldRunAutoDetect = !!cropState._pendingAutoDetectOnLoad;
+      cropState._pendingAutoDetectOnLoad = false;
 
       // Check if existing detected corners or bounding box match this image
       let hasPreciseCrop = false;
@@ -15683,10 +16648,20 @@ function getApiUrl(endpoint) {
           { x: bX, y: bY + bH }
         ];
         hasPreciseCrop = true;
+      } else if (!cropState.sourceMatchesRaw && !shouldRunAutoDetect) {
+        // Viewing cropped image: frame full image edges cleanly
+        cropState.box = { x: 0, y: 0, w: cropState.displayW, h: cropState.displayH };
+        cropState.quad = [
+          { x: 0, y: 0 },
+          { x: cropState.displayW, y: 0 },
+          { x: cropState.displayW, y: cropState.displayH },
+          { x: 0, y: cropState.displayH }
+        ];
+        hasPreciseCrop = true;
       }
 
       if (!hasPreciseCrop) {
-        // Snugly fit provisional box to image, then immediately trigger auto-detect
+        setCropRatio(inferBoxCropRatioMode(cropState.naturalW, cropState.naturalH), false);
         calcDefaultCropBox();
         cropState.quad = [
           { x: cropState.box.x, y: cropState.box.y },
@@ -15694,10 +16669,11 @@ function getApiUrl(endpoint) {
           { x: cropState.box.x + cropState.box.w, y: cropState.box.y + cropState.box.h },
           { x: cropState.box.x, y: cropState.box.y + cropState.box.h }
         ];
-        // Automatically find card borders with CamScanner auto-detection
         setTimeout(() => {
           autoDetectCropBox();
         }, 60);
+      } else {
+        setCropRatio(inferBoxCropRatioMode(cropState.box.w, cropState.box.h), false);
       }
 
       updateCropBoxDOM();
@@ -16450,6 +17426,9 @@ function getApiUrl(endpoint) {
             } else {
               setCropRatio('id_portrait', false);
             }
+            if (data.corners && areQuadCornersTilted(data.corners) && cropState.toolMode !== 'quad') {
+              setCropToolMode('quad');
+            }
             updateCropBoxDOM();
             updateCropQuadDOM();
             showToast('✨ Card edges detected with ML Kit + OpenCV!', 'success');
@@ -16587,10 +17566,44 @@ function getApiUrl(endpoint) {
       ctx.rotate((angle * Math.PI) / 180);
       ctx.drawImage(targetImg, -targetImg.naturalWidth / 2, -targetImg.naturalHeight / 2);
 
+      cropState.sourceMatchesRaw = false;
+      cropState._pendingAutoDetectOnLoad = true;
       targetImg.onload = () => {
         initCropWorkspace();
       };
       targetImg.src = canvas.toDataURL('image/png');
+    }
+
+    function commitManualCropImage(side, targetImg, finalImg, natPoints, natBox, data, labelSuffix) {
+      if (!state[side].rawImg) {
+        state[side].rawImg = targetImg;
+      }
+      state[side]._hasAutoTrimmed = false;
+      state[side].rotation = 0;
+      state[side].canvasAngle = 0;
+      state[side].showOriginal = false;
+      state[side].croppedImg = finalImg;
+      if (cropState.sourceMatchesRaw) {
+        state[side].cropBBox = (data && data.bbox) || natBox || null;
+        state[side].cropCorners = natPoints || null;
+      } else {
+        state[side].cropBBox = null;
+        state[side].cropCorners = null;
+      }
+
+      const sideOrigBtn = document.getElementById(side + 'ToggleOrigBtn');
+      const slotOrigBtn = document.getElementById(side + 'SlotOrigBtn');
+      const origBadge = document.getElementById(side + 'OrigBadge');
+      if (sideOrigBtn) { sideOrigBtn.innerHTML = '👁️ Show Original'; sideOrigBtn.classList.remove('active'); }
+      if (slotOrigBtn) { slotOrigBtn.innerHTML = '👁️ Original'; slotOrigBtn.classList.remove('active'); }
+      if (origBadge) origBadge.style.display = 'none';
+
+      detectAndApplyAspect(side, finalImg, data && data.ratio_type, data && data.aspect);
+      updateSheetLayout();
+      renderSlot(side);
+      document.getElementById(side + 'Controls').style.display = 'flex';
+      document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (${labelSuffix})`;
+      closeManualCropModal();
     }
 
     async function applyManualCrop() {
@@ -16607,9 +17620,9 @@ function getApiUrl(endpoint) {
       state.cornerCurveMm = curveMm;
       handleCornerCurveChange(curveMm);
 
-      // 1. FREE-FORM QUAD PERSPECTIVE TRANSFORM
+      // 1. FREE-FORM QUAD PERSPECTIVE TRANSFORM + ML KIT TEXT ALIGNMENT
       if (cropState.toolMode === 'quad' && cropState.quad && cropState.quad.length === 4) {
-        showToast('Applying Free-Form Quad Perspective Crop...', 'info');
+        showToast('Applying Free-Form Quad Perspective Crop & Text Alignment...', 'info');
         const natPoints = cropState.quad.map(p => [
           Math.round(p.x * scaleX),
           Math.round(p.y * scaleY)
@@ -16646,21 +17659,8 @@ function getApiUrl(endpoint) {
           const newCroppedImg = new Image();
           newCroppedImg.onload = () => {
             normalizeCardHorizontal(newCroppedImg, (finalImg) => {
-              if (!state[side].rawImg) {
-                state[side].rawImg = targetImg;
-              }
-              state[side]._hasAutoTrimmed = false;
-              state[side].croppedImg = finalImg;
-              state[side].cropBBox = data.bbox || null;
-              state[side].cropCorners = natPoints;
-
-              detectAndApplyAspect(side, finalImg, data.ratio_type, data.aspect);
-              updateSheetLayout();
-              renderSlot(side);
-              document.getElementById(side + 'Controls').style.display = 'flex';
-              document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Quad Cropped)`;
-              closeManualCropModal();
-              showToast(`Free-Form Quad crop applied with OpenCV precision!`, 'success');
+              commitManualCropImage(side, targetImg, finalImg, natPoints, null, data, 'Quad Cropped');
+              showToast('Free-Form Quad crop aligned by text with OpenCV + ML Kit!', 'success');
             });
           };
           newCroppedImg.src = data.image;
@@ -16668,7 +17668,7 @@ function getApiUrl(endpoint) {
         }
       }
 
-      // 2. STANDARD BOX RECTANGULAR CROP
+      // 2. STANDARD BOX RECTANGULAR CROP + ML KIT TEXT ORIENTATION & DESKEW
       let natX = Math.round(cropState.box.x * scaleX);
       let natY = Math.round(cropState.box.y * scaleY);
       let natW = Math.round(cropState.box.w * scaleX);
@@ -16679,60 +17679,74 @@ function getApiUrl(endpoint) {
       natW = Math.max(10, Math.min(cropState.naturalW - natX, natW));
       natH = Math.max(10, Math.min(cropState.naturalH - natY, natH));
 
+      const natBox = [natX, natY, natW, natH];
+      const natCorners = [
+        [natX, natY],
+        [natX + natW, natY],
+        [natX + natW, natY + natH],
+        [natX, natY + natH]
+      ];
+
       const offCanvas = document.createElement('canvas');
       offCanvas.width = natW;
       offCanvas.height = natH;
       const ctx = offCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, natW, natH);
+      ctx.drawImage(targetImg, natX, natY, natW, natH, 0, 0, natW, natH);
 
-      const isPortrait = natH > natW;
-      const cardStandardLongMm = 85.6;
-      const pxPerMm = (isPortrait ? natH : natW) / cardStandardLongMm;
-      const cornerRadiusPx = curveMm * pxPerMm;
+      const rawBoxDataUrl = offCanvas.toDataURL('image/jpeg', 0.96);
+      let alignData = null;
 
-      if (cornerRadiusPx > 0) {
-        if (ctx.roundRect) {
-          ctx.beginPath();
-          ctx.roundRect(0, 0, natW, natH, cornerRadiusPx);
-          ctx.clip();
-        } else {
-          drawRoundedRectPath(ctx, 0, 0, natW, natH, cornerRadiusPx);
-          ctx.clip();
+      if (window.AndroidBridge && typeof window.AndroidBridge.alignManualBoxBase64 === 'function') {
+        try {
+          const nativeAligned = window.AndroidBridge.alignManualBoxBase64(rawBoxDataUrl);
+          const parsed = JSON.parse(nativeAligned);
+          if (parsed && parsed.success && parsed.image) {
+            alignData = parsed;
+          }
+        } catch (nativeErr) {
+          console.warn('Native alignManualBoxBase64 failed:', nativeErr);
+        }
+      } else {
+        try {
+          const desktopAligned = await requestOrientByText(rawBoxDataUrl);
+          if (desktopAligned && desktopAligned.success && desktopAligned.image) {
+            alignData = desktopAligned;
+          }
+        } catch (err) {
+          console.warn('Desktop box text orientation offline/skipped:', err);
         }
       }
 
-      ctx.drawImage(targetImg, natX, natY, natW, natH, 0, 0, natW, natH);
-
-      const croppedDataUrl = offCanvas.toDataURL('image/png');
+      const finalDataUrl = (alignData && alignData.image) ? alignData.image : rawBoxDataUrl;
       const newCroppedImg = new Image();
       newCroppedImg.onload = () => {
         normalizeCardHorizontal(newCroppedImg, (finalImg) => {
-          if (!state[side].rawImg) {
-            state[side].rawImg = targetImg;
-          }
-          state[side]._hasAutoTrimmed = false;
-          state[side].croppedImg = finalImg;
-          state[side].cropBBox = [natX, natY, natW, natH];
-          state[side].cropCorners = [
-            [natX, natY],
-            [natX + natW, natY],
-            [natX + natW, natY + natH],
-            [natX, natY + natH]
-          ];
-
-          detectAndApplyAspect(side, finalImg);
-          updateSheetLayout();
-          renderSlot(side);
-          document.getElementById(side + 'Controls').style.display = 'flex';
-          document.getElementById(side + 'Label').innerText = `Card ${side.toUpperCase()} (Manual Cropped)`;
-          closeManualCropModal();
-          showToast(`Manual crop applied with exact corner curves!`, 'success');
+          commitManualCropImage(side, targetImg, finalImg, natCorners, natBox, alignData, 'Manual Cropped');
+          showToast(
+            alignData ? 'Manual crop aligned by text with ML Kit + OpenCV!' : 'Manual crop applied!',
+            'success'
+          );
         });
       };
-      newCroppedImg.src = croppedDataUrl;
+      newCroppedImg.src = finalDataUrl;
     }
 
-    // Keyboard navigation in Manual Crop Modal & Passport Crop Modal
+    // Keyboard navigation in Manual Crop Modal, Passport Crop Modal & Custom BG Picker
     window.addEventListener('keydown', (e) => {
+      const bgModal = document.getElementById('customBgColorModal');
+      if (bgModal && bgModal.style.display === 'flex') {
+        if (e.key === 'Escape') {
+          closeCustomPassportBgPicker();
+          return;
+        }
+        if (e.key === 'Enter') {
+          applyCustomPassportBgPicker();
+          return;
+        }
+      }
+
       const pModal = document.getElementById('passportCropModal');
       if (pModal && pModal.style.display === 'flex') {
         if (e.key === 'Escape') {
@@ -16862,8 +17876,13 @@ function getApiUrl(endpoint) {
           }
           if (typeof drawCanvas === 'function') drawCanvas();
           if (typeof currentAppMode !== 'undefined') {
-            if (currentAppMode === 'doc' && typeof renderCurrentDocPage === 'function') renderCurrentDocPage();
-            else if (currentAppMode === 'photo' && typeof renderPhotoGridSheet === 'function') renderPhotoGridSheet();
+            if (currentAppMode === 'doc') {
+              if (typeof resetDocZoom === 'function') resetDocZoom();
+              if (typeof renderCurrentDocPage === 'function') renderCurrentDocPage();
+            } else if (currentAppMode === 'photo') {
+              if (typeof resetPhotoZoom === 'function') resetPhotoZoom();
+              if (typeof renderPhotoGridSheet === 'function') renderPhotoGridSheet();
+            }
           }
         }, 60);
       }

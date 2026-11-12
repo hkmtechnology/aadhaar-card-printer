@@ -802,6 +802,14 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
         if not detected_bbox and "crop_box" in ratio_info:
             detected_bbox = list(ratio_info["crop_box"])
 
+        px_per_mm_dpi = (dpi / 25.4) if (dpi and dpi > 0) else (300.0 / 25.4)
+        eff_doc_type = ratio_info.get("doc_type", doc_type)
+        w_mm = ratio_info.get("width_mm")
+        h_mm = ratio_info.get("height_mm")
+        if (not w_mm or not h_mm) and final_img is not None:
+            w_mm = round(final_img.width / px_per_mm_dpi, 2)
+            h_mm = round(final_img.height / px_per_mm_dpi, 2)
+
         return {
             "success": True,
             "aborted": False,
@@ -810,6 +818,11 @@ def scan_from_epson(output_path, dpi=300, color_mode=1, do_autocrop=True, doc_ty
             "bbox": detected_bbox,
             "corners": ratio_info.get("corners"),
             "cropped": was_cropped,
+            "doc_type": eff_doc_type,
+            "width_mm": w_mm,
+            "height_mm": h_mm,
+            "width": final_img.width,
+            "height": final_img.height,
             "ratio_type": ratio_info.get("ratio_type", "custom"),
             "aspect": ratio_info.get("aspect", final_img.width / float(final_img.height)),
             "is_portrait": ratio_info.get("is_portrait", (final_img.height > final_img.width)),
